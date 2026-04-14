@@ -1,0 +1,82 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block content %}
+<style>
+    body {
+        font-size: 1.2em;
+    }
+    .npi-item {
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 14px 18px;
+        margin-bottom: 14px;
+        background: #fafafa;
+    }
+    .npi-item .form-group {
+        margin-bottom: 0;
+    }
+    .npi-item label {
+        font-weight: normal;
+    }
+</style>
+
+<h2 style="color:darkred; font-weight:bold; font-size:1.8em;">Questions about you</h2>
+<br>
+<p>
+    Before we begin the main task, please answer the following questions.
+    There are no right or wrong answers. For each pair of statements below, select the one that is
+    <span style="color:darkred; font-weight:bold;">closer to your own feelings</span>.
+</p>
+<br>
+
+<div id="npi-container">
+    <div class="npi-item" data-npi="1">
+        {{ formfield player.npi_1 label="" }}
+    </div>
+
+    <div class="npi-item" data-npi="2">
+        {{ formfield player.npi_2 label="" }}
+    </div>
+
+    <div class="npi-item" data-npi="3">
+        {{ formfield player.npi_3 label="" }}
+    </div>
+
+    <div class="npi-item" data-npi="4">
+        {{ formfield player.npi_4 label="" }}
+    </div>
+
+    <div class="npi-item" data-npi="5">
+        {{ formfield player.npi_5 label="" }}
+    </div>
+
+    <div class="npi-item" data-npi="6">
+        {{ formfield player.npi_6 label="" }}
+    </div>
+
+    <div class="npi-item" data-npi="7">
+        {{ formfield player.npi_7 label="" }}
+    </div>
+
+    <div class="npi-item" data-npi="8">
+        {{ formfield player.npi_8 label="" }}
+    </div>
+</div>
+
+<script>
+(function () {
+    const container = document.getElementById('npi-container');
+    if (!container) return;
+    const items = Array.from(container.children);
+    for (let i = items.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        container.insertBefore(items[j], items[i + 1] || null);
+        items.splice(j, 1);
+    }
+})();
+</script>
+
+{{ next_button }}
+
+{% endblock %}

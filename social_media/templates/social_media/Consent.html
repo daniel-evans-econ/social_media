@@ -1,0 +1,135 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block content %}
+<style>
+    body {
+        font-size: 1.2em;
+    }
+</style>
+
+<h2 style="color:darkred; font-weight:bold; font-size:1.8em;">
+    Consent and conditions of participation
+</h2>
+
+<br>
+
+<!-- 1) AI / LLM condition -->
+<div style="margin-bottom:1.5em;">
+    <label style="display:flex; align-items:flex-start; gap:10px;">
+        <input type="checkbox" name="llm_rule_confirm">
+        <span>
+            I understand that if the study's detection methods indicate that I have
+            <span style="color:darkred; font-weight:bold;">used any AI tool</span>
+            to assist me with completing this study, my data
+            <span style="color:darkred; font-weight:bold;">may be excluded</span>
+            and I may not receive bonus payments.
+        </span>
+    </label>
+</div>
+
+<!-- 2) Consent + nested privacy policy toggle -->
+<div style="margin-bottom:1.5em;">
+    <label style="display:flex; align-items:flex-start; gap:10px;">
+        <input type="checkbox" name="consent">
+        <span>
+            I have read the privacy policy below and
+            <span style="color:darkred; font-weight:bold;">consent to taking part in this study.</span>
+            By consenting, I
+            <span style="color:darkred; font-weight:bold;">
+                agree to the processing of my data for this research project.
+            </span>
+
+            <br><br>
+
+            <details>
+                <summary><em>Click here to display the full privacy policy</em></summary>
+
+                <span>
+                    <strong>Who is responsible for the study?</strong><br>
+                    Responsible for the execution of the study and therefore for the processing of your data:<br>
+                    <br>
+                    Daniel Evans<br>
+                    University of Bonn<br>
+                    Niebuhrstrasse 5<br>
+                    53113 Bonn<br>
+                    Germany<br>
+                    <br>
+
+                    <strong>What are the purposes of the study?</strong><br>
+                    In this project, we are interested in people's personalities, behavior, and task performance.<br>
+                    <br>
+
+                    <strong>What happens to my data?</strong><br>
+                    All participating employees and scientists work in accordance with the provisions of the Data Protection
+                    Regulation, the Federal Data Protection Act and the relevant State Data Protection Acts. For this project,
+                    we cooperate with research institutions, universities, institutes or laboratories which are not based in
+                    the EU. In general, these partners only receive anonymized data. In all other cases, we contractually oblige
+                    our partners to process the data as securely as is required in the EU. Those contracts are accepted by the EU
+                    for this purpose.<br>
+                    <br>
+                    Immediately after the collection, your data will be stored, anonymized, and then statistically analysed.
+                    No conclusions about your person can be drawn from these results. We work together with other partners,
+                    universities and laboratories for this study. These also only receive anonymized data, which do not allow
+                    any identification of your person. Even the laboratory or survey institute is no longer in a position to merge
+                    the survey data with your name after the execution of survey.<br>
+                    <br>
+                    Your data will be stored by a technical service provider outside the EU. We have taken all necessary precautions
+                    and concluded all contracts which are necessary in order to comply with data protection. Even if the service
+                    provider is not located in the EU, your data is secure as we have taken measures and if necessary concluded
+                    contracts with the service provider designated for this purpose in the EU.<br>
+                    <br>
+
+                    <strong>Which rights do I have?</strong><br>
+                    You have the right to obtain information about the personal data stored about you (Art. 15 GDPR).
+                    Should incorrect data be processed, you have the right to rectification (Art. 16 GDPR). When the legal
+                    requirements are met, you have the right to request the deletion or restriction of the processing and
+                    submit an objection against the processing of your data (Art. 17, 18 and 21 GDPR).<br>
+                    <br>
+                    You have the right to complain to the competent data protection authorities.<br>
+                    <br>
+                    The consent given here can be withdrawn at any time with effect for the future. However, if your data has
+                    already been anonymized, it can no longer be associated with you. Therefore we are unable to "remove" your
+                    data from the result.<br>
+                    <br>
+
+                    <strong>Declaration of Consent</strong><br>
+                    I was sufficiently informed in writing about the scientific study. I have read and understood the information
+                    regarding my participation. All questions in this context were satisfactorily discussed and answered. I also had
+                    sufficient time to decide whether or not to participate in this study.<br>
+                    <br>
+                    I have been informed that my participation is entirely voluntary.<br>
+                    <br>
+                    I know that I can withdraw my consent to participate in this study at any time without providing any reason and
+                    without having personal disadvantages. If I withdraw my consent to participate in this study, I have the right to
+                    request the deletion of all my personal data stored within the scope of this study. If the data has already been
+                    anonymized, this is equivalent to the deletion of the data.<br>
+                    <br>
+                    In case of any publishing by a scientific journal, the data will not indicate who has participated in this study.
+                    The applicable data protection laws protect my personal data.
+                </span>
+            </details>
+        </span>
+    </label>
+</div>
+
+{{ next_button }}
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const nextBtn = document.querySelector('button[type="submit"]');
+    const llmBox = document.querySelector('input[name="llm_rule_confirm"]');
+    const consentBox = document.querySelector('input[name="consent"]');
+
+    nextBtn.disabled = true;
+
+    function toggleNext() {
+        nextBtn.disabled = !(llmBox.checked && consentBox.checked);
+    }
+
+    llmBox.addEventListener('change', toggleNext);
+    consentBox.addEventListener('change', toggleNext);
+});
+</script>
+
+{% endblock %}

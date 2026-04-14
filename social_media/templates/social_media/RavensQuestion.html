@@ -1,0 +1,22 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block content %}
+<h3 style="color:darkred; font-weight:bold;">
+    Period {{ period }}, Question {{ question_in_period }} of {{ C.PERIOD_LENGTH }}
+</h3>
+<br>
+
+<p>
+    Look at the pattern below. Which figure best completes the matrix?
+</p>
+
+<div style="text-align:center; margin: 20px 0;">
+    <img src="{% static 'ravens_matrix.png' %}" alt="Raven's Progressive Matrix"
+         style="max-width:100%; width:560px; border:1px solid #ddd; border-radius:6px;">
+</div>
+
+{{ formfield player.raven_answer }}
+
+{{ next_button }}
+{% endblock %}

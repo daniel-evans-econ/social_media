@@ -1,0 +1,30 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block content %}
+<h3 style="color:darkred; font-weight:bold;">Performance estimate &mdash; Period {{ period }}</h3>
+<br>
+
+<p>
+    Think about your performance during this past period.
+</p>
+<p>
+    Imagine there are <strong style="color:darkred;">100 other participants</strong> who just
+    answered the <strong style="color:darkred;">same ten questions</strong>. How would you
+    <strong style="color:darkred;">rank yourself</strong> in terms of the percentage you got
+    correct from 0 to 100 in this period?
+</p>
+<p>
+    An answer of 100 means you did at least as well, or better, than all 100 of the other
+    participants in this period. An answer of 0 means you did as badly or worse than every other participant.
+</p>
+<p>
+    You will be paid <strong style="color:darkred;">&euro;0.50</strong> if your answer comes
+    within 10 percentage points of the true percentage.
+    Your payment will come a few days after the data collection is done, so we can compare
+    your answer against the true percentile.
+</p>
+
+{{ formfields }}
+{{ next_button }}
+{% endblock %}

@@ -1,0 +1,128 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block content %}
+<style>
+    body {
+        font-size: 1.2em;
+    }
+</style>
+
+<h2 style="color:darkred; font-weight:bold; font-size:1.8em;">Questions about you</h2>
+<br>
+<p>
+    Before we begin the main task, please answer the following questions.
+    There are no right or wrong answers. Please choose the option that best expresses
+    your opinion of whether each statement
+    <span style="color:darkred; font-weight:bold;">applies to you</span>.
+</p>
+<br>
+
+<table class="table table-bordered">
+    <colgroup>
+        <col style="width: 40%;">
+        <col style="width: 15%;">
+        <col style="width: 15%;">
+        <col style="width: 15%;">
+        <col style="width: 15%;">
+    </colgroup>
+
+    <thead>
+        <tr>
+            <th style="text-align:center; vertical-align:middle;"></th>
+            <th style="text-align:center; vertical-align:middle;">Strongly disagree</th>
+            <th style="text-align:center; vertical-align:middle;">Disagree</th>
+            <th style="text-align:center; vertical-align:middle;">Agree</th>
+            <th style="text-align:center; vertical-align:middle;">Strongly agree</th>
+        </tr>
+    </thead>
+
+    <tbody id="rses-tbody">
+        <tr>
+            <td style="vertical-align:middle;">On the whole, I am satisfied with myself.</td>
+            {% for choice in form.rses_1 %}
+                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
+            {% endfor %}
+        </tr>
+
+        <tr>
+            <td style="vertical-align:middle;">At times I think I am no good at all.</td>
+            {% for choice in form.rses_2 %}
+                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
+            {% endfor %}
+        </tr>
+
+        <tr>
+            <td style="vertical-align:middle;">I feel that I have a number of good qualities.</td>
+            {% for choice in form.rses_3 %}
+                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
+            {% endfor %}
+        </tr>
+
+        <tr>
+            <td style="vertical-align:middle;">I am able to do things as well as most other people.</td>
+            {% for choice in form.rses_4 %}
+                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
+            {% endfor %}
+        </tr>
+
+        <tr>
+            <td style="vertical-align:middle;">I feel I do not have much to be proud of.</td>
+            {% for choice in form.rses_5 %}
+                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
+            {% endfor %}
+        </tr>
+
+        <tr>
+            <td style="vertical-align:middle;">I certainly feel useless at times.</td>
+            {% for choice in form.rses_6 %}
+                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
+            {% endfor %}
+        </tr>
+
+        <tr>
+            <td style="vertical-align:middle;">I feel that I'm a person of worth, at least on an equal plane with others.</td>
+            {% for choice in form.rses_7 %}
+                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
+            {% endfor %}
+        </tr>
+
+        <tr>
+            <td style="vertical-align:middle;">I wish I could have more respect for myself.</td>
+            {% for choice in form.rses_8 %}
+                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
+            {% endfor %}
+        </tr>
+
+        <tr>
+            <td style="vertical-align:middle;">All in all, I am inclined to feel that I am a failure.</td>
+            {% for choice in form.rses_9 %}
+                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
+            {% endfor %}
+        </tr>
+
+        <tr>
+            <td style="vertical-align:middle;">I take a positive attitude toward myself.</td>
+            {% for choice in form.rses_10 %}
+                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
+            {% endfor %}
+        </tr>
+    </tbody>
+</table>
+
+<script>
+(function () {
+    const tbody = document.getElementById('rses-tbody');
+    if (!tbody) return;
+    const rows = Array.from(tbody.children);
+    for (let i = rows.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        tbody.insertBefore(rows[j], rows[i + 1] || null);
+        rows.splice(j, 1);
+    }
+})();
+</script>
+
+{{ next_button }}
+
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block content %}
+<h3 style="color:darkred; font-weight:bold;">Color task: 5 of 6</h3>
+<br>
+
+<p style="font-size:1.4em; color:green; font-weight:bold;">GREEN</p>
+{{ formfield player.stroop_5 }}
+
+{{ next_button }}
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block content %}
+<style>
+    .form-group > label:empty { display: none; }
+    .form-group { margin-top: 0; }
+</style>
+
+<h3 style="color:darkred; font-weight:bold;">Your experience</h3>
+<br>
+
+<p>
+    Our primary research questions relate to <strong style="color:darkred;">social media</strong>.
+    In particular, we are curious how social media-like features affect people's effort,
+    well-being, satisfaction, etc. One mechanism we are particularly interested in is
+    <strong style="color:darkred;">social feedback from your peers</strong>.
+</p>
+<p>
+    We suspect that learning about your peers' performance at the cognitive ability task can affect how
+    satisfied you are with your own performance. This is perhaps similar to how you might
+    compare your own life to other's lives on, e.g., Instagram.
+</p>
+<p>
+    How useful do you think the social feedback you received would be for testing this question?
+    What essential aspects of social media does it capture or miss?
+    Please describe your experience with the task, the feedback, and any aspects that
+    felt realistic or unrealistic.
+</p>
+
+{{ formfield player.realism_feedback }}
+
+{{ next_button }}
+{% endblock %}

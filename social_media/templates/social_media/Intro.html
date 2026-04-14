@@ -1,0 +1,41 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block content %}
+<style>
+    body { font-size: 1.1em; }
+</style>
+
+<h2 style="color:darkred; font-weight:bold;">Task instructions</h2>
+<br>
+<p>
+    You will now answer a series of questions. For each question,
+    you will see a collection of eight figures arranged according to a certain pattern.
+    A ninth figure is missing. Your job is to select the figure that
+    <strong style="color:darkred;">best completes the pattern</strong>.
+    Questions like these are typically used to measure
+    <strong style="color:darkred;">cognitive ability</strong>.
+</p>
+<p>
+    You will answer a total of <strong style="color:darkred;">20 questions</strong>
+    across <strong style="color:darkred;">two periods</strong>.
+    You will be paid <strong style="color:darkred;">{{ C.PAY_PER_CORRECT }}</strong>
+    for each one you answer correctly.
+</p>
+<p>
+    After every 5 questions, you will receive feedback about your performance on those
+    questions. At the end of each period, you will also complete a handful of short tasks
+    and make some choices that affect your earnings.
+</p>
+<p>
+    You will face some of the same tasks, choices, and questions twice.
+</p>
+<p>
+    There is also a possible third period, but it is strictly optional.
+</p>
+<p>
+    Please stay focused and answer each question as carefully as possible.
+</p>
+
+{{ next_button }}
+{% endblock %}

@@ -1,0 +1,88 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block content %}
+<h3 style="color:darkred; font-weight:bold;">Willingness to continue</h3>
+<br>
+
+<p>
+    As you know, the experiment already features two periods. You will answer the
+    <strong style="color:darkred;">main cognitive ability</strong> (pattern completion)
+    questions in both periods.
+</p>
+<p>
+    Now, we are offering you the option to answer the same type of questions in a
+    <strong style="color:darkred;">third period</strong>, again for payment.
+    You would receive the same type of feedback in the third period that you did in this period
+    (<strong style="color:darkred;">{{ feedback_desc }}</strong>).
+</p>
+<p>
+    Would you accept this offer if the payment is
+    <strong style="color:darkred;"><span id="amount">{{ current_amount }}</span></strong>
+    per correct question?
+</p>
+
+<div id="choice_buttons" style="margin: 25px 0;">
+    <button type="button" class="btn btn-primary" onclick="sendChoice('Yes')"
+            style="font-size:1.1em; padding:10px 30px; background:darkred; border:none; border-radius:6px; color:#fff; cursor:pointer;">
+        Yes
+    </button>
+    <button type="button" class="btn btn-secondary" onclick="sendChoice('No')"
+            style="font-size:1.1em; padding:10px 30px; margin-left:15px; border-radius:6px; cursor:pointer;">
+        No
+    </button>
+</div>
+
+<p>
+    This is decision <span id="step" style="color:darkred; font-weight:bold;">{{ step }}</span>
+    of <span style="color:darkred; font-weight:bold;">{{ total_steps }}</span>.
+</p>
+
+<p style="color:#555; font-size:0.95em;">
+    You will face a comparable decision for several different per-question payment amounts.
+    One of these decisions will be
+    <strong style="color:darkred;">randomly selected</strong> and
+    <strong style="color:darkred;">implemented</strong>.
+    {% if is_second_period %}
+    Your responses now stack with your responses from the previous period.
+    That is, selections from both periods are valid and it is possible that any of them
+    are chosen for implementation in a potential third period.
+    {% endif %}
+</p>
+
+<div id="msg" style="color:darkred; margin:15px 0;"></div>
+
+<button class="otree-btn-next btn btn-success" id="next_btn" style="display:none;">
+    Next
+</button>
+
+<script>
+function sendChoice(choice) {
+    liveSend({choice: choice});
+}
+
+function liveRecv(data) {
+    if (!data) return;
+
+    if (data.error) {
+        document.getElementById('msg').innerText = data.error;
+        return;
+    }
+
+    if (data.finished) {
+        document.getElementById('choice_buttons').style.display = 'none';
+        document.getElementById('msg').innerText =
+            "All decisions recorded. Please click 'Next' to continue.";
+        document.getElementById('next_btn').style.display = 'inline-block';
+        return;
+    }
+
+    if (data.next_amount !== undefined) {
+        document.getElementById('amount').innerText = data.next_amount;
+    }
+    if (data.step !== undefined) {
+        document.getElementById('step').innerText = data.step;
+    }
+}
+</script>
+{% endblock %}

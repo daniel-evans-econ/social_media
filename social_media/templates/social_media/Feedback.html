@@ -1,0 +1,55 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block content %}
+<h3 style="color:darkred; font-weight:bold;">Performance feedback</h3>
+<br>
+
+<p>
+    You answered <strong style="color:darkred;">{{ block_score }}</strong> out of <strong style="color:darkred;">5</strong> questions correctly.
+</p>
+
+{% if condition == "quantitative_social" %}
+<hr>
+<p>
+    Another group of participants answered the
+    <strong style="color:darkred;">same five questions</strong> that you just answered.
+    After learning how many they got correctly, we gave them the option of
+    <strong style="color:darkred;">sending you a message</strong>.
+    The message contains the participant's self-reported number of questions
+    that they answered correctly. Participants were not required to report
+    the actual number they answered correctly in the message.
+</p>
+<p>
+    The numbers reported by <strong style="color:darkred;">three random participants</strong>,
+    among those who chose to send a message, are as follows:
+</p>
+<ul style="font-size:1.1em; list-style:none; padding-left:0;">
+    {% for s in signals.scores %}
+    <li style="margin-bottom:6px;">Participant {{ forloop.counter }}: <strong style="color:darkred;">{{ s }}</strong> out of <strong style="color:darkred;">5</strong></li>
+    {% endfor %}
+</ul>
+
+{% elif condition == "qualitative_social" %}
+<hr>
+<p>
+    Another group of participants answered the
+    <strong style="color:darkred;">same five questions</strong> that you just answered.
+    After learning how many they got correctly, we gave them the option of
+    <strong style="color:darkred;">sending you a message</strong>.
+    The message contains an emoji that the participant chose to capture how
+    they feel about their performance. Participants could select any emoji they liked.
+</p>
+<p>
+    The emojis selected by <strong style="color:darkred;">three random participants</strong>,
+    among those who chose to send a message, are as follows:
+</p>
+<ul style="font-size:1.1em; list-style:none; padding-left:0;">
+    {% for e in signals.emojis %}
+    <li style="margin-bottom:6px;">Participant {{ forloop.counter }}: <span style="font-size:1.8em;">{{ e }}</span></li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{{ next_button }}
+{% endblock %}
