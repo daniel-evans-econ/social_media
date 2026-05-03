@@ -1,0 +1,25 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block content %}
+<h3 style="color:darkred; font-weight:bold;">Demographics</h3>
+<br>
+
+<p>
+    Please answer the following questions about yourself.
+</p>
+
+<div class="form-group" style="margin-top:1.2em;">
+    {{ formfield player.age }}
+</div>
+
+<div class="form-group" style="margin-top:1.2em;">
+    {{ formfield player.gender }}
+</div>
+
+<div class="form-group" style="margin-top:1.2em;">
+    {{ formfield player.education }}
+</div>
+
+{{ next_button }}
+{% endblock %}

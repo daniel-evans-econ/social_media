@@ -1,0 +1,43 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block content %}
+<style>
+    /* Hide oTree-injected blank labels and tighten table spacing for the cleaner look. */
+    label.col-form-label:empty,
+    .form-group label:empty { display: none !important; }
+    .form-group { margin-bottom: 1.4em; }
+</style>
+
+<h3 style="color:darkred; font-weight:bold;">A few quick questions about Period {{ period }}</h3>
+<br>
+
+<div class="form-group">
+    <p style="margin-bottom:6px;">
+        How is your <strong style="color:darkred;">mood</strong> right now?
+    </p>
+    {{ formfield player.mood }}
+</div>
+
+<div class="form-group">
+    <p style="margin-bottom:6px;">
+        How much did you <strong style="color:darkred;">enjoy</strong> the
+        <span style="color:darkred; font-weight:bold;">main pattern completion task</span>
+        in this period?
+    </p>
+    {{ formfield player.task_enjoyment }}
+</div>
+
+<div class="form-group">
+    <p style="margin-bottom:6px;">
+        How <strong style="color:darkred;">satisfied</strong> are you with your payment of
+        <span style="color:darkred; font-weight:bold;">&euro;{{ period_earnings }}</span>
+        from the
+        <span style="color:darkred; font-weight:bold;">main pattern completion task</span>
+        in this period?
+    </p>
+    {{ formfield player.payment_satisfaction }}
+</div>
+
+{{ next_button }}
+{% endblock %}

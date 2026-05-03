@@ -8,10 +8,10 @@
     }
 </style>
 
-<h2 style="color:darkred; font-weight:bold; font-size:1.8em;">Questions about you</h2>
+<h2 style="color:darkred; font-weight:bold; font-size:1.8em;">Great job, almost done!</h2>
 <br>
 <p>
-    Before we begin the main task, please answer the following questions.
+    The next few pages contain some questions about you.
     There are no right or wrong answers. Please choose the option that best expresses
     your opinion of whether each statement
     <span style="color:darkred; font-weight:bold;">applies to you</span>.
@@ -113,6 +113,13 @@
         </tr>
 
         <tr>
+            <td style="vertical-align:middle;">&hellip;is sure that my answers to these questions describe me accurately.</td>
+            {% for choice in form.big5_accuracy %}
+                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
+            {% endfor %}
+        </tr>
+
+        <tr>
             <td style="vertical-align:middle;">&hellip;enjoys competing with others.</td>
             {% for choice in form.competitiveness %}
                 <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
@@ -134,6 +141,7 @@
 })();
 </script>
 
+<br>
 {{ next_button }}
 
 {% endblock %}

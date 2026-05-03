@@ -2,34 +2,20 @@
 {% load otree static %}
 
 {% block content %}
-<h3 style="color:darkred; font-weight:bold;">Results so far</h3>
+<h3 style="color:darkred; font-weight:bold;">Next steps</h3>
 <br>
 
-<p>Raven's matrices correct: <strong style="color:darkred;">{{ raven_total }}</strong> out of 20</p>
-<p>Key presses: <strong style="color:darkred;">{{ ab_total }}</strong></p>
-<p>Color tasks correct: <strong style="color:darkred;">{{ stroop_total }}</strong></p>
-
-<p style="font-size:1.1em; margin-top:15px;">
-    Payoff so far: <strong style="color:darkred;">{{ payoff }}</strong>
-</p>
-
-<hr>
-<p>
-    One of your willingness-to-continue decisions was randomly selected
-    (<strong style="color:darkred;">{{ selected_amount }}</strong>).
-    Outcome: <strong style="color:darkred;">{% if selected_for_retake %}take the test{% else %}end survey{% endif %}</strong>.
-</p>
-
-{% if selected_for_retake %}
-<p>
-    The feedback in the third period will be
-    <strong style="color:darkred;">{{ p3_feedback_desc }}</strong>.
-</p>
-{% endif %}
-
-<p style="margin-top:20px; color:#555; font-size:0.95em;">
-    If you correctly guessed your performance ranking within 10 percentage points in
-    periods 1 and 2, additional payments will be forthcoming within a few days.
+<p style="font-size:1.05em;">
+    The selected scenario was:
+    <strong style="color:darkred;">{{ selected_accept_decline }}</strong>:
+    {{ selected_amount }} per correct answer and
+    &ldquo;<strong style="color:darkred;">{{ selected_feedback_label }}</strong>.&rdquo;
+    <br><br>
+    {% if selected_for_retake %}
+        As such, please select Next to complete the third round of questions.
+    {% else %}
+        Please select Next to answer some final questions and wrap up.
+    {% endif %}
 </p>
 
 {{ next_button }}

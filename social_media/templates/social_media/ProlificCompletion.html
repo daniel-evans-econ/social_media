@@ -1,0 +1,10 @@
+{% extends "global/Page.html" %}
+{% block content %}
+<p>You have completed the study. Redirecting to Prolific…</p>
+
+<script>
+  window.location.href = "{{ prolific_url }}";
+</script>
+
+<p>If you aren’t redirected, <a href="{{ prolific_url }}">click here</a>.</p>
+{% endblock %}

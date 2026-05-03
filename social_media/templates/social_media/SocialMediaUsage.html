@@ -7,6 +7,8 @@
     .platform-list li { margin-bottom: 8px; }
     .platform-list label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal; }
     .other-text { margin-left: 30px; margin-top: 4px; }
+    .hours-block { margin-top: 24px; padding-top: 16px; border-top: 1px solid #e1e4e8; }
+    .hours-block.disabled { opacity: 0.45; pointer-events: none; }
 </style>
 
 <h3 style="color:darkred; font-weight:bold;">Social media usage</h3>
@@ -15,10 +17,8 @@
     Finally, we would like to ask a few questions about your social media habits.
 </p>
 
-{{ formfield player.social_media_hours }}
-
-<p style="margin-top:20px;">
-    Which social media platforms do you use regularly?
+<p style="margin-top:12px;">
+    <strong>Which social media platforms do you use regularly?</strong>
     <span style="color:#666;">(Select all that apply)</span>
 </p>
 
@@ -31,6 +31,7 @@
     <li><label><input type="checkbox" name="sm_youtube" class="sm-platform" value="True"> YouTube</label></li>
     <li><label><input type="checkbox" name="sm_reddit" class="sm-platform" value="True"> Reddit</label></li>
     <li><label><input type="checkbox" name="sm_linkedin" class="sm-platform" value="True"> LinkedIn</label></li>
+    <li><label><input type="checkbox" name="sm_bluesky" class="sm-platform" value="True"> Bluesky</label></li>
     <li>
         <label><input type="checkbox" name="sm_other" id="sm_other_check" class="sm-platform" value="True"> Other:</label>
         <div class="other-text">
@@ -44,12 +45,34 @@
     </li>
 </ul>
 
+<div id="hours-block" class="hours-block">
+    <p>
+        <strong>On average, how many hours per day do you spend on social media?</strong>
+    </p>
+    <input type="number" name="social_media_hours" id="social_media_hours"
+           class="form-control" min="0" max="24" step="0.1"
+           style="max-width:200px;">
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var otherCheck = document.getElementById('sm_other_check');
     var otherText = document.getElementById('sm_other_text');
     var noneCheck = document.getElementById('sm_none_check');
     var platformBoxes = document.querySelectorAll('.sm-platform');
+    var hoursBlock = document.getElementById('hours-block');
+    var hoursInput = document.getElementById('social_media_hours');
+
+    function refreshHoursState() {
+        if (noneCheck.checked) {
+            hoursBlock.classList.add('disabled');
+            hoursInput.value = '';
+            hoursInput.disabled = true;
+        } else {
+            hoursBlock.classList.remove('disabled');
+            hoursInput.disabled = false;
+        }
+    }
 
     otherCheck.addEventListener('change', function () {
         otherText.disabled = !otherCheck.checked;
@@ -64,15 +87,19 @@ document.addEventListener('DOMContentLoaded', function () {
             otherText.disabled = true;
             otherText.value = '';
         }
+        refreshHoursState();
     });
 
     platformBoxes.forEach(function (cb) {
         cb.addEventListener('change', function () {
             if (cb.checked) {
                 noneCheck.checked = false;
+                refreshHoursState();
             }
         });
     });
+
+    refreshHoursState();
 });
 </script>
 

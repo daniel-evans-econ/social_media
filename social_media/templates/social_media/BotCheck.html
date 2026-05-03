@@ -1,0 +1,143 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block content %}
+<style>
+    body {
+        font-size: 1.2em;
+    }
+    /* Gray out Next button until Turnstile verifies */
+    button.otree-btn-next:disabled,
+    button[type="submit"]:disabled,
+    input[type="submit"]:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+</style>
+
+<h2 style="color:darkred; font-weight:bold; font-size:1.8em;">Welcome!</h2>
+<br>
+<p>
+Thank you for joining.
+Before we continue, please complete the short verification box below.
+This helps us confirm that responses come from human participants and protects the integrity of the study.
+<br><br>
+Continue to the next page to give your consent.
+</p>
+<br>
+
+{% if enable_turnstile %}
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <div style="margin-top:1em;">
+    <div id="turnstile_widget"></div>
+    <input type="hidden" name="turnstile_token" id="turnstile_token" />
+    <input type="hidden" name="turnstile_bypass_key" id="turnstile_bypass_key" />
+    <input type="hidden" name="turnstile_client_host" id="turnstile_client_host" />
+  </div>
+  <script>
+    var turnstileVerified = false;
+    var nextBtnObserver = null;
+
+    function getNextControls() {
+      return Array.from(
+        document.querySelectorAll('button.otree-btn-next, button[type="submit"], input[type="submit"]')
+      );
+    }
+
+    function onTurnstileSuccess(token) {
+      var tokenEl = document.getElementById('turnstile_token');
+      if (tokenEl) tokenEl.value = token;
+      turnstileVerified = true;
+      if (nextBtnObserver) nextBtnObserver.disconnect();
+      getNextControls().forEach(function (el) {
+        el.disabled = false;
+      });
+    }
+
+    function onTurnstileExpired() {
+      var tokenEl = document.getElementById('turnstile_token');
+      if (tokenEl) tokenEl.value = '';
+      turnstileVerified = false;
+      disableNextUntilVerified();
+    }
+
+    function onTurnstileError() {
+      var tokenEl = document.getElementById('turnstile_token');
+      if (tokenEl) tokenEl.value = '';
+      turnstileVerified = false;
+      disableNextUntilVerified();
+    }
+
+    function setTurnstileHostMetadata() {
+      var host = (window.location && window.location.hostname) ? window.location.hostname.toLowerCase() : '';
+      var hostEl = document.getElementById('turnstile_client_host');
+      if (hostEl) hostEl.value = host;
+    }
+
+    function initTurnstileWidgetWithRetry(retriesLeft) {
+      var host = (window.location && window.location.hostname) ? window.location.hostname.toLowerCase() : '';
+      var useTestOnLocalhost = {{ turnstile_use_test_keys_on_localhost_js }};
+      var isLocalhost = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+      var siteKey = (useTestOnLocalhost && isLocalhost)
+        ? '{{ turnstile_test_site_key }}'
+        : '{{ turnstile_site_key }}';
+
+      if (window.turnstile && document.getElementById('turnstile_widget')) {
+        window.turnstile.render('#turnstile_widget', {
+          sitekey: siteKey,
+          callback: onTurnstileSuccess,
+          'expired-callback': onTurnstileExpired,
+          'error-callback': onTurnstileError,
+        });
+        return;
+      }
+
+      if (retriesLeft > 0) {
+        setTimeout(function () {
+          initTurnstileWidgetWithRetry(retriesLeft - 1);
+        }, 200);
+      }
+    }
+
+    function disableNextUntilVerified() {
+      if (turnstileVerified) return;
+      getNextControls().forEach(function (el) {
+        el.disabled = true;
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function () {
+        disableNextUntilVerified();
+        setTurnstileHostMetadata();
+        nextBtnObserver = new MutationObserver(function () {
+          disableNextUntilVerified();
+        });
+        nextBtnObserver.observe(document.body, { childList: true, subtree: true });
+        initTurnstileWidgetWithRetry(30);
+      });
+    } else {
+      disableNextUntilVerified();
+      setTurnstileHostMetadata();
+      nextBtnObserver = new MutationObserver(function () {
+        disableNextUntilVerified();
+      });
+      nextBtnObserver.observe(document.body, { childList: true, subtree: true });
+      initTurnstileWidgetWithRetry(30);
+    }
+  </script>
+{% else %}
+  <!-- Turnstile is disabled on this deployment -->
+  <input type="hidden" name="turnstile_token" value="disabled" />
+  <input type="hidden" name="turnstile_bypass_key" value="" />
+  <input type="hidden" name="turnstile_client_host" value="" />
+{% endif %}
+
+<div style="position:absolute; left:-10000px; top:auto; width:1px; height:1px; overflow:hidden;" aria-hidden="true">
+  <label for="id_honeypot_intro_response">Please enter your Prolific ID here</label>
+  {{ formfield 'honeypot_intro_response' label="" }}
+</div>
+
+{{ next_button }}
+{% endblock %}

@@ -2,21 +2,458 @@
 {% load otree static %}
 
 {% block content %}
-<h3 style="color:darkred; font-weight:bold;">
-    Period {{ period }}, Question {{ question_in_period }} of {{ C.PERIOD_LENGTH }}
-</h3>
-<br>
+<style>
+    /* ---------- Question ---------- */
+    .raven-wrap { max-width: 720px; margin: 0 auto; }
 
-<p>
-    Look at the pattern below. Which figure best completes the matrix?
-</p>
+    /* ---------- Slide-in feedback sidebar ---------- */
+    .fb-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.35);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s ease;
+        z-index: 9998;
+    }
+    .fb-overlay.open { opacity: 1; pointer-events: auto; }
 
-<div style="text-align:center; margin: 20px 0;">
-    <img src="{% static 'ravens_matrix.png' %}" alt="Raven's Progressive Matrix"
-         style="max-width:100%; width:560px; border:1px solid #ddd; border-radius:6px;">
+    .fb-sidebar {
+        position: fixed;
+        top: 0; right: 0;
+        width: 400px;
+        max-width: 92vw;
+        height: 100%;
+        background: #fff;
+        box-shadow: -8px 0 24px rgba(0, 0, 0, 0.18);
+        transform: translateX(105%);
+        transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        border-top-left-radius: 14px;
+        border-bottom-left-radius: 14px;
+        overflow: hidden;
+    }
+    .fb-sidebar.open { transform: translateX(0); }
+
+    .fb-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 16px 20px 12px;
+        border-bottom: 1px solid #eee;
+    }
+    .fb-app-icon {
+        width: 32px; height: 32px;
+        border-radius: 8px;
+        background: darkred;
+        color: #fff;
+        font-weight: bold;
+        font-size: 0.8em;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .fb-header .fb-title { font-weight: 600; flex: 1; color: darkred; }
+
+    .fb-body {
+        padding: 14px 20px 8px;
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    .fb-score {
+        background: #f8fafc;
+        border: 1px solid #d8dde3;
+        border-radius: 12px;
+        padding: 12px 16px;
+        margin-bottom: 14px;
+        font-size: 1.05em;
+    }
+
+    .fb-post {
+        background: #fff;
+        border: 1px solid #e2e6eb;
+        border-radius: 12px;
+        padding: 12px 16px;
+        margin-bottom: 14px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+    .fb-post-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .fb-avatar {
+        width: 36px; height: 36px;
+        border-radius: 50%;
+        background: #6c5ce7;
+        color: #fff;
+        font-weight: bold;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1em;
+    }
+    .fb-post-name { font-weight: 600; font-size: 0.95em; }
+    .fb-post-body { font-size: 1em; margin-left: 46px; margin-top: 2px; }
+    .fb-post-quote { margin-top: 6px; color: #444; font-style: italic; }
+
+    .fb-compose {
+        background: #f0f6ff;
+        border: 1px solid #b9d4ff;
+        border-radius: 12px;
+        padding: 12px 16px;
+    }
+    .fb-compose h4 { margin: 0 0 6px 0; color: #1a4998; font-size: 0.95em; }
+    .fb-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+    .fb-row label {
+        cursor: pointer;
+        padding: 6px 12px;
+        border: 2px solid #d0d0d0;
+        border-radius: 8px;
+        background: #fff;
+        min-width: 38px;
+        text-align: center;
+    }
+    .fb-row.fb-emoji label { font-size: 1.5em; padding: 4px 10px; }
+    .fb-row input[type="radio"] { display: none; }
+    .fb-row label:has(input[type="radio"]:checked) {
+        border-color: #1a4998;
+        background: #e8f0ff;
+        font-weight: bold;
+    }
+    .fb-compose textarea {
+        width: 100%;
+        min-height: 50px;
+        padding: 8px;
+        border: 1px solid #b9d4ff;
+        border-radius: 6px;
+        resize: vertical;
+        font-family: inherit;
+        font-size: 0.95em;
+    }
+    .fb-share {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+        font-size: 0.92em;
+    }
+
+    .fb-actions {
+        padding: 12px 20px;
+        border-top: 1px solid #eee;
+        background: #fff;
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+    .fb-btn {
+        padding: 8px 18px;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+        background: #fff;
+        cursor: pointer;
+        font-size: 0.95em;
+    }
+    .fb-btn-primary {
+        background: darkred;
+        color: #fff;
+        border-color: darkred;
+    }
+
+    body.fb-locked { overflow: hidden; }
+
+    .fb-share-step {
+        display: none;
+        margin-top: 12px;
+        padding: 14px 16px;
+        border: 2px solid darkred;
+        border-radius: 10px;
+        background: #fff8f8;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    }
+    .fb-share-step.visible { display: block; }
+    .fb-share-step .fb-share-prompt {
+        font-weight: 600;
+        margin: 0 0 10px 0;
+        color: #222;
+    }
+</style>
+
+<div class="raven-wrap">
+    <h3 style="color:darkred; font-weight:bold;">
+        Period {{ period }}, Question {{ question_in_period }} of {{ C.PERIOD_LENGTH }}
+    </h3>
+    <br>
+
+    <p>
+        Look at the pattern below. Which figure best completes the matrix?
+    </p>
+
+    <div style="text-align:center; margin: 20px 0;">
+        <img src="{% static 'ravens_matrix.png' %}" alt="Raven's Progressive Matrix"
+             style="max-width:100%; width:560px; border:1px solid #ddd; border-radius:6px;">
+    </div>
+
+    {{ formfield player.raven_answer }}
+
+    {% if is_feedback_round %}
+        <button type="button" id="raven-next-btn" class="otree-btn-next btn btn-primary">
+            Next
+        </button>
+    {% else %}
+        {{ next_button }}
+    {% endif %}
 </div>
 
-{{ formfield player.raven_answer }}
+{% if is_feedback_round %}
+<div class="fb-overlay" id="fb-overlay"></div>
 
-{{ next_button }}
+<aside class="fb-sidebar" id="fb-sidebar" aria-hidden="true" aria-label="Performance summary">
+    <div class="fb-header">
+        <div class="fb-app-icon">SM</div>
+        <div class="fb-title">Performance summary</div>
+    </div>
+
+    <div class="fb-body">
+        <div class="fb-score">
+            You answered <strong style="color:darkred;"><span id="fb-block-score"
+                data-prior="{{ block_score_prior }}"
+                data-correct="{{ raven_correct_letter }}">&mdash;</span> out of the last 5 questions</strong> correctly.
+        </div>
+
+        {% if in_treatment %}
+            <p style="font-size:0.92em; color:#444; margin: 0 0 10px 0;">
+                Here is a message from a participant who answered the
+                <strong style="color:darkred;">same 5 questions that you did</strong>.
+            </p>
+            <p style="font-size:0.92em; color:#444; margin: 0 0 12px 0;">
+                We asked others to report how they did on the task, but not all of them sent a message.
+                We also did not verify the truthfulness of what they wrote.
+            </p>
+
+            <!-- One peer report from a simulated past participant -->
+            <div class="fb-post">
+                <div class="fb-post-head">
+                    <div class="fb-avatar">{{ signal_initial }}</div>
+                    <div>
+                        <div class="fb-post-name">{{ signal.name }}</div>
+                    </div>
+                </div>
+                <div class="fb-post-body">
+                    {% if is_quantitative %}
+                        I got {{ signal.score }} out of the last 5 questions correct.
+                    {% else %}
+                        <span style="font-size:1.6em;">{{ signal.emoji }}</span>
+                        <div class="fb-post-quote">&ldquo;{{ signal.sentence }}&rdquo;</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Compose-your-own report panel (step 1); sharing choice appears after Continue -->
+            <div class="fb-compose">
+                <h4>Share your performance &darr;</h4>
+
+                <div id="fb-compose-inputs">
+                    <div style="margin-bottom:12px;">
+                        <label for="id_report_display_name" style="font-size:0.9em; display:block; margin-bottom:6px;">
+                            What name do you want to use?
+                        </label>
+                        <input type="text" name="report_display_name" id="id_report_display_name"
+                               maxlength="60" autocomplete="nickname"
+                               style="width:100%; padding:8px; border:1px solid #b9d4ff; border-radius:6px; box-sizing:border-box;">
+                    </div>
+                    {% if is_quantitative %}
+                        <div style="font-size:0.9em;">How many did you get right?</div>
+                        <div class="fb-row">
+                            {% for n in number_options %}
+                                <label>
+                                    <input type="radio" name="report_number" value="{{ n }}">
+                                    {{ n }}
+                                </label>
+                            {% endfor %}
+                        </div>
+                        <p style="margin-top:12px; font-size:1em;" id="fb-quant-preview-wrap">
+                            <strong>Message:</strong> I got <span id="fb-quant-x">X</span> out of the last 5 questions correct.
+                        </p>
+                        <input type="hidden" name="report_message" id="id_report_message" value="">
+                    {% else %}
+                        <div style="font-size:0.9em;">How did the last 5 questions go?</div>
+                        <div class="fb-row fb-emoji">
+                            {% for e in qual_emojis %}
+                                <label>
+                                    <input type="radio" name="report_emoji" value="{{ e }}">
+                                    <span>{{ e }}</span>
+                                </label>
+                            {% endfor %}
+                        </div>
+                        <div style="margin-top:8px;">
+                            <label for="id_report_message" style="font-size:0.85em;">
+                                Add a short note (max 140 characters):
+                            </label>
+                            <textarea name="report_message" id="id_report_message"
+                                      maxlength="140"></textarea>
+                        </div>
+                    {% endif %}
+
+                </div>
+
+                <div id="fb-share-step" class="fb-share-step" aria-live="polite">
+                    <p class="fb-share-prompt">Do you want to send your message to a future participant?</p>
+                    <div class="fb-share">
+                        <input type="checkbox" name="report_shared" id="id_report_shared" value="True">
+                        <label for="id_report_shared" style="margin:0;">
+                            Yes, share my message with a future participant
+                        </label>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="fb-actions">
+        {% if in_treatment %}
+            <div id="fb-actions-compose">
+                <button type="button" class="fb-btn fb-btn-primary" id="fb-compose-next">
+                    Continue
+                </button>
+            </div>
+            <div id="fb-actions-final" style="display:none;">
+                <button type="submit" class="fb-btn fb-btn-primary" id="fb-final-submit">
+                    Continue
+                </button>
+            </div>
+        {% else %}
+            <button type="submit" class="fb-btn fb-btn-primary" id="fb-continue-btn">
+                Continue
+            </button>
+        {% endif %}
+    </div>
+</aside>
+
+<script>
+(function () {
+    var openBtn = document.getElementById('raven-next-btn');
+    var sidebar = document.getElementById('fb-sidebar');
+    var overlay = document.getElementById('fb-overlay');
+    var composeNext = document.getElementById('fb-compose-next');
+    var composeInputs = document.getElementById('fb-compose-inputs');
+    var shareStep = document.getElementById('fb-share-step');
+    var actionsCompose = document.getElementById('fb-actions-compose');
+    var actionsFinal = document.getElementById('fb-actions-final');
+
+    function ravenAnswered() {
+        var inputs = document.querySelectorAll('input[name="raven_answer"]');
+        for (var i = 0; i < inputs.length; i++) {
+            if (inputs[i].checked) return true;
+        }
+        return false;
+    }
+
+    function pauseOtreeTimer() {
+        // oTree's question timer is a jQuery countdown attached to .otree-timer__time-left.
+        // Pause it (and visually hide the yellow box) while the participant reads the
+        // feedback sidebar so the question time limit doesn't keep ticking down.
+        try {
+            if (window.jQuery) {
+                var $t = window.jQuery('.otree-timer__time-left');
+                if ($t.length) { $t.countdown('pause'); }
+            }
+        } catch (e) { /* timer may not be present; safe to ignore */ }
+        var box = document.querySelector('.otree-timer');
+        if (box) { box.style.visibility = 'hidden'; }
+    }
+
+    function openSidebar() {
+        sidebar.classList.add('open');
+        overlay.classList.add('open');
+        sidebar.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('fb-locked');
+        pauseOtreeTimer();
+        updateFbBlockScore();
+    }
+
+    function updateFbBlockScore() {
+        var el = document.getElementById('fb-block-score');
+        if (!el) return;
+        var prior = parseInt(el.getAttribute('data-prior'), 10);
+        if (isNaN(prior)) prior = 0;
+        var correctLetter = el.getAttribute('data-correct') || '';
+        var checked = document.querySelector('input[name="raven_answer"]:checked');
+        var add = (checked && checked.value === correctLetter) ? 1 : 0;
+        el.textContent = String(prior + add);
+    }
+
+    if (openBtn) {
+        openBtn.addEventListener('click', function () {
+            if (!ravenAnswered()) {
+                alert('Please select an answer before continuing.');
+                return;
+            }
+            openSidebar();
+        });
+    }
+
+    document.querySelectorAll('input[name="raven_answer"]').forEach(function (inp) {
+        inp.addEventListener('change', updateFbBlockScore);
+    });
+
+    function displayNameOk() {
+        var el = document.getElementById('id_report_display_name');
+        return el && String(el.value || '').trim().length > 0;
+    }
+
+    function composeStepComplete() {
+        if (!displayNameOk()) {
+            alert('Please enter the name you want to use.');
+            return false;
+        }
+        var numRadios = document.querySelectorAll('input[name="report_number"]');
+        if (numRadios.length) {
+            var numChecked = document.querySelector('input[name="report_number"]:checked');
+            if (!numChecked) {
+                alert('Please select how many questions you got right.');
+                return false;
+            }
+            var hiddenMsg = document.getElementById('id_report_message');
+            if (hiddenMsg && hiddenMsg.tagName === 'INPUT') {
+                hiddenMsg.value = 'Message: I got ' + numChecked.value + ' out of the last 5 questions correct.';
+            }
+            return true;
+        }
+        var msgEl = document.getElementById('id_report_message');
+        var msg = msgEl ? String(msgEl.value || '').trim() : '';
+        if (!msg) {
+            alert('Please add a short note before continuing.');
+            return false;
+        }
+        var emoChecked = document.querySelector('input[name="report_emoji"]:checked');
+        if (document.querySelectorAll('input[name="report_emoji"]').length && !emoChecked) {
+            alert('Please indicate how the last 5 questions went.');
+            return false;
+        }
+        return true;
+    }
+
+    (function syncQuantPreview() {
+        var previewX = document.getElementById('fb-quant-x');
+        var hiddenMsg = document.getElementById('id_report_message');
+        if (!previewX || !hiddenMsg || hiddenMsg.tagName !== 'INPUT') return;
+        document.querySelectorAll('input[name="report_number"]').forEach(function (radio) {
+            radio.addEventListener('change', function () {
+                var v = radio.value;
+                previewX.textContent = v;
+                hiddenMsg.value = 'Message: I got ' + v + ' out of the last 5 questions correct.';
+            });
+        });
+    })();
+
+    if (composeNext && composeInputs && shareStep && actionsCompose && actionsFinal) {
+        composeNext.addEventListener('click', function () {
+            if (!composeStepComplete()) return;
+            composeInputs.style.display = 'none';
+            shareStep.classList.add('visible');
+            actionsCompose.style.display = 'none';
+            actionsFinal.style.display = 'flex';
+            shareStep.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+    }
+})();
+</script>
+{% endif %}
 {% endblock %}

@@ -1,1 +1,1 @@
-web: otree prodserver $PORT
+web: otree prodserver1of2

@@ -1,0 +1,64 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block content %}
+<style>
+    body { font-size: 1.15em; }
+    .rel-wrap { max-width: 960px; margin: 0 auto; }
+    .rel-table { width: 100%; table-layout: fixed; margin-top: 18px; }
+    .rel-table th,
+    .rel-table td {
+        text-align: center;
+        vertical-align: middle;
+        padding: 10px 4px;
+        font-size: 0.95em;
+    }
+    .rel-table .rel-prompt {
+        text-align: left !important;
+        width: 26%;
+        font-size: 1em;
+    }
+</style>
+
+<div class="rel-wrap">
+    <h2 style="color:darkred; font-weight:bold;">Survey reliability</h2>
+    <br>
+
+    <p>
+        Please indicate on the scale below how reliable your answers to this survey are.
+    </p>
+    <p style="font-size:0.92em; color:#555;">
+        Use a number from <strong style="color:darkred;">0</strong> (not at all reliable) to
+        <strong style="color:darkred;">10</strong> (completely reliable).
+    </p>
+
+    <table class="table table-bordered rel-table">
+        <thead>
+            <tr>
+                <th class="rel-prompt"></th>
+                <th>0</th>
+                <th>1</th>
+                <th>2</th>
+                <th>3</th>
+                <th>4</th>
+                <th>5</th>
+                <th>6</th>
+                <th>7</th>
+                <th>8</th>
+                <th>9</th>
+                <th>10</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="rel-prompt">Your response:</td>
+                {% for choice in form.survey_reliability %}
+                    <td>{{ choice }}</td>
+                {% endfor %}
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+{{ next_button }}
+{% endblock %}

@@ -1,0 +1,134 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block content %}
+<style>
+    .wta-wrap { max-width: 880px; margin: 0 auto; }
+    .wta-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 16px;
+    }
+    .wta-table th, .wta-table td {
+        padding: 10px 8px;
+        text-align: center;
+        vertical-align: middle;
+    }
+    /* Column dividers only (no full grid). */
+    .wta-table th:not(:last-child),
+    .wta-table td:not(:last-child) {
+        border-right: 1px solid #d0d0d0;
+    }
+    /* Separator between header row and body only. */
+    .wta-table thead th {
+        border-bottom: 1px solid #b0b0b0;
+    }
+    .wta-table th {
+        background: #f6f7f9;
+        font-weight: bold;
+        color: #1a4998;
+        position: sticky;
+        top: 0;
+    }
+    .wta-table td.amount {
+        text-align: left;
+        font-weight: bold;
+        font-size: 1.05em;
+    }
+    .wta-cell-yesno {
+        display: inline-flex;
+        gap: 12px;
+    }
+    .wta-cell-yesno label {
+        cursor: pointer;
+        padding: 6px 14px;
+        border: 2px solid #d0d0d0;
+        border-radius: 8px;
+        background: #fff;
+        font-weight: bold;
+        min-width: 56px;
+        text-align: center;
+    }
+    .wta-cell-yesno input[type="radio"] { display: none; }
+    .wta-cell-yesno label:has(input[type="radio"]:checked) {
+        border-color: #1a4998;
+        background: #e8f0ff;
+        color: #1a4998;
+    }
+    /* Same yellow background for both scenario columns (headers + cells; beats .wta-table th) */
+    .wta-table th.col-control,
+    .wta-table th.col-treatment,
+    .wta-table td.col-control,
+    .wta-table td.col-treatment {
+        background: #fff8e1;
+    }
+</style>
+
+<h3 style="color:darkred; font-weight:bold;">Willingness to take another test</h3>
+<br>
+
+<p>
+    You have now completed both periods of the cognitive ability task. In one period, you learned how many questions you answered correctly. In the other, you additionally received a message from another respondent about how they performed.
+</p>
+
+<p>
+    We are offering you the option to answer
+    <span style="color:darkred; font-weight:bold;">ten more pattern completion questions</span>
+    in a modified scenario.
+</p>
+
+<p>
+    The possible scenarios are in the table below. Each row differs in the payment per correct answer that you receive. The two columns differ in the type of feedback you receive, i.e., whether you will read a message from another participant or not.
+</p>
+
+<p>
+    Selecting <strong style="color:darkred;">Accept</strong> means you are willing to accept the offered pay rate and the feedback scheme.
+    Selecting <strong style="color:darkred;">Decline</strong> means you are not willing to.
+    We will then <strong style="color:darkred;">randomly select and implement</strong> your decision for one of the scenarios listed in the table below.
+</p>
+
+<div class="wta-wrap">
+    <table class="wta-table">
+        <thead>
+            <tr>
+                <th style="text-align:left;">Payment per correct answer</th>
+                <th class="col-control">Only number correct</th>
+                <th class="col-treatment">Number correct + message from participant</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr>
+                <td class="amount">{{ row.amount }}</td>
+                <td class="col-control">
+                    <span class="wta-cell-yesno">
+                        <label>
+                            <input type="radio" name="{{ row.c_field }}" value="Yes">
+                            Accept
+                        </label>
+                        <label>
+                            <input type="radio" name="{{ row.c_field }}" value="No">
+                            Decline
+                        </label>
+                    </span>
+                </td>
+                <td class="col-treatment">
+                    <span class="wta-cell-yesno">
+                        <label>
+                            <input type="radio" name="{{ row.t_field }}" value="Yes">
+                            Accept
+                        </label>
+                        <label>
+                            <input type="radio" name="{{ row.t_field }}" value="No">
+                            Decline
+                        </label>
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{{ next_button }}
+{% endblock %}
