@@ -1,5 +1,6 @@
 from otree.api import *
 import json
+import os
 import random
 
 
@@ -88,10 +89,29 @@ EDUCATION_CHOICES = [
 WTA_AMOUNTS = [0.01, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50]
 
 # ---- Cloudflare Turnstile (bot check) ----
-ENABLE_TURNSTILE = True
-TURNSTILE_SITE_KEY = "0x4AAAAAACnfkwrD0j2j_URF"  # placeholder; set via env in production
-TURNSTILE_SECRET_KEY = "0x4AAAAAACnfk_ZxfVMEct1r7CRNuh19G1M"  # placeholder
-TURNSTILE_BYPASS_KEY = "stonkgoup"
+# Off by default. Set ENABLE_TURNSTILE=1 and TURNSTILE_SITE_KEY / TURNSTILE_SECRET_KEY to re-enable.
+def _env_bool(name: str, default: bool = True) -> bool:
+    v = os.environ.get(name)
+    if v is None or str(v).strip() == "":
+        return default
+    s = str(v).strip().lower()
+    if s in ("0", "false", "no", "off"):
+        return False
+    if s in ("1", "true", "yes", "on"):
+        return True
+    return default
+
+
+ENABLE_TURNSTILE = _env_bool("ENABLE_TURNSTILE", False)
+TURNSTILE_SITE_KEY = os.environ.get(
+    "TURNSTILE_SITE_KEY",
+    "0x4AAAAAACnfkwrD0j2j_URF",
+)
+TURNSTILE_SECRET_KEY = os.environ.get(
+    "TURNSTILE_SECRET_KEY",
+    "0x4AAAAAACnfk_ZxfVMEct1r7CRNuh19G1M",
+)
+TURNSTILE_BYPASS_KEY = os.environ.get("TURNSTILE_BYPASS_KEY", "stonkgoup")
 TURNSTILE_USE_TEST_KEYS_ON_LOCALHOST = True
 TURNSTILE_ALLOW_AUTO_BYPASS_ON_LOCALHOST = True
 TURNSTILE_TEST_SITE_KEY = "1x00000000000000000000AA"

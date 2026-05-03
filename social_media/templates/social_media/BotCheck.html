@@ -20,11 +20,14 @@
 <br>
 <p>
 Thank you for joining.
-Before we continue, please complete the short verification box below.
-This helps us confirm that responses come from human participants and protects the integrity of the study.
 <br><br>
 Continue to the next page to give your consent.
 </p>
+{% if enable_turnstile %}
+<p>
+    Before we continue, please complete the short verification box below.
+</p>
+{% endif %}
 <br>
 
 {% if enable_turnstile %}
