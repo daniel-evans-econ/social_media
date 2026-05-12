@@ -175,6 +175,68 @@
     }
 </style>
 
+<script>
+(function () {
+    // Tab-switch tracking, scoped to Raven's questions only.
+    //
+    // Two known sources of false positives we explicitly defend against:
+    //
+    //   1. Navigation away from the page also fires `visibilitychange`->hidden
+    //      (clicking Next, browser back, etc.). Without a guard, every round
+    //      would record at least one phantom switch. We set a `navigating`
+    //      flag whenever a real submit is in flight (form submit event,
+    //      submit-button click, beforeunload, pagehide) and ignore any
+    //      hidden events after that.
+    //
+    //   2. On Windows in particular, a single alt-tab can fire
+    //      hidden->visible->hidden several times during the OS-level window
+    //      transition. We only re-arm the counter after the page has been
+    //      continuously visible for >= 1500 ms, so a brief flicker doesn't
+    //      double-count.
+    if (window.__raven_focus_tracker_init) return;
+    window.__raven_focus_tracker_init = true;
+
+    var armed = true;            // can count the next hidden event
+    var navigating = false;      // user has initiated submit / unload
+    var armTimer = null;
+    var minVisibleMs = 1500;
+    var lastSentAt = 0;
+
+    function markNavigating() { navigating = true; }
+
+    document.addEventListener('submit', markNavigating, true);
+    window.addEventListener('beforeunload', markNavigating);
+    window.addEventListener('pagehide', markNavigating);
+    document.addEventListener('click', function (e) {
+        var t = e.target;
+        if (!t || !t.closest) return;
+        if (t.closest('button[type="submit"], input[type="submit"]')) {
+            markNavigating();
+        }
+    }, true);
+
+    function sendSwitch() {
+        if (typeof liveSend !== 'function') return;
+        var now = Date.now();
+        if ((now - lastSentAt) < minVisibleMs) return;
+        lastSentAt = now;
+        try { liveSend({ action: 'track_focus_switch' }); } catch (_) {}
+    }
+
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'hidden') {
+            if (navigating) return;
+            if (!armed) return;
+            armed = false;
+            sendSwitch();
+        } else if (document.visibilityState === 'visible') {
+            if (armTimer) clearTimeout(armTimer);
+            armTimer = setTimeout(function () { armed = true; }, minVisibleMs);
+        }
+    });
+})();
+</script>
+
 <div class="raven-wrap">
     <h3 style="color:darkred; font-weight:bold;">
         Period {{ period }}, Question {{ question_in_period }} of {{ C.PERIOD_LENGTH }}
@@ -287,14 +349,20 @@
                                 Add a short note (max 140 characters):
                             </label>
                             <textarea name="report_message" id="id_report_message"
-                                      maxlength="140"></textarea>
+                                      minlength="5" maxlength="140"></textarea>
                         </div>
                     {% endif %}
 
                 </div>
 
                 <div id="fb-share-step" class="fb-share-step" aria-live="polite">
-                    <p class="fb-share-prompt">Do you want to send your message to a future participant?</p>
+                    <p class="fb-share-prompt">
+                        Do you want to send your message to a future participant?
+                        <br>
+                        <span style="font-weight:400; color:#333;">
+                            We will only send it if you agree.
+                        </span>
+                    </p>
                     <div class="fb-share">
                         <input type="checkbox" name="report_shared" id="id_report_shared" value="True">
                         <label for="id_report_shared" style="margin:0;">
@@ -420,6 +488,10 @@
         var msg = msgEl ? String(msgEl.value || '').trim() : '';
         if (!msg) {
             alert('Please add a short note before continuing.');
+            return false;
+        }
+        if (msg.length < 5) {
+            alert('Please write at least 5 characters in your note.');
             return false;
         }
         var emoChecked = document.querySelector('input[name="report_emoji"]:checked');

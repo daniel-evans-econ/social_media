@@ -12,9 +12,8 @@
 <br>
 <p>
     The next few pages contain some questions about you.
-    There are no right or wrong answers. Please choose the option that best expresses
-    your opinion of whether each statement
-    <span style="color:darkred; font-weight:bold;">applies to you</span>.
+    There are no right or wrong answers.
+    <span style="color:darkred; font-weight:bold;">Please choose the option that best describes you.</span>
 </p>
 <br>
 
@@ -41,107 +40,78 @@
         </tr>
     </thead>
 
-    <tbody id="big5-tbody">
+    <tbody>
+        {% for row in rows %}
         <tr>
-            <td style="vertical-align:middle;">&hellip;is reserved.</td>
-            {% for choice in form.big5_1 %}
-                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
-            {% endfor %}
+            <td style="vertical-align:middle;">{{ row.prompt }}</td>
+            {% if row.field == 'big5_1' %}{% for choice in form.big5_1 %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'big5_2' %}{% for choice in form.big5_2 %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'big5_3' %}{% for choice in form.big5_3 %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'big5_4' %}{% for choice in form.big5_4 %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'big5_5' %}{% for choice in form.big5_5 %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'big5_6' %}{% for choice in form.big5_6 %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'big5_7' %}{% for choice in form.big5_7 %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'big5_8' %}{% for choice in form.big5_8 %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'big5_9' %}{% for choice in form.big5_9 %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'big5_10' %}{% for choice in form.big5_10 %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'competitiveness' %}{% for choice in form.competitiveness %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'big5_accuracy' %}{% for choice in form.big5_accuracy %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
         </tr>
-
-        <tr>
-            <td style="vertical-align:middle;">&hellip;is generally trusting.</td>
-            {% for choice in form.big5_2 %}
-                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
-            {% endfor %}
-        </tr>
-
-        <tr>
-            <td style="vertical-align:middle;">&hellip;tends to be lazy.</td>
-            {% for choice in form.big5_3 %}
-                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
-            {% endfor %}
-        </tr>
-
-        <tr>
-            <td style="vertical-align:middle;">&hellip;is relaxed, handles stress well.</td>
-            {% for choice in form.big5_4 %}
-                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
-            {% endfor %}
-        </tr>
-
-        <tr>
-            <td style="vertical-align:middle;">&hellip;has few artistic interests.</td>
-            {% for choice in form.big5_5 %}
-                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
-            {% endfor %}
-        </tr>
-
-        <tr>
-            <td style="vertical-align:middle;">&hellip;is outgoing, sociable.</td>
-            {% for choice in form.big5_6 %}
-                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
-            {% endfor %}
-        </tr>
-
-        <tr>
-            <td style="vertical-align:middle;">&hellip;tends to find fault with others.</td>
-            {% for choice in form.big5_7 %}
-                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
-            {% endfor %}
-        </tr>
-
-        <tr>
-            <td style="vertical-align:middle;">&hellip;does a thorough job.</td>
-            {% for choice in form.big5_8 %}
-                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
-            {% endfor %}
-        </tr>
-
-        <tr>
-            <td style="vertical-align:middle;">&hellip;gets nervous easily.</td>
-            {% for choice in form.big5_9 %}
-                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
-            {% endfor %}
-        </tr>
-
-        <tr>
-            <td style="vertical-align:middle;">&hellip;has an active imagination.</td>
-            {% for choice in form.big5_10 %}
-                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
-            {% endfor %}
-        </tr>
-
-        <tr>
-            <td style="vertical-align:middle;">&hellip;is sure that my answers to these questions describe me accurately.</td>
-            {% for choice in form.big5_accuracy %}
-                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
-            {% endfor %}
-        </tr>
-
-        <tr>
-            <td style="vertical-align:middle;">&hellip;enjoys competing with others.</td>
-            {% for choice in form.competitiveness %}
-                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
-            {% endfor %}
-        </tr>
+        {% endfor %}
     </tbody>
 </table>
-
-<script>
-(function () {
-    const tbody = document.getElementById('big5-tbody');
-    if (!tbody) return;
-    const rows = Array.from(tbody.children);
-    for (let i = rows.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        tbody.insertBefore(rows[j], rows[i + 1] || null);
-        rows.splice(j, 1);
-    }
-})();
-</script>
 
 <br>
 {{ next_button }}
 
+<script>
+(function () {
+    // Persist BFI / competitiveness / self-reliability picks across refreshes
+    // and validation re-renders, the same way we do on the WTA, RSES, and
+    // NPI pages. The selector covers both `big5_*` rows (including
+    // big5_accuracy) and the `competitiveness` row that lives in the same
+    // grid.
+    var STORAGE_KEY = 'bfi_picks_{{ player.participant.code }}';
+    var FIELD_NAMES = [
+        'big5_1', 'big5_2', 'big5_3', 'big5_4', 'big5_5',
+        'big5_6', 'big5_7', 'big5_8', 'big5_9', 'big5_10',
+        'big5_accuracy', 'competitiveness',
+    ];
+
+    function loadStored() {
+        try {
+            var raw = sessionStorage.getItem(STORAGE_KEY);
+            return raw ? JSON.parse(raw) : {};
+        } catch (_) { return {}; }
+    }
+    function saveStored(d) {
+        try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }
+        catch (_) {}
+    }
+
+    var stored = loadStored();
+    Object.keys(stored).forEach(function (name) {
+        var v = stored[name];
+        document.querySelectorAll(
+            'input[type="radio"][name="' + name + '"]'
+        ).forEach(function (r) { if (r.value === String(v)) r.checked = true; });
+    });
+
+    FIELD_NAMES.forEach(function (name) {
+        document.querySelectorAll(
+            'input[type="radio"][name="' + name + '"]'
+        ).forEach(function (r) {
+            r.addEventListener('change', function () {
+                if (!r.checked) return;
+                var d = loadStored();
+                d[r.name] = r.value;
+                saveStored(d);
+            });
+        });
+    });
+    // Cache is per-tab, namespaced by participant code; not cleared on
+    // pagehide so refreshes don't wipe it. Browser clears sessionStorage
+    // automatically when the tab closes.
+})();
+</script>
 {% endblock %}

@@ -20,28 +20,73 @@ RAVEN_CORRECT = "B"
 
 # AB_PAY_PER_50 = cu(0.05)  # disabled: a-b button-press effort task removed
 STROOP_ANSWERS = ["Blue", "Red", "Green", "Yellow", "Green", "Blue"]
-RAVENS_TIMEOUT_SECONDS = 90  # 1.5 minutes per Raven's question
+RAVENS_TIMEOUT_SECONDS = 60  # 60 seconds per Raven's question
 
-QUAL_EMOJIS = ["\U0001f603", "\U0001f610", "\U0001f61e"]  # smile / neutral / frown
+# Qualitative emoji set. Order is important: the index into this list maps
+# directly into PILOT_QUAL_TEXT_BY_EMOJI / PILOT_QUAL_SCORE_BY_EMOJI so the
+# message text always matches the emoji's valence.
+QUAL_EMOJI_SMILE = "\U0001f603"   # 😃
+QUAL_EMOJI_NEUTRAL = "\U0001f610"  # 😐
+QUAL_EMOJI_FROWN = "\U0001f61e"   # 😞
+QUAL_EMOJIS = [QUAL_EMOJI_SMILE, QUAL_EMOJI_NEUTRAL, QUAL_EMOJI_FROWN]
 
 # Display names used as the sender of the simulated peer report shown on the
 # in-question sidebar. One is randomly drawn per feedback round.
 PILOT_NAMES = ["Jane", "John"]
 
-# Short example notes for qualitative pilot peer messages (always non-empty).
-PILOT_QUAL_SENTENCES = [
-    "Going OK so far.",
-    "Mixed feelings.",
-    "Phew, that was a block.",
-]
+# Qualitative pilot messages, grouped by emoji valence so a smiling peer never
+# sends a discouraged message (and vice versa). For each emoji we keep two
+# pools: a set of free-form sentences and a set of templates that mention a
+# score (numeric leakage is intentional in the qualitative condition).
+PILOT_QUAL_TEXT_BY_EMOJI = {
+    QUAL_EMOJI_SMILE: [
+        "Felt good about that one.",
+        "On a roll!",
+        "Going pretty well so far.",
+        "These are clicking for me.",
+        "Pleased with how that block went.",
+    ],
+    QUAL_EMOJI_NEUTRAL: [
+        "Going OK so far.",
+        "Mixed feelings.",
+        "Could be better, could be worse.",
+        "Hard to tell how I'm doing.",
+        "Some easier, some harder.",
+    ],
+    QUAL_EMOJI_FROWN: [
+        "Phew, that was a tough block.",
+        "Tougher than I expected.",
+        "Definitely struggling on these.",
+        "Not my best block.",
+        "Found that one really hard.",
+    ],
+}
+
+PILOT_QUAL_SCORE_BY_EMOJI = {
+    QUAL_EMOJI_SMILE: [
+        "Pretty happy with {score}/5.",
+        "Managed {score}/5; on a roll.",
+        "Got {score}/5 \u2014 feeling good.",
+    ],
+    QUAL_EMOJI_NEUTRAL: [
+        "Hit {score} out of 5 this round.",
+        "Got {score}/5 this block.",
+        "Ended up at {score}/5.",
+    ],
+    QUAL_EMOJI_FROWN: [
+        "Only {score} out of 5 for me.",
+        "Got {score}/5 \u2014 could be better.",
+        "Just {score}/5 this time.",
+    ],
+}
 # Tasks 2 and 5 are congruent (word matches display color)
 
 BFI_CHOICES = [
-    [0, ""],
     [1, ""],
     [2, ""],
     [3, ""],
     [4, ""],
+    [5, ""],
 ]
 
 RSES_CHOICES = [
@@ -73,7 +118,7 @@ OVERALL_RELIABILITY_CHOICES = [[n, str(n)] for n in range(11)]
 GENDER_CHOICES = [
     ["man", "Man"],
     ["woman", "Woman"],
-    ["nonbinary_other_prefer_not_say", "Non-binary/other/prefer not to say"],
+    ["other_prefer_not_say", "Other / prefer not to answer"],
 ]
 
 EDUCATION_CHOICES = [
@@ -154,6 +199,11 @@ class Player(BasePlayer):
         widget=widgets.RadioSelectHorizontal,
     )
     raven_timeout = models.BooleanField(initial=False)
+    # Tab/window-switch counter for THIS Raven's question (one row per round
+    # = one row per Raven's question shown). Incremented server-side via the
+    # page's live_method whenever the JS in RavensQuestion.html observes a
+    # visibilitychange->hidden event.
+    raven_tab_switches = models.IntegerField(initial=0)
     feedback_snapshot = models.LongStringField(blank=True)
 
     # ---- Per-block report a participant might send to a future participant ----
@@ -249,26 +299,32 @@ class Player(BasePlayer):
     stroop_1 = models.StringField(
         label='What color is this word displayed in?',
         choices=["Blue", "Red", "Green", "Yellow"], blank=True,
+        widget=widgets.RadioSelect,
     )
     stroop_2 = models.StringField(
         label='What color is this word displayed in?',
         choices=["Blue", "Red", "Green", "Yellow"], blank=True,
+        widget=widgets.RadioSelect,
     )
     stroop_3 = models.StringField(
         label='What color is this word displayed in?',
         choices=["Blue", "Red", "Green", "Yellow"], blank=True,
+        widget=widgets.RadioSelect,
     )
     stroop_4 = models.StringField(
         label='What color is this word displayed in?',
         choices=["Blue", "Red", "Green", "Yellow"], blank=True,
+        widget=widgets.RadioSelect,
     )
     stroop_5 = models.StringField(
         label='What color is this word displayed in?',
         choices=["Blue", "Red", "Green", "Yellow"], blank=True,
+        widget=widgets.RadioSelect,
     )
     stroop_6 = models.StringField(
         label='What color is this word displayed in?',
         choices=["Blue", "Red", "Green", "Yellow"], blank=True,
+        widget=widgets.RadioSelect,
     )
 
     task_enjoyment = models.IntegerField(
@@ -487,8 +543,27 @@ def pilot_feedback_signals(player: Player):
         return dict(type='quantitative', name=name, score=score)
 
     if cond == 'qualitative_social':
+        # Draw the emoji first; sentence pools are then keyed by emoji so the
+        # text is always concordant with the face.
         emoji = rng.choice(QUAL_EMOJIS)
-        sentence = rng.choice(PILOT_QUAL_SENTENCES)  # always non-empty
+        # Score range conditional on emoji so a frown can't say "5/5":
+        #   smile   -> 4 or 5
+        #   neutral -> 2 or 3
+        #   frown   -> 0 or 1
+        if emoji == QUAL_EMOJI_SMILE:
+            score = rng.choice([4, 5])
+        elif emoji == QUAL_EMOJI_NEUTRAL:
+            score = rng.choice([2, 3])
+        else:
+            score = rng.choice([0, 1])
+        # ~50% of qualitative pilot messages explicitly state a score so that
+        # numeric information leaks into the qualitative condition the way it
+        # would in real social-media chatter.
+        if rng.random() < 0.5:
+            template = rng.choice(PILOT_QUAL_SCORE_BY_EMOJI[emoji])
+            sentence = template.format(score=score)
+        else:
+            sentence = rng.choice(PILOT_QUAL_TEXT_BY_EMOJI[emoji])
         return dict(type='qualitative', name=name, emoji=emoji, sentence=sentence)
 
     return dict(type='control', name=None, sentence='')
@@ -534,6 +609,54 @@ class Consent(Page):
             return "You must agree to all conditions and consent to continue."
 
 
+# ---- Item-prompt maps for the personality screens. Defined here (not in
+#      templates) so we can shuffle the display order server-side using a
+#      participant-stable seed; that way refreshing the page doesn't change
+#      the order, but it still varies between participants.
+
+BFI_PROMPTS = {
+    'big5_1': "\u2026is reserved.",
+    'big5_2': "\u2026is generally trusting.",
+    'big5_3': "\u2026tends to be lazy.",
+    'big5_4': "\u2026is relaxed, handles stress well.",
+    'big5_5': "\u2026has few artistic interests.",
+    'big5_6': "\u2026is outgoing, sociable.",
+    'big5_7': "\u2026tends to find fault with others.",
+    'big5_8': "\u2026does a thorough job.",
+    'big5_9': "\u2026gets nervous easily.",
+    'big5_10': "\u2026has an active imagination.",
+    'competitiveness': "\u2026enjoys competing with others.",
+    # Dohmen & Jagelka self-reliability item — kept fixed at the bottom.
+    'big5_accuracy': "\u2026is sure that my answers to these questions describe me accurately.",
+}
+
+RSES_PROMPTS = {
+    'rses_1': "On the whole, I am satisfied with myself.",
+    'rses_2': "At times I think I am no good at all.",
+    'rses_3': "I feel that I have a number of good qualities.",
+    'rses_4': "I am able to do things as well as most other people.",
+    'rses_5': "I feel I do not have much to be proud of.",
+    'rses_6': "I certainly feel useless at times.",
+    'rses_7': "I feel that I'm a person of worth, at least on an equal plane with others.",
+    'rses_8': "I wish I could have more respect for myself.",
+    'rses_9': "All in all, I am inclined to feel that I am a failure.",
+    'rses_10': "I take a positive attitude toward myself.",
+}
+
+
+def _stable_shuffled(player: Player, suffix: str, items: list) -> list:
+    """Return a copy of `items` shuffled with a participant-stable seed.
+
+    The seed is derived from the participant's code plus a per-screen suffix,
+    so the order is fixed across refreshes/back-navigation for a given
+    participant but varies between participants and between screens.
+    """
+    rng = random.Random(f"{player.participant.code}-{suffix}")
+    out = list(items)
+    rng.shuffle(out)
+    return out
+
+
 class BigFiveSurvey(Page):
     form_model = 'player'
     form_fields = [
@@ -546,6 +669,21 @@ class BigFiveSurvey(Page):
     @staticmethod
     def is_displayed(player: Player):
         return player.round_number == C.NUM_ROUNDS
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        # Shuffle every BFI/competitiveness item; keep the Dohmen & Jagelka
+        # self-reliability item ('big5_accuracy') fixed at the bottom.
+        shuffled_fields = _stable_shuffled(
+            player, 'bfi',
+            [k for k in BFI_PROMPTS.keys() if k != 'big5_accuracy'],
+        )
+        rows = [
+            dict(field=name, prompt=BFI_PROMPTS[name])
+            for name in shuffled_fields
+        ]
+        rows.append(dict(field='big5_accuracy', prompt=BFI_PROMPTS['big5_accuracy']))
+        return dict(rows=rows)
 
     @staticmethod
     def error_message(player: Player, values):
@@ -571,6 +709,17 @@ class SelfEsteemSurvey(Page):
         return player.round_number == C.NUM_ROUNDS
 
     @staticmethod
+    def vars_for_template(player: Player):
+        shuffled_fields = _stable_shuffled(
+            player, 'rses', list(RSES_PROMPTS.keys()),
+        )
+        rows = [
+            dict(field=name, prompt=RSES_PROMPTS[name])
+            for name in shuffled_fields
+        ]
+        return dict(rows=rows)
+
+    @staticmethod
     def error_message(player: Player, values):
         fields = [f'rses_{i}' for i in range(1, 11)]
         if any(values.get(f) is None for f in fields):
@@ -587,6 +736,12 @@ class NarcissismSurvey(Page):
     @staticmethod
     def is_displayed(player: Player):
         return player.round_number == C.NUM_ROUNDS
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        npi_fields = [f'npi_{i}' for i in range(1, 9)]
+        ordered = _stable_shuffled(player, 'npi', npi_fields)
+        return dict(npi_order=ordered)
 
     @staticmethod
     def error_message(player: Player, values):
@@ -753,6 +908,30 @@ class RavensQuestion(Page):
         return ctx
 
     @staticmethod
+    def live_method(player: Player, data):
+        """Record a tab/window switch sent from the client.
+
+        The template fires `liveSend({action: 'track_focus_switch'})` once per
+        visibilitychange->hidden event (rate-limited and de-duplicated client
+        side). We just bump the per-round counter.
+        """
+        if not isinstance(data, dict):
+            return
+        if data.get('action') != 'track_focus_switch':
+            return
+        try:
+            current = int(player.field_maybe_none('raven_tab_switches') or 0)
+        except Exception:
+            current = 0
+        player.raven_tab_switches = current + 1
+        return {
+            player.id_in_group: dict(
+                action='focus_switch_recorded',
+                count=player.raven_tab_switches,
+            )
+        }
+
+    @staticmethod
     def before_next_page(player: Player, timeout_happened):
         if timeout_happened:
             player.raven_timeout = True
@@ -815,6 +994,8 @@ class RavensQuestion(Page):
         msg = (values.get('report_message') or '').strip()
         if not msg:
             return "Please add a short note before continuing."
+        if len(msg) < 5:
+            return "Please write at least 5 characters in your note."
         if not values.get('report_emoji'):
             return "Please indicate how the last 5 questions went."
 
@@ -841,8 +1022,9 @@ class PerceivedPercentile(Page):
 
     @staticmethod
     def error_message(player: Player, values):
-        if values.get('perceived_relative_performance') is None:
-            return "Please provide your percentile estimate before continuing."
+        v = values.get('perceived_relative_performance')
+        if v is None or v == '':
+            return "Please move the slider to provide your percentile estimate before continuing."
 
 
 class PerceivedPercentileConfidence(Page):
@@ -1034,6 +1216,10 @@ class EndOfPeriodSurvey(Page):
 
     Shown at the end of periods 1 and 2 only (rounds 10 and 20). Period 3 is
     pattern-completion questions only—no follow-up survey block after round 30.
+
+    The three questions are presented in a randomized order (per participant,
+    same order across periods 1 and 2 so within-subject comparisons aren't
+    contaminated by ordering effects).
     """
     form_model = 'player'
     form_fields = ['mood', 'task_enjoyment', 'payment_satisfaction']
@@ -1057,7 +1243,18 @@ class EndOfPeriodSurvey(Page):
             pay_rate = float(C.PAY_PER_CORRECT)
         correct = period_correct(player)
         earnings = correct * pay_rate
-        return dict(period=period, period_earnings=f"{earnings:.2f}")
+
+        # Stable per-participant ordering so the order is the same in periods
+        # 1 and 2 for any given participant.
+        rng = random.Random(f"{player.participant.code}-eop-survey")
+        question_keys = ['mood', 'task_enjoyment', 'payment_satisfaction']
+        rng.shuffle(question_keys)
+
+        return dict(
+            period=period,
+            period_earnings=f"{earnings:.2f}",
+            question_order=question_keys,
+        )
 
     @staticmethod
     def error_message(player: Player, values):
@@ -1087,11 +1284,22 @@ class WTACompare(Page):
         treatment, _ = experienced_conditions(player)
         rows = []
         for i, amount in enumerate(WTA_AMOUNTS, 1):
+            t_field = f"wta_t_{i}"
+            c_field = f"wta_c_{i}"
+            # Pre-compute previously-saved values so the template can re-check
+            # the right radio after a validation error (oTree's templating
+            # cannot resolve form field `value` attributes directly).
+            t_val = player.field_maybe_none(t_field) or ""
+            c_val = player.field_maybe_none(c_field) or ""
             rows.append(dict(
                 index=i,
                 amount=f"\u20ac{amount:.2f}",
-                t_field=f"wta_t_{i}",
-                c_field=f"wta_c_{i}",
+                t_field=t_field,
+                c_field=c_field,
+                t_yes=t_val == "Yes",
+                t_no=t_val == "No",
+                c_yes=c_val == "Yes",
+                c_no=c_val == "No",
             ))
         return dict(
             treatment_condition=treatment,
@@ -1149,8 +1357,15 @@ class RealismQuestion(Page):
 
     @staticmethod
     def error_message(player: Player, values):
-        if not (values.get('realism_feedback') or '').strip():
+        text = (values.get('realism_feedback') or '').strip()
+        if not text:
             return "Please share your thoughts before continuing."
+        if len(text) < 50:
+            return (
+                "Please write at least 50 characters about how the social "
+                "feedback felt during the study (currently "
+                f"{len(text)} characters)."
+            )
 
 
 class SurveyReliabilityOverall(Page):

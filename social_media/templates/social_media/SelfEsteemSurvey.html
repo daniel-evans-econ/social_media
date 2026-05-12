@@ -11,9 +11,8 @@
 <h2 style="color:darkred; font-weight:bold; font-size:1.8em;">Questions about you</h2>
 <br>
 <p>
-    There are no right or wrong answers. Please choose the option that best expresses
-    your opinion of whether each statement
-    <span style="color:darkred; font-weight:bold;">applies to you</span>.
+    There are no right or wrong answers.
+    <span style="color:darkred; font-weight:bold;">Please choose the option that best describes you.</span>
 </p>
 <br>
 
@@ -36,92 +35,71 @@
         </tr>
     </thead>
 
-    <tbody id="rses-tbody">
+    <tbody>
+        {% for row in rows %}
         <tr>
-            <td style="vertical-align:middle;">On the whole, I am satisfied with myself.</td>
-            {% for choice in form.rses_1 %}
-                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
-            {% endfor %}
+            <td style="vertical-align:middle;">{{ row.prompt }}</td>
+            {% if row.field == 'rses_1' %}{% for choice in form.rses_1 %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'rses_2' %}{% for choice in form.rses_2 %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'rses_3' %}{% for choice in form.rses_3 %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'rses_4' %}{% for choice in form.rses_4 %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'rses_5' %}{% for choice in form.rses_5 %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'rses_6' %}{% for choice in form.rses_6 %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'rses_7' %}{% for choice in form.rses_7 %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'rses_8' %}{% for choice in form.rses_8 %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'rses_9' %}{% for choice in form.rses_9 %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'rses_10' %}{% for choice in form.rses_10 %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
         </tr>
-
-        <tr>
-            <td style="vertical-align:middle;">At times I think I am no good at all.</td>
-            {% for choice in form.rses_2 %}
-                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
-            {% endfor %}
-        </tr>
-
-        <tr>
-            <td style="vertical-align:middle;">I feel that I have a number of good qualities.</td>
-            {% for choice in form.rses_3 %}
-                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
-            {% endfor %}
-        </tr>
-
-        <tr>
-            <td style="vertical-align:middle;">I am able to do things as well as most other people.</td>
-            {% for choice in form.rses_4 %}
-                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
-            {% endfor %}
-        </tr>
-
-        <tr>
-            <td style="vertical-align:middle;">I feel I do not have much to be proud of.</td>
-            {% for choice in form.rses_5 %}
-                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
-            {% endfor %}
-        </tr>
-
-        <tr>
-            <td style="vertical-align:middle;">I certainly feel useless at times.</td>
-            {% for choice in form.rses_6 %}
-                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
-            {% endfor %}
-        </tr>
-
-        <tr>
-            <td style="vertical-align:middle;">I feel that I'm a person of worth, at least on an equal plane with others.</td>
-            {% for choice in form.rses_7 %}
-                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
-            {% endfor %}
-        </tr>
-
-        <tr>
-            <td style="vertical-align:middle;">I wish I could have more respect for myself.</td>
-            {% for choice in form.rses_8 %}
-                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
-            {% endfor %}
-        </tr>
-
-        <tr>
-            <td style="vertical-align:middle;">All in all, I am inclined to feel that I am a failure.</td>
-            {% for choice in form.rses_9 %}
-                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
-            {% endfor %}
-        </tr>
-
-        <tr>
-            <td style="vertical-align:middle;">I take a positive attitude toward myself.</td>
-            {% for choice in form.rses_10 %}
-                <td style="text-align:center; vertical-align:middle;">{{ choice }}</td>
-            {% endfor %}
-        </tr>
+        {% endfor %}
     </tbody>
 </table>
 
-<script>
-(function () {
-    const tbody = document.getElementById('rses-tbody');
-    if (!tbody) return;
-    const rows = Array.from(tbody.children);
-    for (let i = rows.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        tbody.insertBefore(rows[j], rows[i + 1] || null);
-        rows.splice(j, 1);
-    }
-})();
-</script>
-
 {{ next_button }}
 
+<script>
+(function () {
+    // Preserve answers across refreshes / validation re-renders. oTree only
+    // persists field values to the database after a fully valid submission,
+    // so we mirror radio state into sessionStorage and rehydrate it on page
+    // load. Cleared on a fully-answered successful submit (pagehide).
+    var STORAGE_KEY = 'rses_picks_{{ player.participant.code }}';
+    var FIELD_PREFIX = 'rses_';
+
+    function loadStored() {
+        try {
+            var raw = sessionStorage.getItem(STORAGE_KEY);
+            return raw ? JSON.parse(raw) : {};
+        } catch (_) { return {}; }
+    }
+    function saveStored(d) {
+        try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }
+        catch (_) {}
+    }
+
+    var stored = loadStored();
+    Object.keys(stored).forEach(function (name) {
+        var v = stored[name];
+        document.querySelectorAll(
+            'input[type="radio"][name="' + name + '"]'
+        ).forEach(function (r) { if (r.value === String(v)) r.checked = true; });
+    });
+
+    var radios = document.querySelectorAll(
+        'input[type="radio"][name^="' + FIELD_PREFIX + '"]'
+    );
+    radios.forEach(function (r) {
+        r.addEventListener('change', function () {
+            if (!r.checked) return;
+            var d = loadStored();
+            d[r.name] = r.value;
+            saveStored(d);
+        });
+    });
+
+    // Cache is per-tab, namespaced by participant code; we don't clear it on
+    // pagehide because pagehide also fires on refresh, which would wipe the
+    // cache exactly when the participant most needs it. It clears naturally
+    // when the tab closes.
+})();
+</script>
 {% endblock %}

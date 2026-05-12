@@ -8,5 +8,23 @@
 <p style="font-size:1.4em; color:red; font-weight:bold;">RED</p>
 {{ formfield player.stroop_2 }}
 
-{{ next_button }}
+<script>
+(function () {
+    var form = document.querySelector('form');
+    if (!form) return;
+    var submitted = false;
+    function tryAutoSubmit(e) {
+        if (submitted) return;
+        var t = e.target;
+        if (!t || t.name !== 'stroop_2') return;
+        var v = (t.value || '').trim();
+        if (!v) return;
+        submitted = true;
+        if (typeof form.requestSubmit === 'function') form.requestSubmit();
+        else form.submit();
+    }
+    form.addEventListener('change', tryAutoSubmit);
+    form.addEventListener('input', tryAutoSubmit);
+})();
+</script>
 {% endblock %}
