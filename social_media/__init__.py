@@ -204,6 +204,9 @@ class Player(BasePlayer):
     # page's live_method whenever the JS in RavensQuestion.html observes a
     # visibilitychange->hidden event.
     raven_tab_switches = models.IntegerField(initial=0)
+    # Time (seconds) from page load to first selection of an answer on this round's
+    # Raven's question. Set client-side via a hidden input.
+    raven_response_time = models.FloatField(blank=True)
     feedback_snapshot = models.LongStringField(blank=True)
 
     # ---- Per-block report a participant might send to a future participant ----
@@ -326,6 +329,15 @@ class Player(BasePlayer):
         choices=["Blue", "Red", "Green", "Yellow"], blank=True,
         widget=widgets.RadioSelect,
     )
+    # Per-trial response times (seconds) for the Stroop task. Set client-side
+    # via a hidden input on each ColorTask page; equals roughly time from page
+    # load to color selection (since the page auto-advances on selection).
+    stroop_1_response_time = models.FloatField(blank=True)
+    stroop_2_response_time = models.FloatField(blank=True)
+    stroop_3_response_time = models.FloatField(blank=True)
+    stroop_4_response_time = models.FloatField(blank=True)
+    stroop_5_response_time = models.FloatField(blank=True)
+    stroop_6_response_time = models.FloatField(blank=True)
 
     task_enjoyment = models.IntegerField(
         choices=LIKERT_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True,
@@ -470,6 +482,21 @@ def is_third_period(player: Player):
 
 def third_period_accepted(player: Player):
     return player.participant.vars.get('third_period_accepted', False)
+
+
+def is_end_of_period_with_p3(player: Player):
+    """End-of-period checkpoint for periods 1, 2, and (if accepted) 3.
+
+    Used for the post-period measures we want to repeat after the optional
+    third period as well: PerceivedPercentile, PerceivedPercentileConfidence,
+    and EndOfPeriodSurvey. The Stroop task pages still use ``is_end_of_period``
+    so they only run after periods 1 and 2.
+    """
+    if player.round_number in C.END_OF_PERIOD_ROUNDS:
+        return True
+    if player.round_number == C.NUM_ROUNDS and third_period_accepted(player):
+        return True
+    return False
 
 
 def block_correct(player: Player):
@@ -850,6 +877,7 @@ class RavensQuestion(Page):
     form_model = 'player'
     form_fields = [
         'raven_answer',
+        'raven_response_time',
         'report_number',
         'report_emoji',
         'report_message',
@@ -936,6 +964,12 @@ class RavensQuestion(Page):
         if timeout_happened:
             player.raven_timeout = True
 
+        # If the participant never selected an answer, there is no meaningful
+        # response time. Force NA (None) so timeouts are not silently coded
+        # as 0 seconds in the exported data.
+        if not (player.field_maybe_none('raven_answer') or ''):
+            player.raven_response_time = None
+
         if not is_feedback_round(player):
             return
 
@@ -1006,8 +1040,9 @@ class PerceivedPercentile(Page):
 
     @staticmethod
     def is_displayed(player: Player):
-        # Period 3 (rounds 21–30): main pattern task only — no percentile at round 30.
-        return is_end_of_period(player)
+        # Run after periods 1, 2, and also after period 3 (if the participant
+        # accepted the optional third block).
+        return is_end_of_period_with_p3(player)
 
     @staticmethod
     def vars_for_template(player: Player):
@@ -1034,7 +1069,7 @@ class PerceivedPercentileConfidence(Page):
 
     @staticmethod
     def is_displayed(player: Player):
-        return is_end_of_period(player)
+        return is_end_of_period_with_p3(player)
 
     @staticmethod
     def vars_for_template(player: Player):
@@ -1099,7 +1134,7 @@ def _stroop_color_task_error(values: dict, field_name: str):
 
 class ColorTask1(Page):
     form_model = 'player'
-    form_fields = ['stroop_1']
+    form_fields = ['stroop_1', 'stroop_1_response_time']
     timeout_seconds = 5
 
     @staticmethod
@@ -1112,13 +1147,14 @@ class ColorTask1(Page):
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
-        if timeout_happened and not player.stroop_1:
-            player.stroop_1 = random.choice(["Blue", "Red", "Green", "Yellow"])
+        if timeout_happened:
+            # No real selection: leave both the color and response time as NA.
+            player.stroop_1_response_time = None
 
 
 class ColorTask2(Page):
     form_model = 'player'
-    form_fields = ['stroop_2']
+    form_fields = ['stroop_2', 'stroop_2_response_time']
     timeout_seconds = 5
 
     @staticmethod
@@ -1131,13 +1167,13 @@ class ColorTask2(Page):
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
-        if timeout_happened and not player.stroop_2:
-            player.stroop_2 = random.choice(["Blue", "Red", "Green", "Yellow"])
+        if timeout_happened:
+            player.stroop_2_response_time = None
 
 
 class ColorTask3(Page):
     form_model = 'player'
-    form_fields = ['stroop_3']
+    form_fields = ['stroop_3', 'stroop_3_response_time']
     timeout_seconds = 5
 
     @staticmethod
@@ -1150,13 +1186,13 @@ class ColorTask3(Page):
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
-        if timeout_happened and not player.stroop_3:
-            player.stroop_3 = random.choice(["Blue", "Red", "Green", "Yellow"])
+        if timeout_happened:
+            player.stroop_3_response_time = None
 
 
 class ColorTask4(Page):
     form_model = 'player'
-    form_fields = ['stroop_4']
+    form_fields = ['stroop_4', 'stroop_4_response_time']
     timeout_seconds = 5
 
     @staticmethod
@@ -1169,13 +1205,13 @@ class ColorTask4(Page):
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
-        if timeout_happened and not player.stroop_4:
-            player.stroop_4 = random.choice(["Blue", "Red", "Green", "Yellow"])
+        if timeout_happened:
+            player.stroop_4_response_time = None
 
 
 class ColorTask5(Page):
     form_model = 'player'
-    form_fields = ['stroop_5']
+    form_fields = ['stroop_5', 'stroop_5_response_time']
     timeout_seconds = 5
 
     @staticmethod
@@ -1188,13 +1224,13 @@ class ColorTask5(Page):
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
-        if timeout_happened and not player.stroop_5:
-            player.stroop_5 = random.choice(["Blue", "Red", "Green", "Yellow"])
+        if timeout_happened:
+            player.stroop_5_response_time = None
 
 
 class ColorTask6(Page):
     form_model = 'player'
-    form_fields = ['stroop_6']
+    form_fields = ['stroop_6', 'stroop_6_response_time']
     timeout_seconds = 5
 
     @staticmethod
@@ -1207,26 +1243,27 @@ class ColorTask6(Page):
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
-        if timeout_happened and not player.stroop_6:
-            player.stroop_6 = random.choice(["Blue", "Red", "Green", "Yellow"])
+        if timeout_happened:
+            player.stroop_6_response_time = None
 
 
 class EndOfPeriodSurvey(Page):
     """Single page combining mood, task enjoyment, and payment satisfaction.
 
-    Shown at the end of periods 1 and 2 only (rounds 10 and 20). Period 3 is
-    pattern-completion questions only—no follow-up survey block after round 30.
+    Shown at the end of periods 1 and 2, and also after period 3 (round 30)
+    if the participant accepted the optional third block. The Stroop task is
+    NOT repeated after period 3.
 
     The three questions are presented in a randomized order (per participant,
-    same order across periods 1 and 2 so within-subject comparisons aren't
-    contaminated by ordering effects).
+    same order across all periods for a given participant so within-subject
+    comparisons aren't contaminated by ordering effects).
     """
     form_model = 'player'
     form_fields = ['mood', 'task_enjoyment', 'payment_satisfaction']
 
     @staticmethod
     def is_displayed(player: Player):
-        return is_end_of_period(player)
+        return is_end_of_period_with_p3(player)
 
     @staticmethod
     def vars_for_template(player: Player):
@@ -1282,35 +1319,63 @@ class WTACompare(Page):
     @staticmethod
     def vars_for_template(player: Player):
         treatment, _ = experienced_conditions(player)
-        rows = []
-        for i, amount in enumerate(WTA_AMOUNTS, 1):
-            t_field = f"wta_t_{i}"
-            c_field = f"wta_c_{i}"
-            # Pre-compute previously-saved values so the template can re-check
-            # the right radio after a validation error (oTree's templating
-            # cannot resolve form field `value` attributes directly).
-            t_val = player.field_maybe_none(t_field) or ""
-            c_val = player.field_maybe_none(c_field) or ""
-            rows.append(dict(
-                index=i,
-                amount=f"\u20ac{amount:.2f}",
-                t_field=t_field,
-                c_field=c_field,
-                t_yes=t_val == "Yes",
-                t_no=t_val == "No",
-                c_yes=c_val == "Yes",
-                c_no=c_val == "No",
-            ))
+
+        # Build separate row lists for the two blocks ("with messages" =
+        # treatment / wta_t_*; "without messages" = control / wta_c_*).
+        def make_rows(prefix: str):
+            rs = []
+            for i, amount in enumerate(WTA_AMOUNTS, 1):
+                fname = f"wta_{prefix}_{i}"
+                val = player.field_maybe_none(fname) or ""
+                rs.append(dict(
+                    index=i,
+                    amount=f"\u20ac{amount:.2f}",
+                    field=fname,
+                    is_yes=val == "Yes",
+                    is_no=val == "No",
+                ))
+            return rs
+
+        with_msg_block = dict(
+            kind="with_messages",
+            heading="With messages",
+            description=(
+                "In this scenario, you are able to interact with other "
+                "participants. You learn both about your performance and "
+                "about theirs'."
+            ),
+            rows=make_rows("t"),
+        )
+        without_msg_block = dict(
+            kind="without_messages",
+            heading="Without messages",
+            description=(
+                "In this scenario, you are not able to interact with other "
+                "participants. You learn only about your own performance."
+            ),
+            rows=make_rows("c"),
+        )
+
+        # Order the two blocks based on which condition the participant
+        # experienced first. If period 1 was the social condition, show the
+        # "with messages" block first; otherwise the "without messages" block
+        # comes first.
+        p1 = player.participant.period_1_condition
+        if p1 == 'control':
+            blocks = [without_msg_block, with_msg_block]
+        else:
+            blocks = [with_msg_block, without_msg_block]
+
         return dict(
             treatment_condition=treatment,
-            rows=rows,
+            blocks=blocks,
         )
 
     @staticmethod
     def error_message(player: Player, values):
         for i in range(1, len(WTA_AMOUNTS) + 1):
             if not values.get(f'wta_t_{i}') or not values.get(f'wta_c_{i}'):
-                return "Please make a choice for every payment level in BOTH columns."
+                return "Please make a choice for every payment level in both blocks."
 
 
 class SocialMediaUsage(Page):
@@ -1528,7 +1593,9 @@ page_sequence = [
     # inline slide-in sidebar with block summary + (in treatments) a peer
     # report and a compose-your-own panel.
     RavensQuestion,
-    # End of periods 1 & 2 only (rounds 10 and 20); period 3 skips these pages.
+    # Percentile estimate, confidence, and end-of-period survey are shown at
+    # the end of period 1, period 2, and (if accepted) period 3. The Stroop
+    # task pages are only shown after periods 1 and 2.
     PerceivedPercentile,
     PerceivedPercentileConfidence,
     ColorTaskIntro,

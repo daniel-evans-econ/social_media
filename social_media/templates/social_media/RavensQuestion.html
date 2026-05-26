@@ -235,6 +235,40 @@
         }
     });
 })();
+
+(function () {
+    // Response-time tracking on Raven's questions: time (seconds) from page
+    // load to first selection of an answer. Recorded into a hidden input that
+    // is part of the form, so it gets submitted with the answer.
+    if (window.__raven_rt_init) return;
+    window.__raven_rt_init = true;
+
+    var pageLoadAt = (typeof performance !== 'undefined' && performance.now)
+        ? performance.now() : Date.now();
+    var firstAnswerAt = null;
+
+    function recordOnce() {
+        if (firstAnswerAt !== null) return;
+        var now = (typeof performance !== 'undefined' && performance.now)
+            ? performance.now() : Date.now();
+        firstAnswerAt = now;
+        var hidden = document.getElementById('raven-response-time');
+        if (hidden) hidden.value = ((now - pageLoadAt) / 1000).toFixed(3);
+    }
+
+    function attach() {
+        document.querySelectorAll('input[name="raven_answer"]').forEach(function (r) {
+            r.addEventListener('change', recordOnce);
+            r.addEventListener('click', recordOnce);
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', attach);
+    } else {
+        attach();
+    }
+})();
 </script>
 
 <div class="raven-wrap">
@@ -253,6 +287,8 @@
     </div>
 
     {{ formfield player.raven_answer }}
+
+    <input type="hidden" name="raven_response_time" id="raven-response-time" value="">
 
     {% if is_feedback_round %}
         <button type="button" id="raven-next-btn" class="otree-btn-next btn btn-primary">

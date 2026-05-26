@@ -8,11 +8,22 @@
 <p style="font-size:1.4em; color:blue; font-weight:bold;">RED</p>
 {{ formfield player.stroop_1 }}
 
+<input type="hidden" name="stroop_1_response_time" id="stroop-response-time" value="">
+
 <script>
 (function () {
     var form = document.querySelector('form');
     if (!form) return;
+    var pageLoadAt = (typeof performance !== 'undefined' && performance.now)
+        ? performance.now() : Date.now();
     var submitted = false;
+    function recordRT() {
+        var hidden = document.getElementById('stroop-response-time');
+        if (!hidden || hidden.value) return;
+        var now = (typeof performance !== 'undefined' && performance.now)
+            ? performance.now() : Date.now();
+        hidden.value = ((now - pageLoadAt) / 1000).toFixed(3);
+    }
     function tryAutoSubmit(e) {
         if (submitted) return;
         var t = e.target;
@@ -20,11 +31,13 @@
         var v = (t.value || '').trim();
         if (!v) return;
         submitted = true;
+        recordRT();
         if (typeof form.requestSubmit === 'function') form.requestSubmit();
         else form.submit();
     }
     form.addEventListener('change', tryAutoSubmit);
     form.addEventListener('input', tryAutoSubmit);
+    form.addEventListener('submit', recordRT, true);
 })();
 </script>
 {% endblock %}

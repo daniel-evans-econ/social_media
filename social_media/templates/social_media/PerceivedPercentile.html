@@ -58,9 +58,9 @@
 </p>
 <p>
     Move the slider from <strong style="color:darkred;">0</strong> to <strong style="color:darkred;">100</strong>. For example:
-    <br>&nbsp;&nbsp;&bull; <strong style="color:darkred;">0</strong> means you think everyone else did at least as well or better than you.
-    <br>&nbsp;&nbsp;&bull; <strong style="color:darkred;">50</strong> means you think you did at least as well or better than half of the others.
-    <br>&nbsp;&nbsp;&bull; <strong style="color:darkred;">100</strong> means you think you did at least as well or better than every other participant.
+    <br>&nbsp;&nbsp;&bull; <strong style="color:darkred;">0</strong> means you think you did worse than every other participant.
+    <br>&nbsp;&nbsp;&bull; <strong style="color:darkred;">50</strong> means you think you did better than half of the other participants.
+    <br>&nbsp;&nbsp;&bull; <strong style="color:darkred;">100</strong> means you think you did better than every other participant.
 </p>
 <p>
     You will be paid <strong style="color:darkred;">&euro;0.50</strong> if your answer is
@@ -76,8 +76,8 @@
     </div>
     <input type="range" id="percentile-slider" min="0" max="100" step="1" value="50">
     <div class="scale-marks">
-        <span>0 (everyone else as good or better)</span>
-        <span>100 (as good or better than everyone else)</span>
+        <span>0: I am worse than everyone else</span>
+        <span>100: I am better than everyone else</span>
     </div>
     <input type="hidden" name="perceived_relative_performance" id="perceived_relative_performance" value="">
 </div>
