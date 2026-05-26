@@ -970,6 +970,20 @@ class RavensQuestion(Page):
         if not (player.field_maybe_none('raven_answer') or ''):
             player.raven_response_time = None
 
+        # Defensive: when the form auto-submits on timeout (and on non-feedback
+        # rounds where no report sidebar is shown), oTree can coerce empty
+        # IntegerField submissions to 0 rather than None (because min=0 is the
+        # floor). We use the display name as the canary: if it's empty, the
+        # participant never composed a report, so all of the report fields
+        # should be NA rather than 0/blank/False defaults that look like real
+        # data.
+        composed_name = (player.field_maybe_none('report_display_name') or '').strip()
+        if not composed_name:
+            player.report_number = None
+            player.report_emoji = None
+            player.report_message = None
+            player.report_display_name = None
+
         if not is_feedback_round(player):
             return
 
