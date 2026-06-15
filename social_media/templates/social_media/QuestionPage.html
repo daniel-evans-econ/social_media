@@ -1,0 +1,472 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block content %}
+<style>
+    .q-wrap { max-width: 760px; margin: 0 auto; }
+    .q-image { max-width: 100%; width: 560px; border: 1px solid #ddd; border-radius: 6px; }
+    .q-placeholder {
+        width: 560px; max-width: 100%;
+        min-height: 220px;
+        border: 2px dashed #c0c0c0; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        color: #888; background: #fafafa; margin: 0 auto;
+        font-size: 0.95em; text-align: center; padding: 20px;
+    }
+
+    /* ---------- Multiple-choice options ---------- */
+    .q-options { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 10px; }
+    .q-options label {
+        cursor: pointer; padding: 10px 18px; border: 2px solid #d0d0d0;
+        border-radius: 8px; background: #fff; min-width: 46px; text-align: center;
+        font-weight: 600;
+    }
+    .q-options input[type="radio"] { display: none; }
+    .q-options label:has(input[type="radio"]:checked) {
+        border-color: darkred; background: #fdecec; color: darkred;
+    }
+
+    /* ---------- Working-memory grid ---------- */
+    .wm-controls { text-align: center; margin: 16px 0; }
+    .wm-stimulus-wrap { text-align: center; margin: 16px 0; min-height: 10px; }
+    .wm-grid { display: inline-grid; gap: 6px; margin: 10px auto; }
+    .wm-cell {
+        width: 34px; height: 34px; border: 1px solid #bbb; border-radius: 6px;
+        background: #fff; cursor: pointer;
+    }
+    .wm-cell.on { background: darkred; border-color: darkred; }
+    .wm-hint { color: #666; font-size: 0.9em; text-align: center; }
+
+    /* ---------- Slide-in feedback sidebar ---------- */
+    .fb-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); opacity: 0; pointer-events: none; transition: opacity 0.25s ease; z-index: 9998; }
+    .fb-overlay.open { opacity: 1; pointer-events: auto; }
+    .fb-sidebar {
+        position: fixed; top: 0; right: 0; width: 400px; max-width: 92vw; height: 100%;
+        background: #fff; box-shadow: -8px 0 24px rgba(0,0,0,0.18);
+        transform: translateX(105%); transition: transform 0.35s cubic-bezier(0.2,0.8,0.2,1);
+        z-index: 9999; display: flex; flex-direction: column;
+        border-top-left-radius: 14px; border-bottom-left-radius: 14px; overflow: hidden;
+    }
+    .fb-sidebar.open { transform: translateX(0); }
+    .fb-header { display: flex; align-items: center; gap: 10px; padding: 16px 20px 12px; border-bottom: 1px solid #eee; }
+    .fb-app-icon { width: 32px; height: 32px; border-radius: 8px; background: darkred; color: #fff; font-weight: bold; font-size: 0.8em; display: flex; align-items: center; justify-content: center; }
+    .fb-header .fb-title { font-weight: 600; flex: 1; color: darkred; }
+    .fb-body { padding: 14px 20px 8px; flex: 1; overflow-y: auto; }
+    .fb-score { background: #f8fafc; border: 1px solid #d8dde3; border-radius: 12px; padding: 12px 16px; margin-bottom: 14px; font-size: 1.05em; }
+    .fb-post { background: #fff; border: 1px solid #e2e6eb; border-radius: 12px; padding: 12px 16px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .fb-post-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .fb-avatar { width: 36px; height: 36px; border-radius: 50%; background: #6c5ce7; color: #fff; font-weight: bold; display: flex; align-items: center; justify-content: center; font-size: 1em; }
+    .fb-post-name { font-weight: 600; font-size: 0.95em; }
+    .fb-post-body { font-size: 1em; margin-left: 46px; margin-top: 2px; }
+    .fb-post-quote { margin-top: 6px; color: #444; font-style: italic; }
+    .fb-compose { background: #f0f6ff; border: 1px solid #b9d4ff; border-radius: 12px; padding: 12px 16px; }
+    .fb-compose h4 { margin: 0 0 6px 0; color: #1a4998; font-size: 0.95em; }
+    .fb-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+    .fb-row label { cursor: pointer; padding: 6px 12px; border: 2px solid #d0d0d0; border-radius: 8px; background: #fff; min-width: 38px; text-align: center; }
+    .fb-row.fb-emoji label { font-size: 1.5em; padding: 4px 10px; }
+    .fb-row input[type="radio"] { display: none; }
+    .fb-row label:has(input[type="radio"]:checked) { border-color: #1a4998; background: #e8f0ff; font-weight: bold; }
+    .fb-compose textarea { width: 100%; min-height: 50px; padding: 8px; border: 1px solid #b9d4ff; border-radius: 6px; resize: vertical; font-family: inherit; font-size: 0.95em; }
+    .fb-share { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 0.92em; }
+    .fb-actions { padding: 12px 20px; border-top: 1px solid #eee; background: #fff; display: flex; gap: 10px; justify-content: flex-end; }
+    .fb-btn { padding: 8px 18px; border-radius: 8px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-size: 0.95em; }
+    .fb-btn-primary { background: darkred; color: #fff; border-color: darkred; }
+    body.fb-locked { overflow: hidden; }
+    .fb-share-step { display: none; margin-top: 12px; padding: 14px 16px; border: 2px solid darkred; border-radius: 10px; background: #fff8f8; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+    .fb-share-step.visible { display: block; }
+    .fb-share-step .fb-share-prompt { font-weight: 600; margin: 0 0 10px 0; color: #222; }
+</style>
+
+<script>
+(function () {
+    // Tab-switch tracking (scoped to question pages). See notes in commit history:
+    // guards against navigation-driven false positives and Windows alt-tab flicker.
+    if (window.__q_focus_tracker_init) return;
+    window.__q_focus_tracker_init = true;
+
+    var armed = true, navigating = false, armTimer = null, minVisibleMs = 1500, lastSentAt = 0;
+    function markNavigating() { navigating = true; }
+    document.addEventListener('submit', markNavigating, true);
+    window.addEventListener('beforeunload', markNavigating);
+    window.addEventListener('pagehide', markNavigating);
+    document.addEventListener('click', function (e) {
+        var t = e.target;
+        if (t && t.closest && t.closest('button[type="submit"], input[type="submit"]')) markNavigating();
+    }, true);
+
+    function showBonusWarning() {
+        var warn = document.getElementById('tab-switch-warning');
+        if (warn) warn.style.display = 'block';
+    }
+    function sendSwitch() {
+        showBonusWarning();
+        if (typeof liveSend !== 'function') return;
+        var now = Date.now();
+        if ((now - lastSentAt) < minVisibleMs) return;
+        lastSentAt = now;
+        try { liveSend({ action: 'track_focus_switch' }); } catch (_) {}
+    }
+    window.liveRecv = function (data) {
+        if (!data) return;
+        if (data.bonus_disqualified) showBonusWarning();
+        if (data.action === 'block_count') {
+            var el = document.getElementById('fb-block-score');
+            if (el) el.textContent = data.count + ' out of ' + data.block_size;
+        }
+    };
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'hidden') {
+            if (navigating || !armed) return;
+            armed = false; sendSwitch();
+        } else if (document.visibilityState === 'visible') {
+            if (armTimer) clearTimeout(armTimer);
+            armTimer = setTimeout(function () { armed = true; }, minVisibleMs);
+        }
+    });
+})();
+</script>
+
+<div class="q-wrap">
+    <div id="tab-switch-warning" role="alert"
+         style="display:{% if already_tab_switched %}block{% else %}none{% endif %};
+                background:#fdecea; border:1px solid #d32f2f; color:#8a1c1c;
+                border-radius:8px; padding:12px 16px; margin-bottom:16px; font-weight:600;">
+        We have detected you switching tabs away from this page. As such, you are
+        no longer eligible to receive bonus payments for this question.
+    </div>
+
+    <h3 style="color:darkred; font-weight:bold;">
+        Period {{ period }}, Question {{ question_in_period }} of {{ C.PERIOD_LENGTH }}
+    </h3>
+    <br>
+
+    {% if response_type == 'count' %}
+        {% if not already_shown %}
+        <div class="wm-stimulus-wrap">
+            {% if image %}
+            <img id="wm-stimulus" class="q-image" src="{% static image %}" alt="Pattern to memorize" style="display:none;">
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div id="wm-answer-wrap" style="text-align:center; margin-top:16px; {% if not already_shown %}display:none;{% endif %}">
+            <label for="q-answer" style="display:block; margin-bottom:8px; font-weight:600;">
+                {{ question_prompt }}
+            </label>
+            <input type="number" name="q_answer" id="q-answer" min="0" step="1"
+                   value="{{ prior_answer }}"
+                   style="width:120px; padding:8px; font-size:1.15em; text-align:center; border:2px solid #d0d0d0; border-radius:8px;">
+        </div>
+    {% else %}
+        <div style="text-align:center; margin: 20px 0;">
+            {% if is_placeholder %}
+                <div class="q-placeholder">
+                    [{{ task }} stimulus pending] &mdash; item {{ item.item_id }}
+                </div>
+            {% else %}
+                <img class="q-image" src="{% static image %}" alt="Question">
+            {% endif %}
+        </div>
+        {% if question_prompt %}
+        <p style="text-align:center; font-weight:600; margin-bottom:10px;">{{ question_prompt }}</p>
+        {% endif %}
+        <div class="q-options">
+            {% for opt in options %}
+                <label>
+                    <input type="radio" name="q_answer" value="{{ opt }}"> {{ opt }}
+                </label>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <input type="hidden" name="q_response_time" id="q-response-time" value="">
+
+    <div style="margin-top:20px;">
+    {% if is_feedback_round %}
+        <button type="button" id="q-next-btn" class="otree-btn-next btn btn-primary">Next</button>
+    {% else %}
+        {{ next_button }}
+    {% endif %}
+    </div>
+</div>
+
+<script>
+(function () {
+    // Working-memory widget: the stimulus auto-appears for 1.7s once it has
+    // loaded, then the number-of-dots input is revealed. Showing the image is
+    // one-and-done: as soon as it appears we tell the server, so a re-render
+    // (e.g. after an empty submit) does not show it again.
+    var answerWrap = document.getElementById('wm-answer-wrap');
+    if (!answerWrap) return;  // not a count question
+    var stimulus = document.getElementById('wm-stimulus');
+    var flashMs = {{ wm_stimulus_ms }};
+
+    function revealAnswer() {
+        if (stimulus) stimulus.style.display = 'none';
+        answerWrap.style.display = 'block';
+        var input = document.getElementById('q-answer');
+        if (input) input.focus();
+    }
+
+    // Already shown on a re-render (no stimulus rendered): input is visible.
+    if (!stimulus) return;
+
+    function markShown(attempts) {
+        // Backup to the server-side flag: retry until oTree's liveSend exists
+        // (a cached image can flash before liveSend is initialized).
+        attempts = attempts || 0;
+        if (typeof liveSend === 'function') {
+            try { liveSend({ action: 'wm_shown' }); } catch (_) {}
+            return;
+        }
+        if (attempts < 50) setTimeout(function () { markShown(attempts + 1); }, 100);
+    }
+    function startFlash() {
+        stimulus.style.display = 'inline-block';
+        markShown();
+        setTimeout(revealAnswer, flashMs);
+    }
+    if (stimulus.complete && stimulus.naturalWidth > 0) {
+        startFlash();
+    } else {
+        stimulus.addEventListener('load', startFlash);
+        stimulus.addEventListener('error', function () { markShown(); revealAnswer(); });
+    }
+})();
+
+(function () {
+    // Response-time tracking (time from load to first answer interaction).
+    window.__q_page_load_at = (performance && performance.now) ? performance.now() : Date.now();
+    function recordOnce() {
+        if (window.__q_first_answer_done) return;
+        window.__q_first_answer_done = true;
+        var h = document.getElementById('q-response-time');
+        var now = (performance && performance.now) ? performance.now() : Date.now();
+        if (h) h.value = ((now - window.__q_page_load_at) / 1000).toFixed(3);
+    }
+    document.querySelectorAll('input[name="q_answer"]').forEach(function (r) {
+        r.addEventListener('change', recordOnce);
+        r.addEventListener('click', recordOnce);
+        r.addEventListener('input', recordOnce);
+    });
+})();
+</script>
+
+{% if is_feedback_round %}
+<div class="fb-overlay" id="fb-overlay"></div>
+
+<aside class="fb-sidebar" id="fb-sidebar" aria-hidden="true" aria-label="Performance summary">
+    <div class="fb-header">
+        <div class="fb-app-icon">SM</div>
+        <div class="fb-title">Performance summary</div>
+    </div>
+
+    <div class="fb-body">
+        <div class="fb-score">
+            You got <strong style="color:darkred;"><span id="fb-block-score">&mdash;</span></strong>
+            correct in the last block.
+        </div>
+
+        {% if in_treatment %}
+            {% if has_received_message %}
+            <p style="font-size:0.92em; color:#444; margin: 0 0 12px 0;">
+                Here is a message from a participant who answered the
+                <strong style="color:darkred;">same 5 questions that you did</strong>.
+            </p>
+            <div class="fb-post">
+                <div class="fb-post-head">
+                    <div class="fb-avatar">{{ signal_initial }}</div>
+                    <div><div class="fb-post-name">{{ signal.name }}</div></div>
+                </div>
+                <div class="fb-post-body">
+                    {% if is_quantitative %}
+                        I got {{ signal.number }} out of 5 correct.
+                    {% else %}
+                        <span style="font-size:1.6em;">{{ signal.emoji }}</span>
+                        <div class="fb-post-quote">&ldquo;{{ signal.sentence }}&rdquo;</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="fb-compose">
+                <h4>Share your performance &darr;</h4>
+                <p style="font-size:0.85em; color:#666; margin:0 0 12px 0;">
+                    We will not verify the truthfulness of your message.
+                </p>
+
+                <div id="fb-compose-inputs">
+                    <div style="margin-bottom:12px;">
+                        <label for="id_report_display_name" style="font-size:0.9em; display:block; margin-bottom:6px;">
+                            What name do you want to use?
+                        </label>
+                        <input type="text" name="report_display_name" id="id_report_display_name"
+                               maxlength="60" autocomplete="nickname"
+                               style="width:100%; padding:8px; border:1px solid #b9d4ff; border-radius:6px; box-sizing:border-box;">
+                    </div>
+                    {% if is_quantitative %}
+                        <div style="font-size:0.9em;">How many out of 5 did you get correct?</div>
+                        <div class="fb-row">
+                            {% for n in report_options %}
+                                <label>
+                                    <input type="radio" name="report_number" value="{{ n }}"> {{ n }}
+                                </label>
+                            {% endfor %}
+                        </div>
+                        <p style="margin-top:12px; font-size:1em;">
+                            <strong>Message:</strong> I got <span id="fb-quant-x">X</span> out of 5 correct.
+                        </p>
+                        <input type="hidden" name="report_message" id="id_report_message" value="">
+                    {% else %}
+                        <div style="font-size:0.9em;">How did the last 5 questions go?</div>
+                        <div class="fb-row fb-emoji">
+                            {% for e in qual_emojis %}
+                                <label>
+                                    <input type="radio" name="report_emoji" value="{{ e }}">
+                                    <span>{{ e }}</span>
+                                </label>
+                            {% endfor %}
+                        </div>
+                        <div style="margin-top:8px;">
+                            <label for="id_report_message" style="font-size:0.85em;">
+                                Add a short note (max 140 characters):
+                            </label>
+                            <textarea name="report_message" id="id_report_message"
+                                      minlength="5" maxlength="140"></textarea>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div id="fb-share-step" class="fb-share-step" aria-live="polite">
+                    <p class="fb-share-prompt">
+                        Do you want to send your message to another participant?
+                        <br>
+                        <span style="font-weight:400; color:#333;">We will only send it if you agree.</span>
+                    </p>
+                    <div class="fb-share">
+                        <input type="checkbox" name="report_shared" id="id_report_shared" value="True">
+                        <label for="id_report_shared" style="margin:0;">
+                            Yes, share my message with another participant
+                        </label>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="fb-actions">
+        {% if in_treatment %}
+            <div id="fb-actions-compose">
+                <button type="button" class="fb-btn fb-btn-primary" id="fb-compose-next">Continue</button>
+            </div>
+            <div id="fb-actions-final" style="display:none;">
+                <button type="submit" class="fb-btn fb-btn-primary" id="fb-final-submit">Continue</button>
+            </div>
+        {% else %}
+            <button type="submit" class="fb-btn fb-btn-primary" id="fb-continue-btn">Continue</button>
+        {% endif %}
+    </div>
+</aside>
+
+<script>
+(function () {
+    var openBtn = document.getElementById('q-next-btn');
+    var sidebar = document.getElementById('fb-sidebar');
+    var overlay = document.getElementById('fb-overlay');
+    var composeNext = document.getElementById('fb-compose-next');
+    var composeInputs = document.getElementById('fb-compose-inputs');
+    var shareStep = document.getElementById('fb-share-step');
+    var actionsCompose = document.getElementById('fb-actions-compose');
+    var actionsFinal = document.getElementById('fb-actions-final');
+
+    function currentAnswer() {
+        var hidden = document.getElementById('q-answer');
+        if (hidden) return String(hidden.value || '').trim();  // working memory
+        var checked = document.querySelector('input[name="q_answer"]:checked');
+        return checked ? checked.value : '';
+    }
+    function answered() { return currentAnswer().length > 0; }
+
+    function pauseOtreeTimer() {
+        try {
+            if (window.jQuery) {
+                var $t = window.jQuery('.otree-timer__time-left');
+                if ($t.length) { $t.countdown('pause'); }
+            }
+        } catch (e) {}
+        var box = document.querySelector('.otree-timer');
+        if (box) { box.style.visibility = 'hidden'; }
+    }
+
+    function openSidebar() {
+        sidebar.classList.add('open');
+        overlay.classList.add('open');
+        sidebar.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('fb-locked');
+        pauseOtreeTimer();
+        // Ask the server for the block count (without leaking the correct answer).
+        if (typeof liveSend === 'function') {
+            try { liveSend({ action: 'submit_answer', answer: currentAnswer() }); } catch (_) {}
+        }
+    }
+
+    if (openBtn) {
+        openBtn.addEventListener('click', function () {
+            if (!answered()) { alert('Please answer the question before continuing.'); return; }
+            openSidebar();
+        });
+    }
+
+    function displayNameOk() {
+        var el = document.getElementById('id_report_display_name');
+        return el && String(el.value || '').trim().length > 0;
+    }
+    function composeStepComplete() {
+        if (!displayNameOk()) { alert('Please enter the name you want to use.'); return false; }
+        var numRadios = document.querySelectorAll('input[name="report_number"]');
+        if (numRadios.length) {
+            var numChecked = document.querySelector('input[name="report_number"]:checked');
+            if (!numChecked) { alert('Please select the number you want to report.'); return false; }
+            var hiddenMsg = document.getElementById('id_report_message');
+            if (hiddenMsg && hiddenMsg.tagName === 'INPUT') {
+                hiddenMsg.value = 'Message: I got ' + numChecked.value + ' out of 5 correct.';
+            }
+            return true;
+        }
+        var msgEl = document.getElementById('id_report_message');
+        var msg = msgEl ? String(msgEl.value || '').trim() : '';
+        if (!msg) { alert('Please add a short note before continuing.'); return false; }
+        if (msg.length < 5) { alert('Please write at least 5 characters in your note.'); return false; }
+        var emoChecked = document.querySelector('input[name="report_emoji"]:checked');
+        if (document.querySelectorAll('input[name="report_emoji"]').length && !emoChecked) {
+            alert('Please indicate how the last 5 questions went.'); return false;
+        }
+        return true;
+    }
+
+    (function syncQuantPreview() {
+        var previewX = document.getElementById('fb-quant-x');
+        var hiddenMsg = document.getElementById('id_report_message');
+        if (!previewX || !hiddenMsg || hiddenMsg.tagName !== 'INPUT') return;
+        document.querySelectorAll('input[name="report_number"]').forEach(function (radio) {
+            radio.addEventListener('change', function () {
+                previewX.textContent = radio.value;
+                hiddenMsg.value = 'Message: I got ' + radio.value + ' out of 5 correct.';
+            });
+        });
+    })();
+
+    if (composeNext && composeInputs && shareStep && actionsCompose && actionsFinal) {
+        composeNext.addEventListener('click', function () {
+            if (!composeStepComplete()) return;
+            composeInputs.style.display = 'none';
+            shareStep.classList.add('visible');
+            actionsCompose.style.display = 'none';
+            actionsFinal.style.display = 'flex';
+            shareStep.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+    }
+})();
+</script>
+{% endif %}
+{% endblock %}

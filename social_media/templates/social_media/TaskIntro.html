@@ -1,0 +1,52 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block content %}
+<style>
+    .ti-wrap { max-width: 680px; margin: 0 auto; }
+    .ti-body { font-size: 1.12em; line-height: 1.55; }
+    .ti-example {
+        margin: 22px auto 8px; text-align: center;
+    }
+    .ti-example img {
+        max-width: 100%; width: 460px; border: 1px solid #ddd; border-radius: 6px;
+    }
+    .ti-example-fallback {
+        width: 460px; max-width: 100%; min-height: 180px; margin: 0 auto;
+        border: 2px dashed #c0c0c0; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        color: #888; background: #fafafa; font-size: 0.95em; text-align: center; padding: 20px;
+    }
+    .ti-example-caption { color: #666; font-size: 0.9em; margin-top: 8px; }
+    .ti-answer {
+        margin: 14px auto 0; max-width: 460px;
+        background: #f8fafc; border: 1px solid #d8dde3; border-radius: 10px;
+        padding: 10px 14px; font-size: 1.02em;
+    }
+</style>
+
+<div class="ti-wrap">
+    <h2 style="color:darkred; font-weight:bold;">{{ title }}</h2>
+    <br>
+    <p class="ti-body">{{ body_html|safe }}</p>
+
+    <div class="ti-example">
+        {% if example_image %}
+        <img src="{% static example_image %}" alt="Example"
+             onerror="this.style.display='none'; document.getElementById('ti-example-fallback').style.display='flex';">
+        {% endif %}
+        <div id="ti-example-fallback" class="ti-example-fallback"
+             style="{% if example_image %}display:none;{% else %}display:flex;{% endif %}">
+            [Example image coming soon]
+        </div>
+        {% if example_answer %}
+        <div class="ti-answer"><strong style="color:darkred;">Answer:</strong> {{ example_answer|safe }}</div>
+        {% endif %}
+    </div>
+
+    <p style="margin-top:24px;">Press <strong>Next</strong> when you are ready to proceed.</p>
+    <div style="margin-top:8px;">
+        {{ next_button }}
+    </div>
+</div>
+{% endblock %}

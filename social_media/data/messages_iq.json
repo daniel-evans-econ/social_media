@@ -1,0 +1,3 @@
+{
+  "_README": "Messages collected from the IQ pilot, served to MAIN-pilot participants who face the same (task, set_id). Generate with tools/export_pilot_data.py. Structure: { task: { set_id: { 'quantitative': [{'name','number'}], 'qualitative': [{'name','emoji','sentence'}] } } }. Empty pools fall back to simulated messages in code."
+}

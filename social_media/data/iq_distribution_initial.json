@@ -1,0 +1,6 @@
+{
+  "_README": "Score->IQ tables fitted from the INITIAL pilot, used by the IQ pilot. For each component, map each raw period score (string '0'..'15', i.e. number correct out of 15) to an IQ value. Replace the empty objects below with the fitted values. Any missing component or score falls back to an illustrative linear 70-130 map in code.",
+  "spatial": {},
+  "fluid": {},
+  "working_memory": {}
+}

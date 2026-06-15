@@ -1,0 +1,20 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block content %}
+<div style="max-width:640px; margin:0 auto; text-align:center;">
+    <h2 style="color:darkred; font-weight:bold;">Your estimated score</h2>
+    <br>
+    <p style="font-size:1.1em;">
+        Based on your answers in period {{ period }}, we estimate your score on the
+        <strong style="color:darkred;">{{ component_label }} component of IQ</strong> to be:
+    </p>
+    <div style="font-size:3em; font-weight:bold; color:darkred; margin:16px 0;">{{ iq }}</div>
+    <p style="font-size:0.9em; color:#666;">
+        This is an estimate, calculated relative to other Prolific participants, and is therefore
+        sample-specific.
+    </p>
+    <br>
+    {{ next_button }}
+</div>
+{% endblock %}

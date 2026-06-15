@@ -4,43 +4,92 @@
 {% block content %}
 <style>
     body { font-size: 1.1em; }
+
+    .info-tip {
+        position: relative;
+        display: inline-block;
+        margin-left: 4px;
+        cursor: help;
+        color: #1a4998;
+        font-weight: bold;
+        border: 1px solid #1a4998;
+        border-radius: 50%;
+        width: 1.3em;
+        height: 1.3em;
+        line-height: 1.25em;
+        text-align: center;
+        font-size: 0.8em;
+        vertical-align: middle;
+    }
+    .info-tip .info-tip-text {
+        visibility: hidden;
+        opacity: 0;
+        width: 330px;
+        max-width: 80vw;
+        background: #333;
+        color: #fff;
+        text-align: left;
+        border-radius: 8px;
+        padding: 10px 12px;
+        position: absolute;
+        z-index: 100;
+        bottom: 145%;
+        left: 50%;
+        transform: translateX(-50%);
+        transition: opacity 0.15s ease;
+        font-size: 0.85rem;
+        font-weight: normal;
+        line-height: 1.45;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    }
+    .info-tip:hover .info-tip-text,
+    .info-tip:focus .info-tip-text {
+        visibility: visible;
+        opacity: 1;
+    }
 </style>
 
 <h2 style="color:darkred; font-weight:bold;">Task instructions</h2>
 <br>
 <p>
-    You will now answer a series of questions. For each question,
-    you will see a collection of eight figures arranged according to a certain pattern.
-    A ninth figure is missing. Your job is to select the figure that
-    <strong style="color:darkred;">best completes the pattern</strong>.
+    You will answer a total of <strong style="color:darkred;">{{ total_questions }} questions</strong>
+    {% if has_optional_third %}across <strong style="color:darkred;">two periods</strong> (with a potential
+    <strong style="color:darkred;">third period</strong> that is strictly optional){% else %}across
+    <strong style="color:darkred;">three periods</strong>{% endif %}
+    and be paid <strong style="color:darkred;">{{ C.PAY_PER_CORRECT }}</strong> for each one you answer correctly.
+    You will have up to <strong style="color:darkred;">60 seconds</strong> to answer each question.
+    Each period will feature a different type of task.
 </p>
 <p>
-    You will answer a total of <strong style="color:darkred;">20 questions</strong>
-    across <strong style="color:darkred;">two periods</strong>.
-    You will be paid <strong style="color:darkred;">{{ C.PAY_PER_CORRECT }}</strong>
-    for each one you answer correctly. You will have up to
-    <strong style="color:darkred;">60 seconds</strong> to answer each question.
-    Questions like these are typically used to
-    <strong style="color:darkred;">measure intelligence</strong>.
+    One period will feature questions that test your
+    <strong style="color:darkred;">{{ period_iq_labels.0 }}</strong>.
+    Another will test your <strong style="color:darkred;">{{ period_iq_labels.1 }}</strong>,
+    and the other will test your <strong style="color:darkred;">{{ period_iq_labels.2 }}</strong>.
 </p>
+{% if show_iq %}
+<p>
+    In each period, we will use your answers to estimate your score on the relevant
+    <strong style="color:darkred;">component of IQ</strong>.<span class="info-tip" tabindex="0" aria-label="More information about the IQ components">i<span class="info-tip-text">The questions we will ask you were specifically selected to target each component of IQ. The IQ scores we will report to you are merely estimates. They have been calculated relative to other Prolific participants and are therefore sample-specific.</span></span>
+</p>
+{% endif %}
 <p>
     At the end of each period, you will complete a handful of short tasks
-    and make some choices that affect your earnings. There is a potential third period
-    that is strictly optional. Answer each question carefully.
+    and make some choices that affect your earnings. Answer each question carefully.
 </p>
 <p>
-    During this study, you will
+    {% if receives_messages %}During this study, you will
     <strong style="color:darkred;">receive messages from other participants</strong>.
     You will also have the opportunity to
     <strong style="color:darkred;">send messages of your own</strong>.
+    Not all other participants chose to send a message, and we did not verify the
+    truthfulness of what they wrote.{% else %}During this study, you will have the opportunity to
+    <strong style="color:darkred;">send messages of your own</strong> to other participants.{% endif %}
 </p>
 <p style="background:#fff8e1; border-left:4px solid #d4a017; padding:10px 14px; margin-top:1em;">
-    Please note that you have only <strong style="color:darkred;">60 seconds per question</strong>,
-    and that searching online or asking AI for the answers is
-    <strong style="color:darkred;">time consuming</strong> and
-    <strong style="color:darkred;">not a good use</strong> of time.
-    AI models frequently provide
-    <strong style="color:darkred;">incorrect responses</strong> to these questions.
+    We <strong style="color:darkred;">prohibit the use of AI and search engines</strong>
+    to assist you with answering questions. If we detect you
+    <strong style="color:darkred;">switching tabs</strong> on a given question's page, you will be
+    <strong style="color:darkred;">disqualified from earning bonus payments</strong> on that question.
 </p>
 
 {{ next_button }}

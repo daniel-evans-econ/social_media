@@ -2,13 +2,18 @@ from otree.api import *
 import json
 import os
 import random
+from pathlib import Path
+
+from . import questions_data as QD
 
 
 doc = """
 Social media and well-being experiment.
-Subjects complete Raven's Progressive Matrices across two periods of 10 questions each.
-Each subject experiences the control condition in one period and one of two social feedback
-treatments in the other (mixed-subject design, order randomized).
+Subjects complete three blocks (periods) of 15 cognitive questions each. Each
+subject experiences the control condition in one block and one of two social
+feedback treatments (quantitative / qualitative) in the others (mixed-subject
+design, order randomized). The experiment runs in one of three pilot modes
+(Initial / IQ / Main), selected with the EXPERIMENT_PILOT environment variable.
 """
 
 # Prolific study completion redirect (participant return URL)
@@ -16,28 +21,241 @@ PROLIFIC_COMPLETION_URL = (
     "https://app.prolific.com/submissions/complete?cc=REPLACE_WITH_YOUR_COMPLETION_CODE"
 )
 
-RAVEN_CORRECT = "B"
-
-# AB_PAY_PER_50 = cu(0.05)  # disabled: a-b button-press effort task removed
 STROOP_ANSWERS = ["Blue", "Red", "Green", "Yellow", "Green", "Blue"]
-RAVENS_TIMEOUT_SECONDS = 60  # 60 seconds per Raven's question
+QUESTION_TIMEOUT_SECONDS = 60  # 60 seconds per question
+# Working-memory stimulus is flashed for exactly this long after the participant
+# presses "Show image" (chosen to equalize image load time across participants).
+WM_STIMULUS_SECONDS = 1.7
 
-# Qualitative emoji set. Order is important: the index into this list maps
-# directly into PILOT_QUAL_TEXT_BY_EMOJI / PILOT_QUAL_SCORE_BY_EMOJI so the
-# message text always matches the emoji's valence.
+
+# ---------------------------------------------------------------------------
+# Pilot mode (the three switchable modes)
+# ---------------------------------------------------------------------------
+# Switch the active pilot with the EXPERIMENT_PILOT env var: "initial" | "iq" | "main".
+PILOT = (os.environ.get("EXPERIMENT_PILOT", "initial") or "initial").strip().lower()
+if PILOT not in ("initial", "iq", "main"):
+    PILOT = "initial"
+
+PILOT_CONFIG = {
+    # Initial pilot: sequences (always) + 2 random of the three non-sequence
+    # tasks; number-correct feedback only (no IQ); send messages but receive
+    # none; all three blocks mandatory (no WTA).
+    "initial": dict(
+        fixed_tasks=["sequences"],
+        random_pool=["shape_rotation", "working_memory", "ravens"],
+        random_count=2,
+        show_iq=False,
+        received_message_source=None,
+        iq_distribution_source=None,
+        use_wta=False,
+        period3_mandatory=True,
+    ),
+    # IQ pilot: all three non-sequence tasks; number-correct per 5 + IQ after
+    # 15 (normed against the Initial pilot); receive Initial-pilot messages;
+    # 3rd block optional via WTA.
+    "iq": dict(
+        fixed_tasks=["shape_rotation", "working_memory", "ravens"],
+        random_pool=[],
+        random_count=0,
+        show_iq=True,
+        received_message_source="initial",
+        iq_distribution_source="initial",
+        use_wta=True,
+        period3_mandatory=False,
+    ),
+    # Main pilot: like IQ, but normed against / receiving messages from the IQ pilot.
+    "main": dict(
+        fixed_tasks=["shape_rotation", "working_memory", "ravens"],
+        random_pool=[],
+        random_count=0,
+        show_iq=True,
+        received_message_source="iq",
+        iq_distribution_source="iq",
+        use_wta=True,
+        period3_mandatory=False,
+    ),
+}
+CFG = PILOT_CONFIG[PILOT]
+
+# Each task maps to an IQ "component" used in the IQ readout (IQ/Main pilots).
+TASK_IQ_COMPONENT = {
+    "shape_rotation": "spatial",
+    "ravens": "fluid",
+    "working_memory": "working_memory",
+    "sequences": "numerical",
+}
+
+IQ_COMPONENT_LABELS = {
+    "spatial": "spatial",
+    "fluid": "fluid",
+    "working_memory": "working memory",
+    "numerical": "numerical",
+}
+
+# Human-readable task names (used in the diagnostic bar and task-intro pages).
+TASK_LABELS = {
+    "sequences": "Numerical sequences",
+    "shape_rotation": "Shape rotation",
+    "working_memory": "Working memory",
+    "ravens": "Pattern matrices",
+}
+
+# The IQ component each task is framed as testing (used in the instructions and
+# task-explanation pages).
+TASK_IQ_LABEL = {
+    "shape_rotation": "spatial reasoning IQ",
+    "sequences": "numerical IQ",
+    "working_memory": "working memory IQ",
+    "ravens": "abstract reasoning IQ",
+}
+
+# Targeted prompt shown directly above the answer choices / box on each question.
+TASK_PROMPT = {
+    "sequences": "Which number completes the sequence?",
+    "ravens": "Which image completes the pattern?",
+    "shape_rotation": "Which option shows the correctly rotated shape?",
+    "working_memory": "How many squares had red dots?",
+}
+
+# Minimal "what is this task" explanation + worked example shown before each new
+# task begins. ``example_image`` points at a filler image under static/examples/
+# (kept outside static/questions/ so the question-bank rebuild does not wipe it);
+# until a real example is dropped in, the page shows a placeholder box instead of
+# a broken image.
+TASK_INTRO = {
+    "working_memory": dict(
+        title="Working memory",
+        body_html=(
+            "Your task in this period is to <strong style=\"color:darkred;\">memorize</strong> "
+            "the number of squares that have red dots. You will have "
+            "<strong style=\"color:darkred;\">1.7 seconds</strong> to look at each pattern. "
+            "This tests your <strong style=\"color:darkred;\">working memory IQ</strong>."
+        ),
+        example_image="examples/working_memory.png",
+        example_answer=(
+            "In this example, there are <strong style=\"color:darkred;\">3</strong> "
+            "squares with red dots."
+        ),
+    ),
+    "sequences": dict(
+        title="Numerical sequences",
+        body_html=(
+            "Your task in this period is to <strong style=\"color:darkred;\">predict the "
+            "next number</strong> that follows in a given sequence. This tests your "
+            "<strong style=\"color:darkred;\">numerical IQ</strong>."
+        ),
+        example_image="examples/sequences.png",
+        example_answer=(
+            "<strong style=\"color:darkred;\">B) 6</strong> completes the sequence."
+        ),
+    ),
+    "shape_rotation": dict(
+        title="Shape rotation",
+        body_html=(
+            "The top row shows a shape before and after rotation. Your task is to "
+            "apply the <strong style=\"color:darkred;\">same rotation</strong> to "
+            "another shape. This tests your "
+            "<strong style=\"color:darkred;\">spatial reasoning IQ</strong>."
+        ),
+        example_image="examples/shape_rotation.png",
+        example_answer="Option <strong style=\"color:darkred;\">D</strong> is the correctly rotated shape.",
+    ),
+    "ravens": dict(
+        title="Pattern matrices",
+        body_html=(
+            "Your task in this period is to choose the option that "
+            "<strong style=\"color:darkred;\">completes the pattern</strong>. This tests "
+            "your <strong style=\"color:darkred;\">abstract reasoning IQ</strong>."
+        ),
+        # C8 (excluded from the live bank); correct answer 7 per the answer key.
+        example_image="examples/ravens.jpg",
+        example_answer="Option <strong style=\"color:darkred;\">7</strong> completes the pattern.",
+    ),
+}
+
+
+# ---------------------------------------------------------------------------
+# Data files (cross-pilot messages + IQ distribution). Supplied between pilots.
+# ---------------------------------------------------------------------------
+DATA_DIR = Path(__file__).resolve().parent / "data"
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+
+
+def static_exists(rel_path: str) -> bool:
+    """Whether a static file exists (oTree's {% static %} errors on missing files)."""
+    if not rel_path:
+        return False
+    return (STATIC_DIR / rel_path).exists()
+
+
+def _load_json(name: str):
+    p = DATA_DIR / name
+    if not p.exists():
+        return None
+    try:
+        with open(p, encoding="utf-8") as fh:
+            return json.load(fh)
+    except Exception:
+        return None
+
+
+_MESSAGE_CACHE = {}
+_IQ_DIST_CACHE = {}
+
+
+def received_message_pool():
+    """Messages from the previous pilot, keyed [task][set_id][quant|qual]."""
+    src = CFG["received_message_source"]
+    if not src:
+        return None
+    if src not in _MESSAGE_CACHE:
+        _MESSAGE_CACHE[src] = _load_json(f"messages_{src}.json") or {}
+    return _MESSAGE_CACHE[src]
+
+
+def iq_distribution():
+    """Score->IQ tables from the previous pilot, keyed by component."""
+    src = CFG["iq_distribution_source"]
+    if not src:
+        return None
+    if src not in _IQ_DIST_CACHE:
+        _IQ_DIST_CACHE[src] = _load_json(f"iq_distribution_{src}.json") or {}
+    return _IQ_DIST_CACHE[src]
+
+
+def estimate_iq(component: str, score: int, max_score: int) -> int:
+    """Map a period score to an IQ estimate using the supplied distribution.
+
+    The distribution file maps each raw period score (0..max_score) to an IQ
+    for a given component, fitted from the previous pilot's data. When the file
+    is absent or incomplete (e.g. demo / Initial pilot), fall back to an
+    illustrative linear map spanning 70-130.
+    """
+    try:
+        s = int(score)
+    except (TypeError, ValueError):
+        s = 0
+    dist = iq_distribution()
+    if dist and component in dist:
+        table = dist[component] or {}
+        v = table.get(str(s))
+        if v is not None:
+            return int(round(v))
+    if max_score <= 0:
+        return 100
+    return int(round(70 + (s / max_score) * 60))
+
+
+# ---------------------------------------------------------------------------
+# Simulated peer messages (fallback when no real pool is available)
+# ---------------------------------------------------------------------------
 QUAL_EMOJI_SMILE = "\U0001f603"   # 😃
 QUAL_EMOJI_NEUTRAL = "\U0001f610"  # 😐
 QUAL_EMOJI_FROWN = "\U0001f61e"   # 😞
 QUAL_EMOJIS = [QUAL_EMOJI_SMILE, QUAL_EMOJI_NEUTRAL, QUAL_EMOJI_FROWN]
 
-# Display names used as the sender of the simulated peer report shown on the
-# in-question sidebar. One is randomly drawn per feedback round.
 PILOT_NAMES = ["Jane", "John"]
 
-# Qualitative pilot messages, grouped by emoji valence so a smiling peer never
-# sends a discouraged message (and vice versa). For each emoji we keep two
-# pools: a set of free-form sentences and a set of templates that mention a
-# score (numeric leakage is intentional in the qualitative condition).
 PILOT_QUAL_TEXT_BY_EMOJI = {
     QUAL_EMOJI_SMILE: [
         "Felt good about that one.",
@@ -62,24 +280,26 @@ PILOT_QUAL_TEXT_BY_EMOJI = {
     ],
 }
 
+# Score-mentioning qualitative templates now leak a raw number-correct (0-5),
+# matching the number-correct framing of the feedback. {n} is filled with a
+# count concordant with the emoji's valence.
 PILOT_QUAL_SCORE_BY_EMOJI = {
     QUAL_EMOJI_SMILE: [
-        "Pretty happy with {score}/5.",
-        "Managed {score}/5; on a roll.",
-        "Got {score}/5 \u2014 feeling good.",
+        "Pretty happy with {n} out of 5.",
+        "Got {n} of 5 that round.",
+        "Nailed {n} out of 5 \u2014 feeling good.",
     ],
     QUAL_EMOJI_NEUTRAL: [
-        "Hit {score} out of 5 this round.",
-        "Got {score}/5 this block.",
-        "Ended up at {score}/5.",
+        "Got {n} out of 5 this round.",
+        "Ended up with {n} of 5.",
+        "Around {n} out of 5.",
     ],
     QUAL_EMOJI_FROWN: [
-        "Only {score} out of 5 for me.",
-        "Got {score}/5 \u2014 could be better.",
-        "Just {score}/5 this time.",
+        "Only {n} out of 5 for me.",
+        "Just {n} of 5 \u2014 could be better.",
+        "Managed {n} out of 5.",
     ],
 }
-# Tasks 2 and 5 are congruent (word matches display color)
 
 BFI_CHOICES = [
     [1, ""],
@@ -166,12 +386,16 @@ TURNSTILE_TEST_SECRET_KEY = "1x0000000000000000000000000000000AA"
 class C(BaseConstants):
     NAME_IN_URL = 'social_media'
     PLAYERS_PER_GROUP = None
-    NUM_ROUNDS = 30
+    NUM_ROUNDS = 45
 
-    PERIOD_LENGTH = 10
-    FEEDBACK_ROUNDS = [5, 10, 15, 20, 25, 30]
-    END_OF_PERIOD_ROUNDS = [10, 20]
-    THIRD_PERIOD_START = 21
+    # Active pilot mode, exposed for templates (e.g. the diagnostic bar).
+    PILOT = PILOT
+
+    PERIOD_LENGTH = 15
+    # Feedback is shown after every 5-question block (3 blocks per 15-question period).
+    FEEDBACK_ROUNDS = [5, 10, 15, 20, 25, 30, 35, 40, 45]
+    END_OF_PERIOD_ROUNDS = [15, 30]
+    THIRD_PERIOD_START = 31
 
     PAY_PER_CORRECT = cu(0.25)
     PAY_PER_STROOP = cu(0.10)
@@ -192,31 +416,35 @@ class Player(BasePlayer):
 
     condition = models.StringField(blank=True)
 
-    raven_answer = models.StringField(
-        choices=["A", "B", "C", "D", "E", "F"],
-        blank=True,
-        label="Select the figure that completes the pattern:",
-        widget=widgets.RadioSelectHorizontal,
-    )
-    raven_timeout = models.BooleanField(initial=False)
-    # Tab/window-switch counter for THIS Raven's question (one row per round
-    # = one row per Raven's question shown). Incremented server-side via the
-    # page's live_method whenever the JS in RavensQuestion.html observes a
-    # visibilitychange->hidden event.
-    raven_tab_switches = models.IntegerField(initial=0)
-    # Time (seconds) from page load to first selection of an answer on this round's
-    # Raven's question. Set client-side via a hidden input.
-    raven_response_time = models.FloatField(blank=True)
+    # ---- Per-round question (generic across task types) ----
+    q_task = models.StringField(blank=True)
+    q_item_id = models.StringField(blank=True)
+    q_set_id = models.StringField(blank=True)
+    q_difficulty = models.StringField(blank=True)
+    # The participant's answer: a multiple-choice label (e.g. "B" or "3") or, for
+    # working memory, the reported number of red-dot squares (e.g. "7").
+    q_answer = models.StringField(blank=True)
+    q_correct = models.BooleanField(initial=False)
+    q_timeout = models.BooleanField(initial=False)
+    # Working memory: whether the stimulus has already been flashed once on this
+    # round (so a re-render after an empty submit can't grant another look).
+    q_stimulus_shown = models.BooleanField(initial=False)
+    # Tab/window-switch counter for THIS question (one row per round).
+    q_tab_switches = models.IntegerField(initial=0)
+    # Seconds from page load to first answer interaction.
+    q_response_time = models.FloatField(blank=True)
     feedback_snapshot = models.LongStringField(blank=True)
 
-    # ---- Per-block report a participant might send to a future participant ----
-    # Stored only on rounds that end a 5-question block (5, 10, 15, 20, 25, 30).
+    # ---- Per-period IQ readout (IQ / Main pilots only) ----
+    iq_estimate = models.IntegerField(blank=True)
+
+    # ---- Per-block report a participant might send to another participant ----
+    # report_number stores the number-correct (0-5) the participant chooses to report.
     report_number = models.IntegerField(min=0, max=5, blank=True)
     report_emoji = models.StringField(blank=True)
     report_message = models.StringField(blank=True, max_length=140)
     report_shared = models.BooleanField(initial=False, blank=True)
     report_display_name = models.StringField(blank=True, max_length=60)
-    # Snapshot of received signal so we can audit later
     received_signal_name = models.StringField(blank=True)
     received_signal_value = models.StringField(blank=True)
 
@@ -228,7 +456,6 @@ class Player(BasePlayer):
     honeypot_intro_triggered = models.BooleanField(initial=False)
 
     # ---- Personality survey (BFI-10) ----
-    # Labels are blank because the table template provides statement text and column headers.
     big5_1 = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True, label="")
     big5_2 = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True, label="")
     big5_3 = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True, label="")
@@ -242,8 +469,6 @@ class Player(BasePlayer):
     big5_accuracy = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True, label="")
 
     # ---- NPI-8: Narcissistic Personality Inventory (Schmalbach et al., 2020) ----
-    # Forced-choice pairs; 1 = narcissistic option, 0 = non-narcissistic option.
-    # Leadership/Authority subscale
     npi_1 = models.IntegerField(choices=[
         [1, "I really like to be the center of attention."],
         [0, "It makes me uncomfortable to be the center of attention."],
@@ -260,7 +485,6 @@ class Player(BasePlayer):
         [1, "I have a natural talent for influencing people."],
         [0, "I am not good at influencing people."],
     ], widget=widgets.RadioSelect, blank=True, label="")
-    # Grandiose Exhibitionism subscale
     npi_5 = models.IntegerField(choices=[
         [1, "I like to show off my body."],
         [0, "I don't particularly like to show off my body."],
@@ -329,9 +553,6 @@ class Player(BasePlayer):
         choices=["Blue", "Red", "Green", "Yellow"], blank=True,
         widget=widgets.RadioSelect,
     )
-    # Per-trial response times (seconds) for the Stroop task. Set client-side
-    # via a hidden input on each ColorTask page; equals roughly time from page
-    # load to color selection (since the page auto-advances on selection).
     stroop_1_response_time = models.FloatField(blank=True)
     stroop_2_response_time = models.FloatField(blank=True)
     stroop_3_response_time = models.FloatField(blank=True)
@@ -371,7 +592,6 @@ class Player(BasePlayer):
                                    label="What is your highest level of education?")
 
     # ---- Two simultaneous WTAs (treatment vs control) ----
-    # Each row is one payment level; Yes/No per condition.
     wta_t_1 = models.StringField(choices=["Yes", "No"], widget=widgets.RadioSelectHorizontal, blank=True, label="")
     wta_t_2 = models.StringField(choices=["Yes", "No"], widget=widgets.RadioSelectHorizontal, blank=True, label="")
     wta_t_3 = models.StringField(choices=["Yes", "No"], widget=widgets.RadioSelectHorizontal, blank=True, label="")
@@ -423,49 +643,147 @@ class Player(BasePlayer):
 
 
 # ---------------------------------------------------------------------------
-# Session setup
+# Per-subject question/condition plan
 # ---------------------------------------------------------------------------
+
+def _build_plan(participant):
+    """Construct a stable 45-round plan for one participant.
+
+    Returns (period_tasks, period_sets, round_plan). The plan is deterministic
+    given the participant code (so refresh/back-navigation is stable).
+    """
+    rng = random.Random(f"{participant.code}-plan")
+
+    # Choose this subject's 3 task types per the pilot config.
+    tasks = list(CFG["fixed_tasks"])
+    pool = list(CFG["random_pool"])
+    rng.shuffle(pool)
+    tasks += pool[: CFG["random_count"]]
+    rng.shuffle(tasks)  # randomized assignment of tasks to periods 1/2/3
+    period_tasks = tasks[:3]
+
+    round_plan = {}
+    period_sets = []
+    for pi, task in enumerate(period_tasks):
+        task_sets = QD.SETS[task]
+        if task == "shape_rotation":
+            chosen_set_ids = rng.sample(list(task_sets.keys()), 3)
+        else:
+            chosen_set_ids = []
+            for diff in ("easy", "medium", "hard"):
+                candidates = [s for s in task_sets if s.startswith(diff + "_")]
+                chosen_set_ids.append(rng.choice(candidates))
+        rng.shuffle(chosen_set_ids)  # block order within the period
+        period_sets.append(chosen_set_ids)
+        for bi, set_id in enumerate(chosen_set_ids):
+            item_ids = list(task_sets[set_id])
+            rng.shuffle(item_ids)
+            base = pi * C.PERIOD_LENGTH + bi * 5
+            for k, item_id in enumerate(item_ids):
+                rnd = base + k + 1
+                diff = QD.QUESTIONS[task][item_id]["difficulty"]
+                round_plan[str(rnd)] = dict(
+                    task=task, item_id=item_id, set_id=set_id, difficulty=diff,
+                )
+    return period_tasks, period_sets, round_plan
+
 
 def creating_session(subsession: Subsession):
     if subsession.round_number == 1:
         players = subsession.get_players()
-        # Mixed-subject design: each subject gets control in one period and
-        # one of {quantitative_social, qualitative_social} in the other.
-        # Four balanced cells ensure equal treatment-order combinations.
-        cells = [
-            ('control', 'quantitative_social'),
-            ('quantitative_social', 'control'),
-            ('control', 'qualitative_social'),
-            ('qualitative_social', 'control'),
-        ]
-        assignments = [cells[i % len(cells)] for i in range(len(players))]
-        random.shuffle(assignments)
+        for i, p in enumerate(players):
+            part = p.participant
+            period_tasks, period_sets, round_plan = _build_plan(part)
+            part.vars['period_tasks'] = period_tasks
+            part.vars['period_sets'] = period_sets
+            part.vars['round_plan'] = round_plan
+            part.vars['period_task_labels'] = " \u2192 ".join(
+                TASK_LABELS.get(t, t) for t in period_tasks
+            )
 
-        for p, (p1_cond, p2_cond) in zip(players, assignments):
-            p.participant.period_1_condition = p1_cond
-            p.participant.period_2_condition = p2_cond
+            # Four balanced cells decorrelate the social type (quantitative vs
+            # qualitative) from the block order (control-first vs social-first).
+            cell = i % 4
+            social_type = 'quantitative_social' if cell in (0, 1) else 'qualitative_social'
+            part.vars['social_type'] = social_type
+
+            cond_rng = random.Random(f"{part.code}-cond")
+            if not CFG['use_wta']:
+                # Initial pilot: 3 mandatory blocks, 1 control + 2 social, order randomized.
+                conds = ['control', social_type, social_type]
+                cond_rng.shuffle(conds)
+                part.period_1_condition = conds[0]
+                part.period_2_condition = conds[1]
+                part.vars['period_3_condition'] = conds[2]
+            else:
+                # IQ / Main: one control + one social in periods 1-2 (control-first vs
+                # social-first balanced); period 3 condition is set later from the WTA.
+                control_first = cell in (0, 2)
+                if control_first:
+                    part.period_1_condition = 'control'
+                    part.period_2_condition = social_type
+                else:
+                    part.period_1_condition = social_type
+                    part.period_2_condition = 'control'
+                # Placeholder until the WTA elicitation decides period 3 (so the
+                # diagnostic bar reads "TBD" rather than a misleading "control").
+                part.vars.setdefault('period_3_condition', 'TBD')
 
     for p in subsession.get_players():
-        if p.round_number <= C.PERIOD_LENGTH:
-            p.condition = p.participant.period_1_condition
-        elif p.round_number <= 2 * C.PERIOD_LENGTH:
-            p.condition = p.participant.period_2_condition
-        else:
-            # The actual third-period condition is set in Results.vars_for_template
-            # (after the WTA selection); if not yet set, default to control.
-            p.condition = p.participant.vars.get('third_period_condition', 'control')
+        p.condition = get_condition(p)
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
+def period_of_round(round_number: int) -> int:
+    if round_number <= C.PERIOD_LENGTH:
+        return 1
+    if round_number <= 2 * C.PERIOD_LENGTH:
+        return 2
+    return 3
+
+
 def get_condition(player: Player):
-    if player.round_number <= C.PERIOD_LENGTH:
-        return player.participant.period_1_condition
-    elif player.round_number <= 2 * C.PERIOD_LENGTH:
-        return player.participant.period_2_condition
-    return player.participant.vars.get('third_period_condition', 'control')
+    part = player.participant
+    period = period_of_round(player.round_number)
+    if period == 1:
+        return part.period_1_condition
+    if period == 2:
+        return part.period_2_condition
+    return part.vars.get('period_3_condition', 'control')
+
+
+def round_spec(player: Player):
+    """The {task,item_id,set_id,difficulty} planned for this round."""
+    return player.participant.vars['round_plan'][str(player.round_number)]
+
+
+def component_for_player(player: Player) -> str:
+    return TASK_IQ_COMPONENT.get(round_spec(player)['task'], 'fluid')
+
+
+def iq_component_label(component: str) -> str:
+    return IQ_COMPONENT_LABELS.get(component, component)
+
+
+def grade_answer(task: str, item_id: str, answer) -> bool:
+    item = QD.QUESTIONS[task][item_id]
+    if QD.TASK_RESPONSE[task] == 'count':
+        # Working memory: exact match on the reported number of red-dot squares.
+        try:
+            return int(str(answer).strip()) == int(item['dot_count'])
+        except (TypeError, ValueError):
+            return False
+    return str(answer or '').strip() == str(item['correct']).strip()
+
+
+def q_answer_earns_bonus(p: Player) -> bool:
+    """Correct AND no tab switch on that question."""
+    correct = bool(p.field_maybe_none('q_correct'))
+    switched = (p.field_maybe_none('q_tab_switches') or 0) > 0
+    return correct and not switched
 
 
 def is_feedback_round(player: Player):
@@ -480,64 +798,54 @@ def is_third_period(player: Player):
     return player.round_number >= C.THIRD_PERIOD_START
 
 
-def third_period_accepted(player: Player):
+def third_period_played(player: Player):
+    """Period 3 is mandatory in the Initial pilot; WTA-gated otherwise."""
+    if CFG['period3_mandatory']:
+        return True
     return player.participant.vars.get('third_period_accepted', False)
 
 
 def is_end_of_period_with_p3(player: Player):
-    """End-of-period checkpoint for periods 1, 2, and (if accepted) 3.
-
-    Used for the post-period measures we want to repeat after the optional
-    third period as well: PerceivedPercentile, PerceivedPercentileConfidence,
-    and EndOfPeriodSurvey. The Stroop task pages still use ``is_end_of_period``
-    so they only run after periods 1 and 2.
-    """
     if player.round_number in C.END_OF_PERIOD_ROUNDS:
         return True
-    if player.round_number == C.NUM_ROUNDS and third_period_accepted(player):
+    if player.round_number == C.NUM_ROUNDS and third_period_played(player):
         return True
     return False
 
 
 def block_correct(player: Player):
-    """Number of correct answers in the current 5-question block (includes this round once saved)."""
+    """Correct answers in the current 5-question block (DB-saved rows)."""
     r = player.round_number
     block_start = ((r - 1) // 5) * 5 + 1
     total = 0
     for p in player.in_rounds(block_start, r):
-        if (p.field_maybe_none('raven_answer') or '') == RAVEN_CORRECT:
+        if p.field_maybe_none('q_correct'):
             total += 1
     return total
 
 
 def block_correct_prior_in_block(player: Player):
-    """Correct count in this block for rounds strictly before the current one (DB-saved only).
-
-    Used for feedback sidebar display: the current round's answer is not saved until the
-    page is submitted, so `block_correct` would undercount by one on GET.
-    """
+    """Correct count in this block for rounds strictly before the current one."""
     r = player.round_number
     block_start = ((r - 1) // 5) * 5 + 1
     if r <= block_start:
         return 0
     total = 0
     for p in player.in_rounds(block_start, r - 1):
-        if (p.field_maybe_none('raven_answer') or '') == RAVEN_CORRECT:
+        if p.field_maybe_none('q_correct'):
             total += 1
     return total
 
 
 def total_correct(player: Player):
-    """Total correct answers from round 1 through current round."""
     total = 0
     for p in player.in_rounds(1, player.round_number):
-        if (p.field_maybe_none('raven_answer') or '') == RAVEN_CORRECT:
+        if q_answer_earns_bonus(p):
             total += 1
     return total
 
 
 def period_correct(player: Player):
-    """Total correct in the current period."""
     r = player.round_number
     if r <= C.PERIOD_LENGTH:
         start = 1
@@ -547,65 +855,61 @@ def period_correct(player: Player):
         start = C.THIRD_PERIOD_START
     total = 0
     for p in player.in_rounds(start, r):
-        if (p.field_maybe_none('raven_answer') or '') == RAVEN_CORRECT:
+        if q_answer_earns_bonus(p):
             total += 1
     return total
 
 
 def pilot_feedback_signals(player: Player):
-    """
-    Simulate one report from a past (pilot) participant for the current block.
-    Quantitative: score 0-5; peer message is fixed-format copy (see template).
-    Qualitative: 1 randomly drawn emoji plus a non-empty sentence (always shown).
+    """One peer report shown on the feedback sidebar for the current block.
+
+    Initial pilot: no received message (send-only). IQ/Main: draw a real message
+    from the previous pilot for this (task, set_id); fall back to a simulated one.
+    Messages are number-correct based (0-5) in all pilots.
     """
     cond = get_condition(player)
-    r = player.round_number
-    seed = f"{player.session.code}-{player.participant.code}-{r}"
-    rng = random.Random(seed)
+    if cond not in ('quantitative_social', 'qualitative_social'):
+        return dict(type='control', name=None)
 
+    if CFG['received_message_source'] is None:
+        return dict(type='none', name=None)
+
+    spec = round_spec(player)
+    pool = received_message_pool() or {}
+    set_pool = pool.get(spec['task'], {}).get(spec['set_id'], {})
+    rng = random.Random(f"{player.session.code}-{player.participant.code}-{player.round_number}-recv")
     name = rng.choice(PILOT_NAMES)
 
     if cond == 'quantitative_social':
-        score = rng.randint(0, 5)
-        return dict(type='quantitative', name=name, score=score)
+        entries = set_pool.get('quantitative') or []
+        if entries:
+            e = rng.choice(entries)
+            return dict(type='quantitative', name=e.get('name') or name,
+                        number=int(e.get('number', 0)))
+        return dict(type='quantitative', name=name, number=rng.randint(0, 5))
 
-    if cond == 'qualitative_social':
-        # Draw the emoji first; sentence pools are then keyed by emoji so the
-        # text is always concordant with the face.
-        emoji = rng.choice(QUAL_EMOJIS)
-        # Score range conditional on emoji so a frown can't say "5/5":
-        #   smile   -> 4 or 5
-        #   neutral -> 2 or 3
-        #   frown   -> 0 or 1
-        if emoji == QUAL_EMOJI_SMILE:
-            score = rng.choice([4, 5])
-        elif emoji == QUAL_EMOJI_NEUTRAL:
-            score = rng.choice([2, 3])
-        else:
-            score = rng.choice([0, 1])
-        # ~50% of qualitative pilot messages explicitly state a score so that
-        # numeric information leaks into the qualitative condition the way it
-        # would in real social-media chatter.
-        if rng.random() < 0.5:
-            template = rng.choice(PILOT_QUAL_SCORE_BY_EMOJI[emoji])
-            sentence = template.format(score=score)
-        else:
-            sentence = rng.choice(PILOT_QUAL_TEXT_BY_EMOJI[emoji])
-        return dict(type='qualitative', name=name, emoji=emoji, sentence=sentence)
-
-    return dict(type='control', name=None, sentence='')
-
-
-# def effort_ab_count(player: Player):
-#     return player.field_maybe_none('ab_count') or 0
+    entries = set_pool.get('qualitative') or []
+    if entries:
+        e = rng.choice(entries)
+        return dict(type='qualitative', name=e.get('name') or name,
+                    emoji=e.get('emoji') or QUAL_EMOJI_NEUTRAL,
+                    sentence=e.get('sentence') or '')
+    # Simulated fallback.
+    emoji = rng.choice(QUAL_EMOJIS)
+    if emoji == QUAL_EMOJI_SMILE:
+        n = rng.choice([4, 5])
+    elif emoji == QUAL_EMOJI_NEUTRAL:
+        n = rng.choice([2, 3])
+    else:
+        n = rng.choice([0, 1])
+    if rng.random() < 0.5:
+        sentence = rng.choice(PILOT_QUAL_SCORE_BY_EMOJI[emoji]).format(n=n)
+    else:
+        sentence = rng.choice(PILOT_QUAL_TEXT_BY_EMOJI[emoji])
+    return dict(type='qualitative', name=name, emoji=emoji, sentence=sentence)
 
 
 def experienced_conditions(player: Player):
-    """Return (treatment_condition, control_condition_label) for the WTA elicitation.
-
-    The participant always experiences control in one period and one of the social
-    conditions in the other. We return the social condition for the 'treatment' label.
-    """
     p1 = player.participant.period_1_condition
     p2 = player.participant.period_2_condition
     treatment = p1 if p1 != 'control' else p2
@@ -616,6 +920,14 @@ def stroop_correct_count(player: Player):
     answers = [player.stroop_1, player.stroop_2, player.stroop_3,
                player.stroop_4, player.stroop_5, player.stroop_6]
     return sum(1 for i, a in enumerate(answers) if a == STROOP_ANSWERS[i])
+
+
+def _period_index_and_qnum(round_number: int):
+    if round_number <= C.PERIOD_LENGTH:
+        return 1, round_number
+    if round_number <= 2 * C.PERIOD_LENGTH:
+        return 2, round_number - C.PERIOD_LENGTH
+    return 3, round_number - 2 * C.PERIOD_LENGTH
 
 
 # ---------------------------------------------------------------------------
@@ -636,11 +948,6 @@ class Consent(Page):
             return "You must agree to all conditions and consent to continue."
 
 
-# ---- Item-prompt maps for the personality screens. Defined here (not in
-#      templates) so we can shuffle the display order server-side using a
-#      participant-stable seed; that way refreshing the page doesn't change
-#      the order, but it still varies between participants.
-
 BFI_PROMPTS = {
     'big5_1': "\u2026is reserved.",
     'big5_2': "\u2026is generally trusting.",
@@ -653,7 +960,6 @@ BFI_PROMPTS = {
     'big5_9': "\u2026gets nervous easily.",
     'big5_10': "\u2026has an active imagination.",
     'competitiveness': "\u2026enjoys competing with others.",
-    # Dohmen & Jagelka self-reliability item — kept fixed at the bottom.
     'big5_accuracy': "\u2026is sure that my answers to these questions describe me accurately.",
 }
 
@@ -672,12 +978,6 @@ RSES_PROMPTS = {
 
 
 def _stable_shuffled(player: Player, suffix: str, items: list) -> list:
-    """Return a copy of `items` shuffled with a participant-stable seed.
-
-    The seed is derived from the participant's code plus a per-screen suffix,
-    so the order is fixed across refreshes/back-navigation for a given
-    participant but varies between participants and between screens.
-    """
     rng = random.Random(f"{player.participant.code}-{suffix}")
     out = list(items)
     rng.shuffle(out)
@@ -699,8 +999,6 @@ class BigFiveSurvey(Page):
 
     @staticmethod
     def vars_for_template(player: Player):
-        # Shuffle every BFI/competitiveness item; keep the Dohmen & Jagelka
-        # self-reliability item ('big5_accuracy') fixed at the bottom.
         shuffled_fields = _stable_shuffled(
             player, 'bfi',
             [k for k in BFI_PROMPTS.keys() if k != 'big5_accuracy'],
@@ -816,11 +1114,9 @@ class BotCheck(Page):
 
     @staticmethod
     def error_message(player: Player, values):
-        # 1. Honeypot check: a hidden, off-screen text field. Bots will fill it; humans won't.
         honeypot_raw = values.get('honeypot_intro_response') or ''
         honeypot_triggered = bool(str(honeypot_raw).strip())
         player.honeypot_intro_triggered = honeypot_triggered
-        # We don't reject bots immediately on honeypot trigger; we record it for later exclusion.
 
         if not ENABLE_TURNSTILE:
             return
@@ -839,7 +1135,6 @@ class BotCheck(Page):
         if not token:
             return {'turnstile_token': 'Please complete the bot check to continue.'}
 
-        # Server-side siteverify
         try:
             from urllib import parse, request
             import json as _json
@@ -864,119 +1159,189 @@ class Intro(Page):
     def is_displayed(player: Player):
         return player.round_number == 1
 
+    @staticmethod
+    def vars_for_template(player: Player):
+        period_tasks = player.participant.vars.get('period_tasks', [])
+        period_iq_labels = [TASK_IQ_LABEL.get(t, t) for t in period_tasks]
+        return dict(
+            show_iq=CFG['show_iq'],
+            has_optional_third=CFG['use_wta'],
+            receives_messages=CFG['received_message_source'] is not None,
+            total_questions=2 * C.PERIOD_LENGTH if CFG['use_wta'] else 3 * C.PERIOD_LENGTH,
+            period_iq_labels=period_iq_labels,
+        )
 
-class RavensQuestion(Page):
-    """Raven's Progressive Matrices question.
 
-    On block-end rounds (5, 10, 15, 20, 25, 30) the page also includes an
-    inline, slide-in feedback sidebar that appears after the participant
-    answers the question and clicks "Next". The same form submission
-    therefore captures both the answer and (optionally) the report the
-    participant chooses to share with future participants.
+class TaskIntro(Page):
+    """Minimal task explanation + worked example, shown before each new task.
+
+    Appears once at the start of every period (rounds 1 / 16 / 31), right after
+    the Task-instructions page in period 1.
+    """
+
+    @staticmethod
+    def is_displayed(player: Player):
+        if player.round_number not in (1, C.PERIOD_LENGTH + 1, C.THIRD_PERIOD_START):
+            return False
+        if is_third_period(player):
+            return third_period_played(player)
+        return True
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        spec = round_spec(player)
+        task = spec['task']
+        period, _ = _period_index_and_qnum(player.round_number)
+        intro = TASK_INTRO.get(task, {})
+        example_image = intro.get('example_image')
+        if not static_exists(example_image):
+            # Real example not dropped in yet: the template shows a placeholder.
+            example_image = None
+        return dict(
+            period=period,
+            task=task,
+            title=intro.get('title', TASK_LABELS.get(task, task)),
+            body_html=intro.get('body_html', ''),
+            example_image=example_image,
+            example_answer=intro.get('example_answer', ''),
+        )
+
+
+class QuestionPage(Page):
+    """One cognitive question (task type depends on the round's plan).
+
+    On feedback rounds (every 5th) the page also shows an inline slide-in
+    sidebar with the block summary and (in social conditions) a peer report and
+    a compose-your-own panel, captured in the same form submission.
     """
     form_model = 'player'
     form_fields = [
-        'raven_answer',
-        'raven_response_time',
+        'q_answer',
+        'q_response_time',
         'report_number',
         'report_emoji',
         'report_message',
         'report_shared',
         'report_display_name',
     ]
-    timeout_seconds = RAVENS_TIMEOUT_SECONDS
+    timeout_seconds = QUESTION_TIMEOUT_SECONDS
 
     @staticmethod
     def is_displayed(player: Player):
         if is_third_period(player):
-            return third_period_accepted(player)
+            return third_period_played(player)
         return True
 
     @staticmethod
     def vars_for_template(player: Player):
-        r = player.round_number
-        if r <= C.PERIOD_LENGTH:
-            period = 1
-            q_in_period = r
-        elif r <= 2 * C.PERIOD_LENGTH:
-            period = 2
-            q_in_period = r - C.PERIOD_LENGTH
-        else:
-            period = 3
-            q_in_period = r - 2 * C.PERIOD_LENGTH
+        spec = round_spec(player)
+        task = spec['task']
+        item = QD.QUESTIONS[task][spec['item_id']]
+        period, q_in_period = _period_index_and_qnum(player.round_number)
+        response_type = QD.TASK_RESPONSE[task]
+
+        # Working-memory stimulus is one-and-done: mark it shown on the first
+        # render so a re-render (e.g. pressing Next with no answer) won't show
+        # the image again. Done server-side (not via liveSend) so it is robust
+        # even when the image is cached and flashes before liveSend is ready.
+        already_shown = bool(player.field_maybe_none('q_stimulus_shown'))
+        if response_type == 'count' and not already_shown:
+            player.q_stimulus_shown = True
 
         ctx = dict(
-            question_number=r,
+            question_number=player.round_number,
             total_questions=C.NUM_ROUNDS,
             period=period,
             question_in_period=q_in_period,
             is_feedback_round=False,
+            task=task,
+            response_type=response_type,
+            question_prompt=TASK_PROMPT.get(task, ''),
+            item=item,
+            image=item.get('image'),
+            is_placeholder=item.get('is_placeholder', False),
+            options=item.get('options', []),
+            wm_stimulus_ms=int(WM_STIMULUS_SECONDS * 1000),
+            already_shown=already_shown,
+            prior_answer=player.field_maybe_none('q_answer') or '',
+            already_tab_switched=(player.field_maybe_none('q_tab_switches') or 0) > 0,
         )
 
         if is_feedback_round(player):
             cond = get_condition(player)
-            score = block_correct(player)
             signal = pilot_feedback_signals(player)
             signal_name = (signal.get('name') or '') if isinstance(signal, dict) else ''
             signal_initial = signal_name[:1].upper() if signal_name else '?'
             ctx.update(
                 is_feedback_round=True,
                 condition=cond,
-                block_score=score,
                 block_score_prior=block_correct_prior_in_block(player),
-                raven_correct_letter=RAVEN_CORRECT,
+                report_options=list(range(6)),
                 signal=signal,
                 signal_initial=signal_initial,
                 qual_emojis=QUAL_EMOJIS,
-                number_options=[0, 1, 2, 3, 4, 5],
                 in_treatment=cond in ('quantitative_social', 'qualitative_social'),
                 is_quantitative=cond == 'quantitative_social',
                 is_qualitative=cond == 'qualitative_social',
+                has_received_message=isinstance(signal, dict) and signal.get('type') in ('quantitative', 'qualitative'),
             )
         return ctx
 
     @staticmethod
     def live_method(player: Player, data):
-        """Record a tab/window switch sent from the client.
-
-        The template fires `liveSend({action: 'track_focus_switch'})` once per
-        visibilitychange->hidden event (rate-limited and de-duplicated client
-        side). We just bump the per-round counter.
-        """
         if not isinstance(data, dict):
             return
-        if data.get('action') != 'track_focus_switch':
+        action = data.get('action')
+        if action == 'track_focus_switch':
+            try:
+                current = int(player.field_maybe_none('q_tab_switches') or 0)
+            except Exception:
+                current = 0
+            player.q_tab_switches = current + 1
+            return {
+                player.id_in_group: dict(
+                    action='focus_switch_recorded',
+                    count=player.q_tab_switches,
+                    bonus_disqualified=True,
+                )
+            }
+        if action == 'wm_shown':
+            # The working-memory stimulus has been flashed once: lock it so a
+            # re-render (e.g. after an empty submit) can't grant another look.
+            player.q_stimulus_shown = True
             return
-        try:
-            current = int(player.field_maybe_none('raven_tab_switches') or 0)
-        except Exception:
-            current = 0
-        player.raven_tab_switches = current + 1
-        return {
-            player.id_in_group: dict(
-                action='focus_switch_recorded',
-                count=player.raven_tab_switches,
-            )
-        }
+        if action == 'submit_answer':
+            # Record the answer + grade it server-side so we can show the block
+            # count without ever leaking the correct answer to the client.
+            spec = round_spec(player)
+            ans = data.get('answer') or ''
+            player.q_answer = str(ans)
+            player.q_correct = grade_answer(spec['task'], spec['item_id'], ans)
+            count = block_correct_prior_in_block(player) + (1 if player.q_correct else 0)
+            return {player.id_in_group: dict(action='block_count', count=count, block_size=5)}
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
+        spec = round_spec(player)
+        player.q_task = spec['task']
+        player.q_item_id = spec['item_id']
+        player.q_set_id = spec['set_id']
+        player.q_difficulty = spec['difficulty']
+        # Record the live condition (period-3's is only known after the WTA).
+        player.condition = get_condition(player)
+
         if timeout_happened:
-            player.raven_timeout = True
+            player.q_timeout = True
 
-        # If the participant never selected an answer, there is no meaningful
-        # response time. Force NA (None) so timeouts are not silently coded
-        # as 0 seconds in the exported data.
-        if not (player.field_maybe_none('raven_answer') or ''):
-            player.raven_response_time = None
+        answer = player.field_maybe_none('q_answer') or ''
+        if not answer:
+            player.q_response_time = None
+            player.q_correct = False
+        else:
+            player.q_correct = grade_answer(spec['task'], spec['item_id'], answer)
 
-        # Defensive: when the form auto-submits on timeout (and on non-feedback
-        # rounds where no report sidebar is shown), oTree can coerce empty
-        # IntegerField submissions to 0 rather than None (because min=0 is the
-        # floor). We use the display name as the canary: if it's empty, the
-        # participant never composed a report, so all of the report fields
-        # should be NA rather than 0/blank/False defaults that look like real
-        # data.
+        # Canary: if no display name was composed, the participant never filled
+        # in a report, so blank out report fields rather than store 0/defaults.
         composed_name = (player.field_maybe_none('report_display_name') or '').strip()
         if not composed_name:
             player.report_number = None
@@ -988,14 +1353,11 @@ class RavensQuestion(Page):
             return
 
         cond = get_condition(player)
-        score = block_correct(player)
         signal = pilot_feedback_signals(player)
         if cond == 'quantitative_social':
             n = player.field_maybe_none('report_number')
             if n is not None:
-                player.report_message = (
-                    f"Message: I got {n} out of the last 5 questions correct."
-                )
+                player.report_message = f"Message: I got {n} out of 5 correct."
         if cond in ('quantitative_social', 'qualitative_social'):
             player.report_display_name = (
                 (player.field_maybe_none('report_display_name') or '').strip()
@@ -1003,7 +1365,9 @@ class RavensQuestion(Page):
         player.feedback_snapshot = json.dumps(dict(
             round=player.round_number,
             condition=cond,
-            block_score=score,
+            task=spec['task'],
+            set_id=spec['set_id'],
+            block_score=block_correct(player),
             signal=signal,
             sent_number=player.field_maybe_none('report_number'),
             sent_emoji=player.field_maybe_none('report_emoji'),
@@ -1013,32 +1377,29 @@ class RavensQuestion(Page):
         ))
         if signal.get('type') == 'quantitative':
             player.received_signal_name = signal.get('name') or ''
-            player.received_signal_value = str(signal.get('score'))
+            player.received_signal_value = str(signal.get('number'))
         elif signal.get('type') == 'qualitative':
             player.received_signal_name = signal.get('name') or ''
             player.received_signal_value = signal.get('emoji') or ''
 
     @staticmethod
     def error_message(player: Player, values):
-        # Timed-out submits include timeout_happened; skip further checks so oTree can advance.
         if values.get('timeout_happened'):
             return
-        if not values.get('raven_answer'):
-            return "Please select an answer before continuing."
+        if not (values.get('q_answer') or '').strip():
+            return "Please answer the question before continuing."
         if not is_feedback_round(player):
             return
         cond = get_condition(player)
         if cond not in ('quantitative_social', 'qualitative_social'):
             return
+        if not (values.get('report_display_name') or '').strip():
+            return "Please enter the name you want to use."
         if cond == 'quantitative_social':
             rn = values.get('report_number')
             if rn is None or rn == '':
-                return "Please select how many questions you got right."
-            if not (values.get('report_display_name') or '').strip():
-                return "Please enter the name you want to use."
+                return "Please select the number you want to report."
             return
-        if not (values.get('report_display_name') or '').strip():
-            return "Please enter the name you want to use."
         msg = (values.get('report_message') or '').strip()
         if not msg:
             return "Please add a short note before continuing."
@@ -1048,25 +1409,39 @@ class RavensQuestion(Page):
             return "Please indicate how the last 5 questions went."
 
 
+class IQReadout(Page):
+    """Per-period IQ estimate, shown after each block of 15 in the IQ/Main pilots."""
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return CFG['show_iq'] and is_end_of_period_with_p3(player)
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        period, _ = _period_index_and_qnum(player.round_number)
+        component = component_for_player(player)
+        score = period_correct(player)
+        iq = estimate_iq(component, score, C.PERIOD_LENGTH)
+        player.iq_estimate = iq
+        return dict(
+            period=period,
+            component=component,
+            component_label=iq_component_label(component),
+            iq=iq,
+        )
+
+
 class PerceivedPercentile(Page):
     form_model = 'player'
     form_fields = ['perceived_relative_performance']
 
     @staticmethod
     def is_displayed(player: Player):
-        # Run after periods 1, 2, and also after period 3 (if the participant
-        # accepted the optional third block).
         return is_end_of_period_with_p3(player)
 
     @staticmethod
     def vars_for_template(player: Player):
-        r = player.round_number
-        if r <= C.PERIOD_LENGTH:
-            period = 1
-        elif r <= 2 * C.PERIOD_LENGTH:
-            period = 2
-        else:
-            period = 3
+        period, _ = _period_index_and_qnum(player.round_number)
         return dict(period=period)
 
     @staticmethod
@@ -1087,13 +1462,7 @@ class PerceivedPercentileConfidence(Page):
 
     @staticmethod
     def vars_for_template(player: Player):
-        r = player.round_number
-        if r <= C.PERIOD_LENGTH:
-            period = 1
-        elif r <= 2 * C.PERIOD_LENGTH:
-            period = 2
-        else:
-            period = 3
+        period, _ = _period_index_and_qnum(player.round_number)
         prior_guess = player.field_maybe_none('perceived_relative_performance')
         return dict(
             period=period,
@@ -1107,30 +1476,6 @@ class PerceivedPercentileConfidence(Page):
             return "Please indicate your level of certainty before continuing."
 
 
-# ---------------------------------------------------------------------------
-# A-B button-press effort task: DISABLED (commented out for now)
-# ---------------------------------------------------------------------------
-# class EffortTask(Page):
-#     form_model = 'player'
-#     form_fields = ['ab_count']
-#
-#     @staticmethod
-#     def is_displayed(player: Player):
-#         return is_end_of_period(player)
-#
-#     @staticmethod
-#     def vars_for_template(player: Player):
-#         existing = player.field_maybe_none('ab_count')
-#         done = existing is not None and existing > 0
-#         return dict(already_done="true" if done else "false", existing_count=existing or 0)
-#
-#     @staticmethod
-#     def live_method(player: Player, data):
-#         if data.get('type') == 'save_count':
-#             player.ab_count = int(data['count'])
-#             return {player.id_in_group: dict(type='saved')}
-
-
 class ColorTaskIntro(Page):
     @staticmethod
     def is_displayed(player: Player):
@@ -1138,7 +1483,6 @@ class ColorTaskIntro(Page):
 
 
 def _stroop_color_task_error(values: dict, field_name: str):
-    """Require a color choice on manual submit; allow timeout auto-submit."""
     if values.get('timeout_happened'):
         return
     v = values.get(field_name)
@@ -1162,7 +1506,6 @@ class ColorTask1(Page):
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
         if timeout_happened:
-            # No real selection: leave both the color and response time as NA.
             player.stroop_1_response_time = None
 
 
@@ -1262,16 +1605,6 @@ class ColorTask6(Page):
 
 
 class EndOfPeriodSurvey(Page):
-    """Single page combining mood, task enjoyment, and payment satisfaction.
-
-    Shown at the end of periods 1 and 2, and also after period 3 (round 30)
-    if the participant accepted the optional third block. The Stroop task is
-    NOT repeated after period 3.
-
-    The three questions are presented in a randomized order (per participant,
-    same order across all periods for a given participant so within-subject
-    comparisons aren't contaminated by ordering effects).
-    """
     form_model = 'player'
     form_fields = ['mood', 'task_enjoyment', 'payment_satisfaction']
 
@@ -1281,22 +1614,14 @@ class EndOfPeriodSurvey(Page):
 
     @staticmethod
     def vars_for_template(player: Player):
-        r = player.round_number
-        if r <= C.PERIOD_LENGTH:
-            period = 1
-        elif r <= 2 * C.PERIOD_LENGTH:
-            period = 2
-        else:
-            period = 3
-        if r >= C.THIRD_PERIOD_START:
+        period, _ = _period_index_and_qnum(player.round_number)
+        if player.round_number >= C.THIRD_PERIOD_START and CFG['use_wta']:
             pay_rate = player.participant.vars.get('third_period_pay_rate', 0) or 0
         else:
             pay_rate = float(C.PAY_PER_CORRECT)
         correct = period_correct(player)
         earnings = correct * pay_rate
 
-        # Stable per-participant ordering so the order is the same in periods
-        # 1 and 2 for any given participant.
         rng = random.Random(f"{player.participant.code}-eop-survey")
         question_keys = ['mood', 'task_enjoyment', 'payment_satisfaction']
         rng.shuffle(question_keys)
@@ -1315,10 +1640,9 @@ class EndOfPeriodSurvey(Page):
 
 
 class WTACompare(Page):
-    """Two simultaneous WTA price lists (treatment vs control), shown after both periods.
+    """Two simultaneous WTA price lists (treatment vs control), end of period 2.
 
-    Only displayed at the end of period 2 (round 20). Each row corresponds to a
-    payment level; the participant says Yes/No separately for each condition.
+    Only shown in pilots that use the WTA (IQ / Main).
     """
     form_model = 'player'
     form_fields = (
@@ -1328,14 +1652,12 @@ class WTACompare(Page):
 
     @staticmethod
     def is_displayed(player: Player):
-        return player.round_number == 2 * C.PERIOD_LENGTH
+        return CFG['use_wta'] and player.round_number == 2 * C.PERIOD_LENGTH
 
     @staticmethod
     def vars_for_template(player: Player):
         treatment, _ = experienced_conditions(player)
 
-        # Build separate row lists for the two blocks ("with messages" =
-        # treatment / wta_t_*; "without messages" = control / wta_c_*).
         def make_rows(prefix: str):
             rs = []
             for i, amount in enumerate(WTA_AMOUNTS, 1):
@@ -1370,10 +1692,6 @@ class WTACompare(Page):
             rows=make_rows("c"),
         )
 
-        # Order the two blocks based on which condition the participant
-        # experienced first. If period 1 was the social condition, show the
-        # "with messages" block first; otherwise the "without messages" block
-        # comes first.
         p1 = player.participant.period_1_condition
         if p1 == 'control':
             blocks = [without_msg_block, with_msg_block]
@@ -1394,7 +1712,6 @@ class WTACompare(Page):
 
 class SocialMediaUsage(Page):
     form_model = 'player'
-    # Order: platforms first (required), then hours (skippable if "I do not use social media").
     form_fields = [
         'sm_instagram', 'sm_tiktok', 'sm_twitter', 'sm_facebook',
         'sm_snapchat', 'sm_youtube', 'sm_reddit', 'sm_linkedin', 'sm_bluesky',
@@ -1421,7 +1738,6 @@ class SocialMediaUsage(Page):
             return "If you selected 'I do not use social media', please uncheck the other platforms."
         if values.get('sm_other') and not (values.get('sm_other_text') or '').strip():
             return "Please specify which other platform(s) you use."
-        # Hours is required only if the participant uses any social media.
         if not has_none and values.get('social_media_hours') is None:
             return "Please indicate your daily social media usage."
 
@@ -1464,15 +1780,11 @@ class SurveyReliabilityOverall(Page):
 
 
 class Results(Page):
-    """Intermediate results page (after WTA, end of period 2).
+    """Intermediate results page (after WTA, end of period 2). IQ/Main pilots only."""
 
-    Shows the participant's earnings so far and which WTA decision was randomly
-    selected for implementation, including whether period 3 will be played and
-    under which feedback condition.
-    """
     @staticmethod
     def is_displayed(player: Player):
-        return player.round_number == 2 * C.PERIOD_LENGTH
+        return CFG['use_wta'] and player.round_number == 2 * C.PERIOD_LENGTH
 
     @staticmethod
     def vars_for_template(player: Player):
@@ -1487,7 +1799,6 @@ class Results(Page):
         payoff += raven_total * C.PAY_PER_CORRECT
         payoff += stroop_total * C.PAY_PER_STROOP
 
-        # Randomly select one WTA decision (one row, one column) for implementation
         treatment, _ = experienced_conditions(player)
         n = len(WTA_AMOUNTS)
         rng = random.Random(f"{player.session.code}-{player.participant.code}-wta")
@@ -1497,7 +1808,6 @@ class Results(Page):
         field = f'wta_{selected_col}_{selected_row + 1}'
         selected_choice = player.field_maybe_none(field) or "No"
         selected_for_retake = selected_choice == "Yes"
-        # The third period inherits the feedback condition from the column selected
         if selected_col == 't':
             p3_condition = treatment
         else:
@@ -1505,7 +1815,7 @@ class Results(Page):
 
         player.participant.third_period_accepted = selected_for_retake
         player.participant.third_period_pay_rate = selected_amount if selected_for_retake else 0
-        player.participant.vars['third_period_condition'] = p3_condition
+        player.participant.vars['period_3_condition'] = p3_condition
 
         if p3_condition in ('quantitative_social', 'qualitative_social'):
             p3_feedback_desc = "number correct + reported performance of others"
@@ -1553,14 +1863,12 @@ class FinalResults(Page):
 
     @staticmethod
     def vars_for_template(player: Player):
-        # Raven's correct in periods 1 & 2
         raven_p12 = 0
         for p in player.in_rounds(1, 2 * C.PERIOD_LENGTH):
-            if (p.field_maybe_none('raven_answer') or '') == RAVEN_CORRECT:
+            if q_answer_earns_bonus(p):
                 raven_p12 += 1
         raven_payoff = raven_p12 * C.PAY_PER_CORRECT
 
-        # Stroop only after periods 1 & 2 (rounds 10 and 20); not repeated after period 3.
         stroop_total = 0
         for r in C.END_OF_PERIOD_ROUNDS:
             p = player.in_round(r)
@@ -1569,13 +1877,15 @@ class FinalResults(Page):
 
         base_payoff = raven_payoff + stroop_payoff
 
-        # Period 3 payoff
         p3_correct = 0
-        p3_pay_rate = player.participant.vars.get('third_period_pay_rate', 0) or 0
-        accepted = third_period_accepted(player)
+        accepted = third_period_played(player)
+        if CFG['use_wta']:
+            p3_pay_rate = player.participant.vars.get('third_period_pay_rate', 0) or 0
+        else:
+            p3_pay_rate = float(C.PAY_PER_CORRECT)
         if accepted:
             for p in player.in_rounds(C.THIRD_PERIOD_START, C.NUM_ROUNDS):
-                if (p.field_maybe_none('raven_answer') or '') == RAVEN_CORRECT:
+                if q_answer_earns_bonus(p):
                     p3_correct += 1
         p3_payoff = cu(p3_correct * p3_pay_rate) if accepted else cu(0)
 
@@ -1598,18 +1908,12 @@ class ProlificCompletion(Page):
 
 
 page_sequence = [
-    # Round 1 only (bot check first; Turnstile + honeypot match cd_tournament_main pattern)
     BotCheck,
     Consent,
     Intro,
-    # Every round (rounds 1-30, period 3 conditional on WTA acceptance).
-    # On feedback rounds (5, 10, 15, 20, 25, 30) this page also shows an
-    # inline slide-in sidebar with block summary + (in treatments) a peer
-    # report and a compose-your-own panel.
-    RavensQuestion,
-    # Percentile estimate, confidence, and end-of-period survey are shown at
-    # the end of period 1, period 2, and (if accepted) period 3. The Stroop
-    # task pages are only shown after periods 1 and 2.
+    TaskIntro,
+    QuestionPage,
+    IQReadout,
     PerceivedPercentile,
     PerceivedPercentileConfidence,
     ColorTaskIntro,
@@ -1620,10 +1924,8 @@ page_sequence = [
     ColorTask5,
     ColorTask6,
     EndOfPeriodSurvey,
-    # Round 20 only: simultaneous treatment vs control WTA
     WTACompare,
     Results,
-    # Round 30 only: surveys + final results
     BigFiveSurvey,
     SelfEsteemSurvey,
     NarcissismSurvey,

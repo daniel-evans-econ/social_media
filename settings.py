@@ -6,6 +6,9 @@ if Path('.env').exists():
     from dotenv import load_dotenv
     load_dotenv()
 
+# The active pilot is selected with the EXPERIMENT_PILOT environment variable
+# ("initial" | "iq" | "main"), read in social_media/__init__.py. Set it before
+# launching, e.g. (PowerShell)  $env:EXPERIMENT_PILOT="iq"; otree devserver
 SESSION_CONFIGS = [
     dict(
         name='social_media',

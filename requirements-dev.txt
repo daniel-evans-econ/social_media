@@ -1,0 +1,5 @@
+# Dev-only dependencies (not needed at runtime).
+# openpyxl is used by tools/build_questions_data.py to convert the Excel
+# answer keys into the committed social_media/questions_data.py.
+-r requirements.txt
+openpyxl>=3.1.0

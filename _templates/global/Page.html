@@ -159,9 +159,11 @@
 </script>
 
 <div id="debug-bar" style="position:fixed; bottom:0; left:0; right:0; background:#333; color:#0f0; font-family:monospace; font-size:12px; padding:4px 10px; z-index:9999; opacity:0.92;">
-    Round {{ player.round_number }}/{{ C.NUM_ROUNDS }}
-    &nbsp;|&nbsp; Period {% if player.round_number <= C.PERIOD_LENGTH %}1{% elif player.round_number <= 20 %}2{% else %}3{% endif %}
+    Pilot: <strong>{{ C.PILOT }}</strong>
+    &nbsp;|&nbsp; Round {{ player.round_number }}/{{ C.NUM_ROUNDS }}
+    &nbsp;|&nbsp; Period {% if player.round_number <= C.PERIOD_LENGTH %}1{% elif player.round_number < C.THIRD_PERIOD_START %}2{% else %}3{% endif %}
     &nbsp;|&nbsp; Condition: <strong>{{ player.condition }}</strong>
-    &nbsp;|&nbsp; P1: {{ participant.period_1_condition }} &rarr; P2: {{ participant.period_2_condition }}
+    &nbsp;|&nbsp; P1: {{ participant.period_1_condition }} &rarr; P2: {{ participant.period_2_condition }} &rarr; P3: {{ participant.vars.period_3_condition }}
+    &nbsp;|&nbsp; Tasks: <strong>{{ participant.vars.period_task_labels }}</strong>
 </div>
 {% endblock %}
