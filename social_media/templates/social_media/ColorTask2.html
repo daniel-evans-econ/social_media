@@ -2,10 +2,10 @@
 {% load otree static %}
 
 {% block content %}
-<h3 style="color:darkred; font-weight:bold;">Color task: 2 of 6</h3>
+<h3 style="color:darkred; font-weight:bold;">Color task: {{ stroop_index }} of {{ stroop_total }}</h3>
 <br>
 
-<p style="font-size:1.4em; color:red; font-weight:bold;">RED</p>
+<p style="font-size:1.6em; color:{{ stroop_color }}; font-weight:bold;{% if stroop_color == 'yellow' %} -webkit-text-stroke: 0.5px #888;{% endif %}">{{ stroop_word }}</p>
 {{ formfield player.stroop_2 }}
 
 <input type="hidden" name="stroop_2_response_time" id="stroop-response-time" value="">

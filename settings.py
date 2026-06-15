@@ -28,7 +28,7 @@ PARTICIPANT_FIELDS = ['period_1_condition', 'period_2_condition', 'social_media_
 SESSION_FIELDS = []
 
 LANGUAGE_CODE = 'en'
-REAL_WORLD_CURRENCY_CODE = 'EUR'
+REAL_WORLD_CURRENCY_CODE = 'USD'
 USE_POINTS = False
 
 ADMIN_USERNAME = 'admin'

@@ -13,7 +13,7 @@ from otree.api import Bot, Submission
 
 from . import (
     C, CFG, QD, WTA_AMOUNTS, QUAL_EMOJIS,
-    round_spec, get_condition,
+    round_spec, get_condition, stroop_question,
     is_feedback_round, is_third_period, third_period_played,
     is_end_of_period, is_end_of_period_with_p3,
     BotCheck, Consent, Intro, TaskIntro, QuestionPage, IQReadout,
@@ -68,14 +68,16 @@ class PlayerBot(Bot):
             yield Submission(PerceivedPercentile, dict(perceived_relative_performance=50), check_html=False)
             yield Submission(PerceivedPercentileConfidence, dict(perceived_percentile_confidence=50), check_html=False)
 
-        if is_end_of_period(p):
+        if is_end_of_period_with_p3(p):
             yield Submission(ColorTaskIntro, dict(), check_html=False)
-            yield Submission(ColorTask1, dict(stroop_1='Blue', stroop_1_response_time=1.0), check_html=False)
-            yield Submission(ColorTask2, dict(stroop_2='Red', stroop_2_response_time=1.0), check_html=False)
-            yield Submission(ColorTask3, dict(stroop_3='Green', stroop_3_response_time=1.0), check_html=False)
-            yield Submission(ColorTask4, dict(stroop_4='Yellow', stroop_4_response_time=1.0), check_html=False)
-            yield Submission(ColorTask5, dict(stroop_5='Green', stroop_5_response_time=1.0), check_html=False)
-            yield Submission(ColorTask6, dict(stroop_6='Blue', stroop_6_response_time=1.0), check_html=False)
+            color_pages = [ColorTask1, ColorTask2, ColorTask3, ColorTask4, ColorTask5, ColorTask6]
+            for n, page in enumerate(color_pages, start=1):
+                ink = stroop_question(p, n)['color']
+                yield Submission(
+                    page,
+                    {f'stroop_{n}': ink, f'stroop_{n}_response_time': 1.0},
+                    check_html=False,
+                )
 
         if is_end_of_period_with_p3(p):
             yield Submission(EndOfPeriodSurvey, dict(mood=3, task_enjoyment=3, payment_satisfaction=3), check_html=False)

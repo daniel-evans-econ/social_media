@@ -21,11 +21,48 @@ PROLIFIC_COMPLETION_URL = (
     "https://app.prolific.com/submissions/complete?cc=REPLACE_WITH_YOUR_COMPLETION_CODE"
 )
 
-STROOP_ANSWERS = ["Blue", "Red", "Green", "Yellow", "Green", "Blue"]
+STROOP_COLORS = ["Blue", "Red", "Green", "Yellow"]
+
+# Three FIXED blocks of Stroop (color-word) questions. Each block is six
+# (word, ink-color) pairs; the correct answer is always the ink color, not the
+# word. Which block a participant sees in which period, and the order of the six
+# questions within a block, are randomized per participant (see _stroop_plan);
+# the grouping of questions into blocks is fixed and the same for everyone.
+STROOP_BLOCKS = [
+    [
+        dict(word="RED", color="Blue"),
+        dict(word="GREEN", color="Red"),
+        dict(word="BLUE", color="Yellow"),
+        dict(word="YELLOW", color="Green"),
+        dict(word="GREEN", color="Green"),
+        dict(word="RED", color="Red"),
+    ],
+    [
+        dict(word="YELLOW", color="Red"),
+        dict(word="BLUE", color="Green"),
+        dict(word="RED", color="Yellow"),
+        dict(word="GREEN", color="Blue"),
+        dict(word="BLUE", color="Blue"),
+        dict(word="YELLOW", color="Yellow"),
+    ],
+    [
+        dict(word="GREEN", color="Yellow"),
+        dict(word="RED", color="Green"),
+        dict(word="YELLOW", color="Blue"),
+        dict(word="BLUE", color="Red"),
+        dict(word="RED", color="Blue"),
+        dict(word="GREEN", color="Green"),
+    ],
+]
+
 QUESTION_TIMEOUT_SECONDS = 60  # 60 seconds per question
 # Working-memory stimulus is flashed for exactly this long after the participant
 # presses "Show image" (chosen to equalize image load time across participants).
 WM_STIMULUS_SECONDS = 1.7
+
+# Flat (participation) payment shown on the instructions page. Placeholder until
+# the amount is finalized.
+FLAT_PAYMENT_DISPLAY = "$X.XX"
 
 
 # ---------------------------------------------------------------------------
@@ -92,19 +129,29 @@ IQ_COMPONENT_LABELS = {
     "numerical": "numerical",
 }
 
-# Human-readable task names (used in the diagnostic bar and task-intro pages).
+# Human-readable task names, named after the IQ construct each one targets (used
+# in the diagnostic bar, the task-intro page titles, and the end-of-period survey).
 TASK_LABELS = {
-    "sequences": "Numerical sequences",
-    "shape_rotation": "Shape rotation",
+    "sequences": "Numerical reasoning",
+    "shape_rotation": "Spatial reasoning",
     "working_memory": "Working memory",
-    "ravens": "Pattern matrices",
+    "ravens": "Abstract reasoning",
+}
+
+# Lower-case construct phrase used inline in sentences (e.g. "the abstract
+# reasoning task").
+TASK_CONSTRUCT = {
+    "sequences": "numerical reasoning",
+    "shape_rotation": "spatial reasoning",
+    "working_memory": "working memory",
+    "ravens": "abstract reasoning",
 }
 
 # The IQ component each task is framed as testing (used in the instructions and
 # task-explanation pages).
 TASK_IQ_LABEL = {
     "shape_rotation": "spatial reasoning IQ",
-    "sequences": "numerical IQ",
+    "sequences": "numerical reasoning IQ",
     "working_memory": "working memory IQ",
     "ravens": "abstract reasoning IQ",
 }
@@ -138,11 +185,11 @@ TASK_INTRO = {
         ),
     ),
     "sequences": dict(
-        title="Numerical sequences",
+        title="Numerical reasoning",
         body_html=(
             "Your task in this period is to <strong style=\"color:darkred;\">predict the "
             "next number</strong> that follows in a given sequence. This tests your "
-            "<strong style=\"color:darkred;\">numerical IQ</strong>."
+            "<strong style=\"color:darkred;\">numerical reasoning IQ</strong>."
         ),
         example_image="examples/sequences.png",
         example_answer=(
@@ -150,7 +197,7 @@ TASK_INTRO = {
         ),
     ),
     "shape_rotation": dict(
-        title="Shape rotation",
+        title="Spatial reasoning",
         body_html=(
             "The top row shows a shape before and after rotation. Your task is to "
             "apply the <strong style=\"color:darkred;\">same rotation</strong> to "
@@ -161,15 +208,15 @@ TASK_INTRO = {
         example_answer="Option <strong style=\"color:darkred;\">D</strong> is the correctly rotated shape.",
     ),
     "ravens": dict(
-        title="Pattern matrices",
+        title="Abstract reasoning",
         body_html=(
-            "Your task in this period is to choose the option that "
+            "Your task in this period is to choose the image that "
             "<strong style=\"color:darkred;\">completes the pattern</strong>. This tests "
             "your <strong style=\"color:darkred;\">abstract reasoning IQ</strong>."
         ),
         # C8 (excluded from the live bank); correct answer 7 per the answer key.
         example_image="examples/ravens.jpg",
-        example_answer="Option <strong style=\"color:darkred;\">7</strong> completes the pattern.",
+        example_answer="Image <strong style=\"color:darkred;\">7</strong> completes the pattern.",
     ),
 }
 
@@ -666,14 +713,12 @@ def _build_plan(participant):
     period_sets = []
     for pi, task in enumerate(period_tasks):
         task_sets = QD.SETS[task]
-        if task == "shape_rotation":
-            chosen_set_ids = rng.sample(list(task_sets.keys()), 3)
-        else:
-            chosen_set_ids = []
-            for diff in ("easy", "medium", "hard"):
-                candidates = [s for s in task_sets if s.startswith(diff + "_")]
-                chosen_set_ids.append(rng.choice(candidates))
-        rng.shuffle(chosen_set_ids)  # block order within the period
+        # One randomly-chosen set per difficulty, ALWAYS in ascending difficulty
+        # order (easy block first, then medium, then hard) for every task type.
+        chosen_set_ids = []
+        for diff in ("easy", "medium", "hard"):
+            candidates = [s for s in task_sets if s.startswith(diff + "_")]
+            chosen_set_ids.append(rng.choice(candidates))
         period_sets.append(chosen_set_ids)
         for bi, set_id in enumerate(chosen_set_ids):
             item_ids = list(task_sets[set_id])
@@ -700,6 +745,7 @@ def creating_session(subsession: Subsession):
             part.vars['period_task_labels'] = " \u2192 ".join(
                 TASK_LABELS.get(t, t) for t in period_tasks
             )
+            part.vars['stroop_plan'] = _stroop_plan(part)
 
             # Four balanced cells decorrelate the social type (quantitative vs
             # qualitative) from the block order (control-first vs social-first).
@@ -784,6 +830,18 @@ def q_answer_earns_bonus(p: Player) -> bool:
     correct = bool(p.field_maybe_none('q_correct'))
     switched = (p.field_maybe_none('q_tab_switches') or 0) > 0
     return correct and not switched
+
+
+def q_disqualified_by_switch(p: Player) -> bool:
+    """Correct but a tab switch on that question stripped the bonus."""
+    correct = bool(p.field_maybe_none('q_correct'))
+    switched = (p.field_maybe_none('q_tab_switches') or 0) > 0
+    return correct and switched
+
+
+def switched_disqualified_count(player: Player, start: int, end: int) -> int:
+    """# of unique questions in [start, end] that lost the bonus to a tab switch."""
+    return sum(1 for p in player.in_rounds(start, end) if q_disqualified_by_switch(p))
 
 
 def is_feedback_round(player: Player):
@@ -916,10 +974,42 @@ def experienced_conditions(player: Player):
     return treatment, 'control'
 
 
+def _stroop_plan(participant):
+    """Per-participant Stroop plan: {period -> ordered list of 6 question dicts}.
+
+    Randomizes (i) which fixed block appears in which period and (ii) the order
+    of the six questions within each block. Keyed by str(period) so it survives
+    JSON round-tripping in participant.vars.
+    """
+    rng = random.Random(f"{participant.code}-stroop")
+    block_order = [0, 1, 2]
+    rng.shuffle(block_order)
+    plan = {}
+    for period_idx in range(3):
+        block = [dict(q) for q in STROOP_BLOCKS[block_order[period_idx]]]
+        rng.shuffle(block)
+        plan[str(period_idx + 1)] = block
+    return plan
+
+
+def stroop_block_for_round(player: Player):
+    plan = player.participant.vars.get('stroop_plan')
+    if not plan:
+        plan = _stroop_plan(player.participant)
+        player.participant.vars['stroop_plan'] = plan
+    return plan[str(period_of_round(player.round_number))]
+
+
+def stroop_question(player: Player, index: int):
+    """The index-th (1-based) Stroop question for the player's current period."""
+    return stroop_block_for_round(player)[index - 1]
+
+
 def stroop_correct_count(player: Player):
+    block = stroop_block_for_round(player)
     answers = [player.stroop_1, player.stroop_2, player.stroop_3,
                player.stroop_4, player.stroop_5, player.stroop_6]
-    return sum(1 for i, a in enumerate(answers) if a == STROOP_ANSWERS[i])
+    return sum(1 for i, a in enumerate(answers) if a == block[i]['color'])
 
 
 def _period_index_and_qnum(round_number: int):
@@ -1169,6 +1259,7 @@ class Intro(Page):
             receives_messages=CFG['received_message_source'] is not None,
             total_questions=2 * C.PERIOD_LENGTH if CFG['use_wta'] else 3 * C.PERIOD_LENGTH,
             period_iq_labels=period_iq_labels,
+            flat_payment=FLAT_PAYMENT_DISPLAY,
         )
 
 
@@ -1257,6 +1348,9 @@ class QuestionPage(Page):
             task=task,
             response_type=response_type,
             question_prompt=TASK_PROMPT.get(task, ''),
+            # Raven's / sequence stimuli pack fine detail (small option numbers,
+            # long digit strings) and need more width to stay readable.
+            big_image=task in ('ravens', 'sequences'),
             item=item,
             image=item.get('image'),
             is_placeholder=item.get('is_placeholder', False),
@@ -1479,7 +1573,7 @@ class PerceivedPercentileConfidence(Page):
 class ColorTaskIntro(Page):
     @staticmethod
     def is_displayed(player: Player):
-        return is_end_of_period(player)
+        return is_end_of_period_with_p3(player)
 
 
 def _stroop_color_task_error(values: dict, field_name: str):
@@ -1490,6 +1584,16 @@ def _stroop_color_task_error(values: dict, field_name: str):
         return "Please select a color before continuing."
 
 
+def _color_task_vars(player: Player, index: int):
+    q = stroop_question(player, index)
+    return dict(
+        stroop_index=index,
+        stroop_total=6,
+        stroop_word=q['word'],
+        stroop_color=q['color'].lower(),
+    )
+
+
 class ColorTask1(Page):
     form_model = 'player'
     form_fields = ['stroop_1', 'stroop_1_response_time']
@@ -1497,7 +1601,11 @@ class ColorTask1(Page):
 
     @staticmethod
     def is_displayed(player: Player):
-        return is_end_of_period(player)
+        return is_end_of_period_with_p3(player)
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        return _color_task_vars(player, 1)
 
     @staticmethod
     def error_message(player: Player, values):
@@ -1516,7 +1624,11 @@ class ColorTask2(Page):
 
     @staticmethod
     def is_displayed(player: Player):
-        return is_end_of_period(player)
+        return is_end_of_period_with_p3(player)
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        return _color_task_vars(player, 2)
 
     @staticmethod
     def error_message(player: Player, values):
@@ -1535,7 +1647,11 @@ class ColorTask3(Page):
 
     @staticmethod
     def is_displayed(player: Player):
-        return is_end_of_period(player)
+        return is_end_of_period_with_p3(player)
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        return _color_task_vars(player, 3)
 
     @staticmethod
     def error_message(player: Player, values):
@@ -1554,7 +1670,11 @@ class ColorTask4(Page):
 
     @staticmethod
     def is_displayed(player: Player):
-        return is_end_of_period(player)
+        return is_end_of_period_with_p3(player)
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        return _color_task_vars(player, 4)
 
     @staticmethod
     def error_message(player: Player, values):
@@ -1573,7 +1693,11 @@ class ColorTask5(Page):
 
     @staticmethod
     def is_displayed(player: Player):
-        return is_end_of_period(player)
+        return is_end_of_period_with_p3(player)
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        return _color_task_vars(player, 5)
 
     @staticmethod
     def error_message(player: Player, values):
@@ -1592,7 +1716,11 @@ class ColorTask6(Page):
 
     @staticmethod
     def is_displayed(player: Player):
-        return is_end_of_period(player)
+        return is_end_of_period_with_p3(player)
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        return _color_task_vars(player, 6)
 
     @staticmethod
     def error_message(player: Player, values):
@@ -1622,6 +1750,18 @@ class EndOfPeriodSurvey(Page):
         correct = period_correct(player)
         earnings = correct * pay_rate
 
+        r = player.round_number
+        if r <= C.PERIOD_LENGTH:
+            start = 1
+        elif r <= 2 * C.PERIOD_LENGTH:
+            start = C.PERIOD_LENGTH + 1
+        else:
+            start = C.THIRD_PERIOD_START
+        switched = switched_disqualified_count(player, start, r)
+        subtracted = switched * pay_rate
+
+        task = round_spec(player)['task']
+
         rng = random.Random(f"{player.participant.code}-eop-survey")
         question_keys = ['mood', 'task_enjoyment', 'payment_satisfaction']
         rng.shuffle(question_keys)
@@ -1629,6 +1769,9 @@ class EndOfPeriodSurvey(Page):
         return dict(
             period=period,
             period_earnings=f"{earnings:.2f}",
+            switched_count=switched,
+            switched_subtracted=f"{subtracted:.2f}",
+            task_construct=TASK_CONSTRUCT.get(task, "task"),
             question_order=question_keys,
         )
 
@@ -1665,7 +1808,7 @@ class WTACompare(Page):
                 val = player.field_maybe_none(fname) or ""
                 rs.append(dict(
                     index=i,
-                    amount=f"\u20ac{amount:.2f}",
+                    amount=f"${amount:.2f}",
                     field=fname,
                     is_yes=val == "Yes",
                     is_no=val == "No",
@@ -1847,7 +1990,7 @@ class Results(Page):
             raven_total=raven_total,
             stroop_total=stroop_total,
             selected_for_retake=selected_for_retake,
-            selected_amount=f"\u20ac{selected_amount:.2f}",
+            selected_amount=f"${selected_amount:.2f}",
             selected_column='treatment' if selected_col == 't' else 'control',
             p3_feedback_desc=p3_feedback_desc,
             payoff=payoff,
@@ -1863,36 +2006,71 @@ class FinalResults(Page):
 
     @staticmethod
     def vars_for_template(player: Player):
-        raven_p12 = 0
-        for p in player.in_rounds(1, 2 * C.PERIOD_LENGTH):
-            if q_answer_earns_bonus(p):
-                raven_p12 += 1
-        raven_payoff = raven_p12 * C.PAY_PER_CORRECT
-
-        stroop_total = 0
-        for r in C.END_OF_PERIOD_ROUNDS:
-            p = player.in_round(r)
-            stroop_total += stroop_correct_count(p)
-        stroop_payoff = stroop_total * C.PAY_PER_STROOP
-
-        base_payoff = raven_payoff + stroop_payoff
-
-        p3_correct = 0
         accepted = third_period_played(player)
+        period_tasks = player.participant.vars.get('period_tasks', [])
+        rate_per_correct = float(C.PAY_PER_CORRECT)
         if CFG['use_wta']:
             p3_pay_rate = player.participant.vars.get('third_period_pay_rate', 0) or 0
         else:
-            p3_pay_rate = float(C.PAY_PER_CORRECT)
-        if accepted:
-            for p in player.in_rounds(C.THIRD_PERIOD_START, C.NUM_ROUNDS):
-                if q_answer_earns_bonus(p):
-                    p3_correct += 1
-        p3_payoff = cu(p3_correct * p3_pay_rate) if accepted else cu(0)
+            p3_pay_rate = rate_per_correct
 
-        total_payoff = base_payoff + p3_payoff
+        period_ranges = [
+            (1, C.PERIOD_LENGTH),
+            (C.PERIOD_LENGTH + 1, 2 * C.PERIOD_LENGTH),
+            (C.THIRD_PERIOD_START, C.NUM_ROUNDS),
+        ]
+
+        def bonus_correct(start, end):
+            return sum(1 for p in player.in_rounds(start, end) if q_answer_earns_bonus(p))
+
+        # One row per played task period (period 3 only if it was taken).
+        task_rows = []
+        question_payoff = 0.0
+        for idx, (start, end) in enumerate(period_ranges):
+            period_no = idx + 1
+            if period_no == 3 and not accepted:
+                continue
+            task = period_tasks[idx] if idx < len(period_tasks) else None
+            rate = p3_pay_rate if (period_no == 3 and CFG['use_wta']) else rate_per_correct
+            correct = bonus_correct(start, end)
+            amount = correct * rate
+            question_payoff += amount
+            task_rows.append(dict(
+                period=period_no,
+                label=TASK_LABELS.get(task, task or f"Period {period_no}"),
+                correct=correct,
+                rate=f"{rate:.2f}",
+                amount=f"{amount:.2f}",
+            ))
+
+        # Stroop ("color task") bonus, summed over the periods it was shown.
+        stroop_rounds = list(C.END_OF_PERIOD_ROUNDS)
+        if accepted:
+            stroop_rounds.append(C.NUM_ROUNDS)
+        stroop_total = sum(stroop_correct_count(player.in_round(r)) for r in stroop_rounds)
+        stroop_amount = stroop_total * float(C.PAY_PER_STROOP)
+
+        total = question_payoff + stroop_amount
+        total_payoff = cu(total)
         player.payoff = total_payoff
 
-        return dict(total_payoff=total_payoff)
+        # Bonus stripped by tab switching (correct answers that switched tabs).
+        switched_p12 = switched_disqualified_count(player, 1, 2 * C.PERIOD_LENGTH)
+        subtracted = switched_p12 * rate_per_correct
+        if accepted:
+            switched_p3 = switched_disqualified_count(player, C.THIRD_PERIOD_START, C.NUM_ROUNDS)
+            subtracted += switched_p3 * p3_pay_rate
+
+        return dict(
+            total_payoff=total_payoff,
+            task_rows=task_rows,
+            question_subtotal=f"{question_payoff:.2f}",
+            stroop_total=stroop_total,
+            stroop_rate=f"{float(C.PAY_PER_STROOP):.2f}",
+            stroop_amount=f"{stroop_amount:.2f}",
+            switched_subtracted=f"{subtracted:.2f}",
+            had_switch_deduction=subtracted > 0,
+        )
 
 
 class ProlificCompletion(Page):

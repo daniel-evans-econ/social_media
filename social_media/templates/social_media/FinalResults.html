@@ -5,9 +5,63 @@
 <h3 style="color:darkred; font-weight:bold;">Thank you for participating!</h3>
 <br>
 
-<p style="font-size:1.3em; margin-top:20px;">
-    Total payoff: <strong style="color:darkred;">{{ total_payoff }}</strong>
+<style>
+    .payoff-table { border-collapse: collapse; margin: 18px 0; min-width: 460px; max-width: 100%; }
+    .payoff-table th, .payoff-table td { padding: 8px 14px; border-bottom: 1px solid #e3e3e3; text-align: left; }
+    .payoff-table th { color: #555; font-weight: 600; font-size: 0.9em; }
+    .payoff-table td.num, .payoff-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .payoff-table tr.subtotal td { border-top: 1px solid #bbb; font-weight: 600; }
+    .payoff-table tr.deduction td { color: #8a1c1c; }
+    .payoff-table tr.grand td { border-top: 2px solid #333; font-size: 1.15em; font-weight: bold; color: darkred; }
+</style>
+
+<p style="margin-top:10px;">Here is how your bonus was earned:</p>
+
+<table class="payoff-table">
+    <thead>
+        <tr>
+            <th>Task</th>
+            <th class="num">Correct (bonus-eligible)</th>
+            <th class="num">Per correct</th>
+            <th class="num">Amount</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in task_rows %}
+        <tr>
+            <td>Period {{ row.period }} &mdash; {{ row.label }}</td>
+            <td class="num">{{ row.correct }}</td>
+            <td class="num">${{ row.rate }}</td>
+            <td class="num">${{ row.amount }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="subtotal">
+            <td>Questions subtotal</td>
+            <td class="num"></td>
+            <td class="num"></td>
+            <td class="num">${{ question_subtotal }}</td>
+        </tr>
+        <tr>
+            <td>Color (Stroop) task</td>
+            <td class="num">{{ stroop_total }}</td>
+            <td class="num">${{ stroop_rate }}</td>
+            <td class="num">${{ stroop_amount }}</td>
+        </tr>
+        <tr class="grand">
+            <td>Total payoff</td>
+            <td class="num"></td>
+            <td class="num"></td>
+            <td class="num">{{ total_payoff }}</td>
+        </tr>
+    </tbody>
+</table>
+
+{% if had_switch_deduction %}
+<p style="color:#8a1c1c; margin-top:4px;">
+    Note: a further <strong>${{ switched_subtracted }}</strong> was withheld because you
+    switched tabs on one or more questions, so those answers were not eligible for the bonus.
 </p>
+{% endif %}
 
 <p style="margin-top:20px; color:#555; font-size:0.95em;">
     If you correctly guessed your performance ranking within 10 percentage points in

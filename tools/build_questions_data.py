@@ -100,7 +100,9 @@ def build_sequences():
 def build_shape_rotation():
     src_dir = QUESTIONS_DIR / "shape_rotation"
     rows = _rows_from_xlsx(src_dir / "shape_rotation_answer_key.xlsx")
-    # Single undifferentiated pool: no easy/medium/hard split for shape rotation.
+    # The 30 items are ordered by increasing difficulty, so split into
+    # easy (1-10) / medium (11-20) / hard (21-30) to match the other tasks
+    # (two fixed sets of five per difficulty).
     # Images are named Q<n>.png (n = the answer key's "Item No."); the example.png
     # is the worked example and is intentionally excluded from the pool.
     images = {f.stem.upper(): f for f in src_dir.glob("*.png")}
@@ -109,10 +111,16 @@ def build_shape_rotation():
         item_id = str(r["Item ID"]).strip()
         item_no = int(r["Item No."])
         correct = str(r["Correct Option"]).strip()
+        if item_no <= 10:
+            difficulty = "easy"
+        elif item_no <= 20:
+            difficulty = "medium"
+        else:
+            difficulty = "hard"
         src = images.get(f"Q{item_no}")
         image = _copy_image(src, "shape_rotation", item_id) if src else None
         items[item_id] = dict(
-            item_id=item_id, difficulty="none", image=image,
+            item_id=item_id, difficulty=difficulty, image=image,
             options=list(TASK_OPTIONS["shape_rotation"]), correct=correct,
             is_placeholder=image is None,
         )
@@ -219,7 +227,7 @@ def main():
     }
     sets = {
         "sequences": _sets_by_difficulty(sequences),
-        "shape_rotation": _sets_single_pool(shape_rotation),
+        "shape_rotation": _sets_by_difficulty(shape_rotation),
         "ravens": _sets_by_difficulty(ravens),
         "working_memory": _sets_by_difficulty(working_memory),
     }

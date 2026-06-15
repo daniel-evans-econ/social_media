@@ -4,7 +4,9 @@
 {% block content %}
 <style>
     .q-wrap { max-width: 760px; margin: 0 auto; }
+    .q-wrap.wide { max-width: 1040px; }
     .q-image { max-width: 100%; width: 560px; border: 1px solid #ddd; border-radius: 6px; }
+    .q-image.q-image-big { width: 1000px; }
     .q-placeholder {
         width: 560px; max-width: 100%;
         min-height: 220px;
@@ -126,7 +128,7 @@
 })();
 </script>
 
-<div class="q-wrap">
+<div class="q-wrap{% if big_image %} wide{% endif %}">
     <div id="tab-switch-warning" role="alert"
          style="display:{% if already_tab_switched %}block{% else %}none{% endif %};
                 background:#fdecea; border:1px solid #d32f2f; color:#8a1c1c;
@@ -164,7 +166,7 @@
                     [{{ task }} stimulus pending] &mdash; item {{ item.item_id }}
                 </div>
             {% else %}
-                <img class="q-image" src="{% static image %}" alt="Question">
+                <img class="q-image{% if big_image %} q-image-big{% endif %}" src="{% static image %}" alt="Question">
             {% endif %}
         </div>
         {% if question_prompt %}

@@ -55,12 +55,13 @@
     You will answer a total of <strong style="color:darkred;">{{ total_questions }} questions</strong>
     {% if has_optional_third %}across <strong style="color:darkred;">two periods</strong> (with a potential
     <strong style="color:darkred;">third period</strong> that is strictly optional){% else %}across
-    <strong style="color:darkred;">three periods</strong>{% endif %}
-    and be paid <strong style="color:darkred;">{{ C.PAY_PER_CORRECT }}</strong> for each one you answer correctly.
+    <strong style="color:darkred;">three periods</strong>{% endif %}.
+    Your flat payment will be <strong style="color:darkred;">{{ flat_payment }}</strong> and you will be
+    paid <strong style="color:darkred;">{{ C.PAY_PER_CORRECT }}</strong> for each question you answer correctly.
     You will have up to <strong style="color:darkred;">60 seconds</strong> to answer each question.
-    Each period will feature a different type of task.
 </p>
 <p>
+    Each period will feature a different type of task.
     One period will feature questions that test your
     <strong style="color:darkred;">{{ period_iq_labels.0 }}</strong>.
     Another will test your <strong style="color:darkred;">{{ period_iq_labels.1 }}</strong>,
@@ -83,7 +84,7 @@
     <strong style="color:darkred;">send messages of your own</strong>.
     Not all other participants chose to send a message, and we did not verify the
     truthfulness of what they wrote.{% else %}During this study, you will have the opportunity to
-    <strong style="color:darkred;">send messages of your own</strong> to other participants.{% endif %}
+    <strong style="color:darkred;">send messages</strong> to other participants.{% endif %}
 </p>
 <p style="background:#fff8e1; border-left:4px solid #d4a017; padding:10px 14px; margin-top:1em;">
     We <strong style="color:darkred;">prohibit the use of AI and search engines</strong>
