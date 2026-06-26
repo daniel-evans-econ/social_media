@@ -103,9 +103,9 @@ def build_shape_rotation():
     # The 30 items are ordered by increasing difficulty, so split into
     # easy (1-10) / medium (11-20) / hard (21-30) to match the other tasks
     # (two fixed sets of five per difficulty).
-    # Images are named Q<n>.png (n = the answer key's "Item No."); the example.png
+    # Images are named <item_id>.png (e.g. 3d_shapes_07.png); the example.png
     # is the worked example and is intentionally excluded from the pool.
-    images = {f.stem.upper(): f for f in src_dir.glob("*.png")}
+    images = {f.stem: f for f in src_dir.glob("*.png")}
     items = {}
     for r in rows:
         item_id = str(r["Item ID"]).strip()
@@ -117,7 +117,7 @@ def build_shape_rotation():
             difficulty = "medium"
         else:
             difficulty = "hard"
-        src = images.get(f"Q{item_no}")
+        src = images.get(item_id)
         image = _copy_image(src, "shape_rotation", item_id) if src else None
         items[item_id] = dict(
             item_id=item_id, difficulty=difficulty, image=image,
@@ -130,43 +130,29 @@ def build_shape_rotation():
 def build_ravens():
     src_dir = QUESTIONS_DIR / "ravens_matrices"
     rows = _rows_from_xlsx(src_dir / "ravens_answer_key.xlsx")
+    # Images are named <item>.jpg (e.g. C1.jpg). Exactly the 10 items per block
+    # that should be in the live bank are present as files; we drive inclusion
+    # off the images present (the example item, e.g. C8, is intentionally absent).
     images = {}
-    for f in src_dir.glob("*.JPG"):
-        m = re.match(r"RM\s+([A-Z]\d+)\s+total", f.stem, re.IGNORECASE)
-        if m:
-            images[m.group(1).upper()] = f
+    for f in src_dir.iterdir():
+        if f.suffix.lower() in (".jpg", ".jpeg", ".png") and f.stem.lower() != "example":
+            images[f.stem.upper()] = f
     block_to_diff = {"C": "easy", "D": "medium", "E": "hard"}
-    # Collect per block with AI "Sum correct" so we can trim 12 -> 10 (drop easiest-for-AI).
-    by_block: dict[str, list] = {"C": [], "D": [], "E": []}
+    items = {}
     for r in rows:
         block = str(r["Block"]).strip().upper()
         item = str(r["Item"]).strip().upper()
-        if block not in by_block:
+        if block not in block_to_diff:
             continue
-        sum_correct = r.get("Sum correct")
-        sum_correct = int(sum_correct) if isinstance(sum_correct, (int, float)) else 0
-        num = int(re.sub(r"\D", "", item) or 0)
-        by_block[block].append(dict(
-            item=item, num=num, correct=str(int(r["Correct answer"])),
-            sum_correct=sum_correct,
-        ))
-    items = {}
-    kept_by_diff: dict[str, list] = {}
-    for block, entries in by_block.items():
-        difficulty = block_to_diff[block]
-        # Drop the 2 items the most AIs answered correctly; keep 10 (ties -> keep lower item number).
-        ordered = sorted(entries, key=lambda e: (e["sum_correct"], e["num"]))
-        kept = ordered[:10]
-        kept = sorted(kept, key=lambda e: e["num"])  # natural order for stable sets
-        kept_by_diff[difficulty] = [e["item"] for e in kept]
-        for e in kept:
-            image = _copy_image(images[e["item"]], "ravens", e["item"]) if e["item"] in images else None
-            items[e["item"]] = dict(
-                item_id=e["item"], difficulty=difficulty, image=image,
-                options=list(TASK_OPTIONS["ravens"]), correct=e["correct"],
-                is_placeholder=image is None,
-            )
-    return items, kept_by_diff
+        if item not in images:
+            continue  # not provided -> excluded from the live bank
+        image = _copy_image(images[item], "ravens", item)
+        items[item] = dict(
+            item_id=item, difficulty=block_to_diff[block], image=image,
+            options=list(TASK_OPTIONS["ravens"]), correct=str(int(r["Correct answer"])),
+            is_placeholder=False,
+        )
+    return items
 
 
 def build_working_memory():
@@ -216,7 +202,7 @@ def main():
         shutil.rmtree(STATIC_DIR)
     sequences = build_sequences()
     shape_rotation = build_shape_rotation()
-    ravens, _ravens_kept = build_ravens()
+    ravens = build_ravens()
     working_memory = build_working_memory()
 
     questions = {

@@ -1,0 +1,106 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block content %}
+<style>
+    .slider-wrap { max-width: 640px; margin: 24px auto; }
+    .slider-wrap input[type="range"] {
+        width: 100%;
+        cursor: pointer;
+        display: none;
+    }
+    .slider-value {
+        min-width: 70px;
+        text-align: center;
+        font-size: 1.4em;
+        font-weight: bold;
+        color: darkred;
+        margin-bottom: 0.5em;
+        min-height: 1.6em;
+    }
+    .track-placeholder {
+        position: relative;
+        width: 100%;
+        height: 36px;
+        cursor: pointer;
+    }
+    .track-placeholder .track-line {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: #ccc;
+        border-radius: 2px;
+        transform: translateY(-50%);
+    }
+    .scale-marks {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.85em;
+        color: #666;
+        max-width: 640px;
+        margin: 8px auto 0 auto;
+    }
+</style>
+
+<h3 style="color:darkred; font-weight:bold;">Before you begin</h3>
+<br>
+
+<p>
+    IQ tests produce
+    <strong style="color:darkred;">IQ scores</strong>, which are measures of intelligence
+    used by psychologists. IQ scores are measured on a scale where the average is
+    <strong style="color:darkred;">100</strong> and approximately 95% of people fall
+    between <strong style="color:darkred;">70</strong> and <strong style="color:darkred;">130</strong>.
+</p>
+<p>
+    If you were to take an <strong style="color:darkred;">IQ test</strong>,
+    what score do you think <strong style="color:darkred;">you would get</strong>?
+    Move the slider to the score you think you would get.
+</p>
+
+<div class="slider-wrap">
+    <div class="slider-value" id="slider-value"></div>
+    <div class="track-placeholder" id="percentile-track-placeholder">
+        <div class="track-line"></div>
+    </div>
+    <input type="range" id="percentile-slider" min="50" max="150" step="1" value="100">
+    <div class="scale-marks">
+        <span>50</span>
+        <span>100 (average)</span>
+        <span>150</span>
+    </div>
+    <input type="hidden" name="iq_reference_score" id="iq_reference_score" value="">
+</div>
+
+{{ next_button }}
+
+<script>
+(function () {
+    var placeholder = document.getElementById('percentile-track-placeholder');
+    var slider = document.getElementById('percentile-slider');
+    var display = document.getElementById('slider-value');
+    var hidden = document.getElementById('iq_reference_score');
+
+    function updateDisplay(val) {
+        display.textContent = val;
+        hidden.value = String(val);
+    }
+
+    placeholder.addEventListener('click', function (e) {
+        var rect = placeholder.getBoundingClientRect();
+        var pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        var val = Math.round(50 + pct * 100);
+        slider.value = String(val);
+        updateDisplay(val);
+        placeholder.style.display = 'none';
+        slider.style.display = 'block';
+    });
+
+    slider.addEventListener('input', function () {
+        updateDisplay(slider.value);
+    });
+})();
+</script>
+{% endblock %}

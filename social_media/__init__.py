@@ -463,6 +463,14 @@ class Player(BasePlayer):
 
     condition = models.StringField(blank=True)
 
+    # ---- Baseline IQ reference point (randomized treatment, before any task) ----
+    # iq_reference_asked: whether this participant was (randomly) shown the
+    # reference-point page. iq_reference_score: their self-perceived IQ score on
+    # the usual 50-150 scale, used as a reference point against which later
+    # performance / reporting is compared.
+    iq_reference_asked = models.BooleanField(initial=False)
+    iq_reference_score = models.IntegerField(min=50, max=150, blank=True, label="")
+
     # ---- Per-round question (generic across task types) ----
     q_task = models.StringField(blank=True)
     q_item_id = models.StringField(blank=True)
@@ -746,6 +754,13 @@ def creating_session(subsession: Subsession):
                 TASK_LABELS.get(t, t) for t in period_tasks
             )
             part.vars['stroop_plan'] = _stroop_plan(part)
+
+            # Randomized (50/50) reference-point treatment: only this subgroup is
+            # asked their self-perceived IQ score before starting. Seeded per
+            # participant so it is stable and uncorrelated with the cell above.
+            asked = random.Random(f"{part.code}-iqref").random() < 0.5
+            part.vars['iq_reference_asked'] = asked
+            p.iq_reference_asked = asked
 
             # Four balanced cells decorrelate the social type (quantitative vs
             # qualitative) from the block order (control-first vs social-first).
@@ -1244,6 +1259,26 @@ class BotCheck(Page):
         player.participant.vars['captcha_verified'] = True
 
 
+class IQReferencePoint(Page):
+    """Baseline reference point (randomized treatment): the participant's
+    self-perceived IQ score, elicited before they see any task."""
+    form_model = 'player'
+    form_fields = ['iq_reference_score']
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return (
+            player.round_number == 1
+            and player.participant.vars.get('iq_reference_asked', False)
+        )
+
+    @staticmethod
+    def error_message(player: Player, values):
+        v = values.get('iq_reference_score')
+        if v is None or v == '':
+            return "Please move the slider to provide your estimate before continuing."
+
+
 class Intro(Page):
     @staticmethod
     def is_displayed(player: Player):
@@ -1252,13 +1287,13 @@ class Intro(Page):
     @staticmethod
     def vars_for_template(player: Player):
         period_tasks = player.participant.vars.get('period_tasks', [])
-        period_iq_labels = [TASK_IQ_LABEL.get(t, t) for t in period_tasks]
+        period_components = [TASK_CONSTRUCT.get(t, t) for t in period_tasks]
         return dict(
             show_iq=CFG['show_iq'],
             has_optional_third=CFG['use_wta'],
             receives_messages=CFG['received_message_source'] is not None,
             total_questions=2 * C.PERIOD_LENGTH if CFG['use_wta'] else 3 * C.PERIOD_LENGTH,
-            period_iq_labels=period_iq_labels,
+            period_components=period_components,
             flat_payment=FLAT_PAYMENT_DISPLAY,
         )
 
@@ -2088,6 +2123,7 @@ class ProlificCompletion(Page):
 page_sequence = [
     BotCheck,
     Consent,
+    IQReferencePoint,
     Intro,
     TaskIntro,
     QuestionPage,

@@ -16,7 +16,7 @@ from . import (
     round_spec, get_condition, stroop_question,
     is_feedback_round, is_third_period, third_period_played,
     is_end_of_period, is_end_of_period_with_p3,
-    BotCheck, Consent, Intro, TaskIntro, QuestionPage, IQReadout,
+    BotCheck, Consent, IQReferencePoint, Intro, TaskIntro, QuestionPage, IQReadout,
     PerceivedPercentile, PerceivedPercentileConfidence, ColorTaskIntro,
     ColorTask1, ColorTask2, ColorTask3, ColorTask4, ColorTask5, ColorTask6,
     EndOfPeriodSurvey, WTACompare, Results,
@@ -44,6 +44,8 @@ class PlayerBot(Bot):
                 turnstile_client_host='localhost', honeypot_intro_response='',
             ), check_html=False)
             yield Submission(Consent, dict(consent=True, llm_rule_confirm=True), check_html=False)
+            if p.participant.vars.get('iq_reference_asked', False):
+                yield Submission(IQReferencePoint, dict(iq_reference_score=100), check_html=False)
             yield Submission(Intro, dict(), check_html=False)
 
         plays_question = (not is_third_period(p)) or third_period_played(p)
