@@ -176,7 +176,8 @@ TASK_INTRO = {
             "Your task in this period is to <strong style=\"color:darkred;\">memorize</strong> "
             "the number of squares that have red dots. You will have "
             "<strong style=\"color:darkred;\">1.7 seconds</strong> to look at each pattern. "
-            "This tests your <strong style=\"color:darkred;\">working memory IQ</strong>."
+            "This tests your <strong style=\"color:darkred;\">working memory</strong> "
+            "component of IQ."
         ),
         example_image="examples/working_memory.png",
         example_answer=(
@@ -189,7 +190,7 @@ TASK_INTRO = {
         body_html=(
             "Your task in this period is to <strong style=\"color:darkred;\">predict the "
             "next number</strong> that follows in a given sequence. This tests your "
-            "<strong style=\"color:darkred;\">numerical reasoning IQ</strong>."
+            "<strong style=\"color:darkred;\">numerical reasoning</strong> component of IQ."
         ),
         example_image="examples/sequences.png",
         example_answer=(
@@ -202,7 +203,7 @@ TASK_INTRO = {
             "The top row shows a shape before and after rotation. Your task is to "
             "apply the <strong style=\"color:darkred;\">same rotation</strong> to "
             "another shape. This tests your "
-            "<strong style=\"color:darkred;\">spatial reasoning IQ</strong>."
+            "<strong style=\"color:darkred;\">spatial reasoning</strong> component of IQ."
         ),
         example_image="examples/shape_rotation.png",
         example_answer="Option <strong style=\"color:darkred;\">D</strong> is the correctly rotated shape.",
@@ -212,7 +213,7 @@ TASK_INTRO = {
         body_html=(
             "Your task in this period is to choose the image that "
             "<strong style=\"color:darkred;\">completes the pattern</strong>. This tests "
-            "your <strong style=\"color:darkred;\">abstract reasoning IQ</strong>."
+            "your <strong style=\"color:darkred;\">abstract reasoning</strong> component of IQ."
         ),
         # C8 (excluded from the live bank); correct answer 7 per the answer key.
         example_image="examples/ravens.jpg",
