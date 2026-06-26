@@ -4,6 +4,7 @@
 {% block content %}
 <style>
     .ti-wrap { max-width: 680px; margin: 0 auto; }
+    .ti-wrap.wide { max-width: 1040px; }
     .ti-body { font-size: 1.12em; line-height: 1.55; }
     .ti-example {
         margin: 22px auto 8px; text-align: center;
@@ -11,6 +12,7 @@
     .ti-example img {
         max-width: 100%; width: 460px; border: 1px solid #ddd; border-radius: 6px;
     }
+    .ti-example img.ti-image-big { width: 1000px; }
     .ti-example-fallback {
         width: 460px; max-width: 100%; min-height: 180px; margin: 0 auto;
         border: 2px dashed #c0c0c0; border-radius: 8px;
@@ -25,7 +27,7 @@
     }
 </style>
 
-<div class="ti-wrap">
+<div class="ti-wrap{% if big_image %} wide{% endif %}">
     <h2 style="color:darkred; font-weight:bold;">{{ title }}</h2>
     <br>
     <p class="ti-body">{{ body_html|safe }}</p>
@@ -33,6 +35,7 @@
     <div class="ti-example">
         {% if example_image %}
         <img src="{% static example_image %}" alt="Example"
+             class="{% if big_image %}ti-image-big{% endif %}"
              onerror="this.style.display='none'; document.getElementById('ti-example-fallback').style.display='flex';">
         {% endif %}
         <div id="ti-example-fallback" class="ti-example-fallback"

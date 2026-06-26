@@ -1331,6 +1331,7 @@ class TaskIntro(Page):
             body_html=intro.get('body_html', ''),
             example_image=example_image,
             example_answer=intro.get('example_answer', ''),
+            big_image=task in ('ravens', 'sequences'),
         )
 
 

@@ -31,11 +31,18 @@ OUT_FILE = ROOT / "social_media" / "questions_data.py"
 # Difficulty ordering used everywhere.
 DIFFICULTIES = ["easy", "medium", "hard"]
 
+# C8 replaces C1 in the live easy Raven's block.
+RAVENS_EXCLUDED_ITEMS = {"C1"}
+
+
+def ravens_options() -> list[str]:
+    return [str(i) for i in range(1, 9)]
+
 # Multiple-choice option labels per task.
 TASK_OPTIONS = {
     "sequences": ["A", "B", "C", "D"],
     "shape_rotation": ["A", "B", "C", "D", "E"],
-    "ravens": ["1", "2", "3", "4", "5", "6", "7", "8"],
+    "ravens": ravens_options(),
 }
 
 # How a task is answered: "mc" = single multiple-choice; "count" = type the
@@ -130,9 +137,9 @@ def build_shape_rotation():
 def build_ravens():
     src_dir = QUESTIONS_DIR / "ravens_matrices"
     rows = _rows_from_xlsx(src_dir / "ravens_answer_key.xlsx")
-    # Images are named <item>.jpg (e.g. C1.jpg). Exactly the 10 items per block
+    # Images are named <item>.jpg (e.g. C8.jpg). Exactly the 10 items per block
     # that should be in the live bank are present as files; we drive inclusion
-    # off the images present (the example item, e.g. C8, is intentionally absent).
+    # off the images present, with explicit exclusions above.
     images = {}
     for f in src_dir.iterdir():
         if f.suffix.lower() in (".jpg", ".jpeg", ".png") and f.stem.lower() != "example":
@@ -144,12 +151,20 @@ def build_ravens():
         item = str(r["Item"]).strip().upper()
         if block not in block_to_diff:
             continue
+        if item in RAVENS_EXCLUDED_ITEMS:
+            continue
         if item not in images:
             continue  # not provided -> excluded from the live bank
         image = _copy_image(images[item], "ravens", item)
+        options = list(TASK_OPTIONS["ravens"])
+        correct = str(int(r["Correct answer"]))
+        if correct not in options:
+            raise ValueError(
+                f"ravens {item}: correct answer {correct} not in options {options}"
+            )
         items[item] = dict(
             item_id=item, difficulty=block_to_diff[block], image=image,
-            options=list(TASK_OPTIONS["ravens"]), correct=str(int(r["Correct answer"])),
+            options=options, correct=correct,
             is_placeholder=False,
         )
     return items
