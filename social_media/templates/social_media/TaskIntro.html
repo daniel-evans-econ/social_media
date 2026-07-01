@@ -19,20 +19,54 @@
         display: flex; align-items: center; justify-content: center;
         color: #888; background: #fafafa; font-size: 0.95em; text-align: center; padding: 20px;
     }
-    .ti-example-caption { color: #666; font-size: 0.9em; margin-top: 8px; }
-    .ti-answer {
-        margin: 14px auto 0; max-width: 460px;
-        background: #f8fafc; border: 1px solid #d8dde3; border-radius: 10px;
-        padding: 10px 14px; font-size: 1.02em;
+    .ti-prompt { font-weight: 600; margin: 16px 0 10px; }
+    .ti-options { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 6px; }
+    .ti-opt {
+        cursor: pointer; padding: 10px 18px; border: 2px solid #d0d0d0;
+        border-radius: 8px; background: #fff; min-width: 46px; text-align: center;
+        font-weight: 600; user-select: none;
     }
+    .ti-opt.selected { border-color: darkred; background: #fdecec; color: darkred; }
+    .ti-opt.correct { border-color: #1e7e34; background: #e7f5ec; color: #1e7e34; }
+    .ti-opt.incorrect { border-color: #b02a37; background: #fdecec; color: #b02a37; }
+    .ti-opt.locked { cursor: default; }
+    .ti-count-input {
+        width: 120px; padding: 8px; font-size: 1.15em; text-align: center;
+        border: 2px solid #d0d0d0; border-radius: 8px;
+    }
+    .ti-check-btn {
+        margin-top: 14px; padding: 8px 20px; border-radius: 8px;
+        border: 1px solid darkred; background: darkred; color: #fff;
+        cursor: pointer; font-size: 0.98em;
+    }
+    .ti-check-btn[disabled] { opacity: 0.5; cursor: default; }
+    .ti-answer {
+        margin: 16px auto 0; max-width: 460px;
+        background: #f8fafc; border: 1px solid #d8dde3; border-radius: 10px;
+        padding: 10px 14px; font-size: 1.02em; display: none;
+    }
+    .ti-answer.visible { display: block; }
+    .ti-verdict { font-weight: 700; margin-bottom: 4px; }
+    .ti-verdict.right { color: #1e7e34; }
+    .ti-verdict.wrong { color: #b02a37; }
+    .ti-error {
+        display: none; margin-top: 12px; max-width: 460px; margin-left: auto; margin-right: auto;
+        background: #fdecea; border: 1px solid #d32f2f; color: #8a1c1c;
+        border-radius: 8px; padding: 10px 14px; font-weight: 600;
+    }
+    .ti-next-wrap { margin-top: 24px; }
+    .ti-next-wrap.locked .otree-btn-next { opacity: 0.45; pointer-events: none; cursor: not-allowed; }
 </style>
 
 <div class="ti-wrap{% if big_image %} wide{% endif %}">
-    <h2 style="color:darkred; font-weight:bold;">{{ title }}</h2>
+    <h2 style="color:darkred; font-weight:bold;">{{ title }}: example task</h2>
     <br>
     <p class="ti-body">{{ body_html|safe }}</p>
 
     <div class="ti-example">
+        {% if example_note %}
+        <p class="ti-body" style="margin-bottom: 14px;">{{ example_note|safe }}</p>
+        {% endif %}
         {% if example_image %}
         <img src="{% static example_image %}" alt="Example"
              class="{% if big_image %}ti-image-big{% endif %}"
@@ -42,14 +76,159 @@
              style="{% if example_image %}display:none;{% else %}display:flex;{% endif %}">
             [Example image coming soon]
         </div>
+
+        {% if example_prompt %}
+        <p class="ti-prompt">{{ example_prompt }}</p>
+        {% endif %}
+
+        {% if example_response_type == 'count' %}
+            <div>
+                <input type="number" id="ti-count" class="ti-count-input" min="0" step="1" placeholder="?">
+            </div>
+        {% elif example_response_type == 'mc' %}
+            <div class="ti-options" id="ti-options">
+                {% for opt in example_options %}
+                    <div class="ti-opt" data-value="{{ opt }}">{{ opt }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% if example_response_type %}
+        <div>
+            <button type="button" class="ti-check-btn" id="ti-check">Check answer</button>
+        </div>
+        {% endif %}
+
+        {% if example_response_type %}
+        <div class="ti-error" id="ti-error" role="alert"></div>
+        {% endif %}
+
         {% if example_answer %}
-        <div class="ti-answer"><strong style="color:darkred;">Answer:</strong> {{ example_answer|safe }}</div>
+        <div class="ti-answer" id="ti-answer">
+            <div class="ti-verdict" id="ti-verdict"></div>
+            <strong style="color:darkred;">Answer:</strong> {{ example_answer|safe }}
+        </div>
         {% endif %}
     </div>
 
+    {% if requires_example_check %}
+    <p class="ti-next-wrap locked" id="ti-next-wrap">
+        Answer the example above and click <strong>Check answer</strong> before continuing.
+    </p>
+    {% else %}
     <p style="margin-top:24px;">Press <strong>Next</strong> when you are ready to proceed.</p>
-    <div style="margin-top:8px;">
+    {% endif %}
+    <div style="margin-top:8px;" id="ti-next-btn-wrap"{% if requires_example_check %} class="ti-next-wrap locked"{% endif %}>
         {{ next_button }}
     </div>
 </div>
+
+<script>
+(function () {
+    var responseType = "{{ example_response_type }}";
+    var requiresCheck = {{ requires_example_check_js }};
+    var checked = false;
+    var form = document.querySelector('form');
+    var checkBtn = document.getElementById('ti-check');
+    var answerBox = document.getElementById('ti-answer');
+    var verdict = document.getElementById('ti-verdict');
+    var errorBox = document.getElementById('ti-error');
+    var optionEls = Array.prototype.slice.call(document.querySelectorAll('.ti-opt'));
+    var countInput = document.getElementById('ti-count');
+    var selected = null;
+
+    function showError(msg) {
+        if (!errorBox) return;
+        errorBox.textContent = msg;
+        errorBox.style.display = 'block';
+        try { errorBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {}
+    }
+    function clearError() {
+        if (errorBox) { errorBox.style.display = 'none'; errorBox.textContent = ''; }
+    }
+
+    function unlockNext() {
+        checked = true;
+        document.querySelectorAll('.ti-next-wrap').forEach(function (el) {
+            el.classList.remove('locked');
+        });
+        var hint = document.getElementById('ti-next-wrap');
+        if (hint) {
+            hint.textContent = 'Press Next when you are ready to proceed.';
+        }
+    }
+
+    if (requiresCheck && form) {
+        form.addEventListener('submit', function (e) {
+            if (!checked) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                showError('Please answer the example and click Check answer before continuing.');
+            }
+        }, true);
+    }
+
+    if (!responseType) return;
+    var correct = "{{ example_correct }}";
+
+    optionEls.forEach(function (el) {
+        el.addEventListener('click', function () {
+            if (el.classList.contains('locked')) return;
+            clearError();
+            optionEls.forEach(function (o) { o.classList.remove('selected'); });
+            el.classList.add('selected');
+            selected = el.getAttribute('data-value');
+        });
+    });
+    if (countInput) {
+        countInput.addEventListener('input', clearError);
+    }
+
+    function reveal() {
+        clearError();
+        var given;
+        if (responseType === 'count') {
+            given = countInput ? String(countInput.value).trim() : '';
+            if (given === '') { showError('Please type a number first.'); return; }
+        } else {
+            if (selected === null) { showError('Please select an option first.'); return; }
+            given = selected;
+        }
+        var isRight = (String(given) === String(correct));
+
+        if (responseType === 'mc') {
+            optionEls.forEach(function (o) {
+                o.classList.add('locked');
+                o.classList.remove('selected');
+                var v = o.getAttribute('data-value');
+                if (v === correct) o.classList.add('correct');
+                else if (v === given) o.classList.add('incorrect');
+            });
+        } else if (countInput) {
+            countInput.setAttribute('disabled', 'disabled');
+        }
+
+        if (verdict) {
+            verdict.textContent = isRight ? 'Correct!' : 'Not quite \u2014 here is the answer:';
+            verdict.className = 'ti-verdict ' + (isRight ? 'right' : 'wrong');
+        }
+        if (answerBox) answerBox.classList.add('visible');
+        if (checkBtn) checkBtn.setAttribute('disabled', 'disabled');
+
+        if (typeof liveSend === 'function') {
+            try { liveSend({ action: 'example_checked' }); } catch (_) { unlockNext(); }
+        } else {
+            unlockNext();
+        }
+    }
+
+    var prevLiveRecv = window.liveRecv;
+    window.liveRecv = function (data) {
+        if (prevLiveRecv) try { prevLiveRecv(data); } catch (_) {}
+        if (data && data.action === 'example_checked') unlockNext();
+    };
+
+    if (checkBtn) checkBtn.addEventListener('click', reveal);
+})();
+</script>
 {% endblock %}

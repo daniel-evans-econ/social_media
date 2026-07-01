@@ -3,6 +3,7 @@ import json
 import os
 import random
 from pathlib import Path
+from statistics import NormalDist
 
 from . import questions_data as QD
 
@@ -60,9 +61,19 @@ QUESTION_TIMEOUT_SECONDS = 60  # 60 seconds per question
 # presses "Show image" (chosen to equalize image load time across participants).
 WM_STIMULUS_SECONDS = 1.7
 
-# Flat (participation) payment shown on the instructions page. Placeholder until
-# the amount is finalized.
-FLAT_PAYMENT_DISPLAY = "$X.XX"
+# Flat (participation) payment shown on the instructions page.
+FLAT_PAYMENT_DISPLAY = "$8"
+
+# IQ reference-point page "sense of the scale" bullets. The numbers are the
+# x-axis band edges shown on static/images/iq_distribution.png (the ±1 / ±2 SD
+# marks of N(100, 15)), so the text lines up with the labeled ticks on the plot.
+IQ_SCALE_CUTOFFS = dict(
+    bottom_2=70,
+    bottom_16=85,
+    median=100,
+    top_16=115,
+    top_2=130,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -174,12 +185,18 @@ TASK_INTRO = {
         title="Working memory",
         body_html=(
             "Your task in this period is to <strong style=\"color:darkred;\">memorize</strong> "
-            "the number of squares that have red dots. You will have "
-            "<strong style=\"color:darkred;\">1.7 seconds</strong> to look at each pattern. "
-            "This tests your <strong style=\"color:darkred;\">working memory</strong> "
-            "component of IQ."
+            "the number of squares that have red dots. "
+            "This tests the <strong style=\"color:darkred;\">working memory</strong> "
+            "component of your IQ."
+        ),
+        example_note=(
+            "During the real task, you will have "
+            "<strong style=\"color:darkred;\">1.7 seconds</strong> to look at each pattern."
         ),
         example_image="examples/working_memory.png",
+        example_prompt="How many squares have red dots?",
+        example_response_type="count",
+        example_correct="3",
         example_answer=(
             "In this example, there are <strong style=\"color:darkred;\">3</strong> "
             "squares with red dots."
@@ -189,10 +206,14 @@ TASK_INTRO = {
         title="Numerical reasoning",
         body_html=(
             "Your task in this period is to <strong style=\"color:darkred;\">predict the "
-            "next number</strong> that follows in a given sequence. This tests your "
-            "<strong style=\"color:darkred;\">numerical reasoning</strong> component of IQ."
+            "next number</strong> that follows in a given sequence. This tests the "
+            "<strong style=\"color:darkred;\">numerical reasoning</strong> component of your IQ."
         ),
         example_image="examples/sequences.png",
+        example_prompt="Which number completes the sequence?",
+        example_response_type="mc",
+        example_options=["A", "B", "C", "D"],
+        example_correct="B",
         example_answer=(
             "<strong style=\"color:darkred;\">B) 6</strong> completes the sequence."
         ),
@@ -202,22 +223,31 @@ TASK_INTRO = {
         body_html=(
             "The top row shows a shape before and after rotation. Your task is to "
             "apply the <strong style=\"color:darkred;\">same rotation</strong> to "
-            "another shape. This tests your "
-            "<strong style=\"color:darkred;\">spatial reasoning</strong> component of IQ."
+            "another shape. This tests the "
+            "<strong style=\"color:darkred;\">spatial reasoning</strong> component of your IQ."
         ),
         example_image="examples/shape_rotation.png",
+        example_prompt="Which option shows the correctly rotated shape?",
+        example_response_type="mc",
+        example_options=["A", "B", "C", "D", "E"],
+        example_correct="D",
         example_answer="Option <strong style=\"color:darkred;\">D</strong> is the correctly rotated shape.",
     ),
     "ravens": dict(
         title="Abstract reasoning",
         body_html=(
             "Your task in this period is to choose the image that "
-            "<strong style=\"color:darkred;\">completes the pattern</strong>. This tests "
-            "your <strong style=\"color:darkred;\">abstract reasoning</strong> component of IQ."
+            "<strong style=\"color:darkred;\">completes the pattern</strong>. This tests the "
+            "<strong style=\"color:darkred;\">abstract reasoning</strong> component of your IQ."
         ),
-        # C8 (excluded from the live bank); correct answer 7 per the answer key.
+        # C8 (excluded from the live bank); answer-key option 7 = the 7th
+        # lettered choice (G), matching the A-H labels printed on the image.
         example_image="examples/ravens.jpg",
-        example_answer="Image <strong style=\"color:darkred;\">7</strong> completes the pattern.",
+        example_prompt="Which image completes the pattern?",
+        example_response_type="mc",
+        example_options=["A", "B", "C", "D", "E", "F", "G", "H"],
+        example_correct="G",
+        example_answer="Image <strong style=\"color:darkred;\">G</strong> completes the pattern.",
     ),
 }
 
@@ -446,7 +476,15 @@ class C(BaseConstants):
     THIRD_PERIOD_START = 31
 
     PAY_PER_CORRECT = cu(0.25)
-    PAY_PER_STROOP = cu(0.10)
+    PAY_PER_STROOP = cu(0.05)
+    # Bonus for guessing your performance percentile within 10 points (per period).
+    PAY_PER_PERCENTILE = cu(0.25)
+    # Bonus for baseline IQ reference-point guess within 10 points (treatment subgroup).
+    PAY_IQ_REFERENCE_GUESS = cu(0.50)
+    # Study has up to 3 end-of-period percentile elicitations (all pilots).
+    NUM_PERCENTILE_GUESS_PERIODS = 3
+    # Max deferred bonus from IQ + percentile guesses; fixed for all participants/pilots.
+    GUESS_BONUS_MAX = PAY_IQ_REFERENCE_GUESS + NUM_PERCENTILE_GUESS_PERIODS * PAY_PER_PERCENTILE
 
 
 class Subsession(BaseSubsession):
@@ -487,7 +525,7 @@ class Player(BasePlayer):
     q_stimulus_shown = models.BooleanField(initial=False)
     # Tab/window-switch counter for THIS question (one row per round).
     q_tab_switches = models.IntegerField(initial=0)
-    # Seconds from page load to first answer interaction.
+    # Seconds from page load to clicking Next (form submit).
     q_response_time = models.FloatField(blank=True)
     feedback_snapshot = models.LongStringField(blank=True)
 
@@ -697,6 +735,12 @@ class Player(BasePlayer):
         blank=True,
     )
 
+    # ---- Final free-text comments (optional) ----
+    comments = models.LongStringField(
+        label="Do you have any thoughts or comments about this study that you would like to share with us?",
+        blank=True,
+    )
+
 
 # ---------------------------------------------------------------------------
 # Per-subject question/condition plan
@@ -722,10 +766,12 @@ def _build_plan(participant):
     period_sets = []
     for pi, task in enumerate(period_tasks):
         task_sets = QD.SETS[task]
-        # One randomly-chosen set per difficulty, ALWAYS in ascending difficulty
-        # order (easy block first, then medium, then hard) for every task type.
+        # One randomly-chosen set per difficulty, presented in a fixed difficulty
+        # order. Every task ramps easy -> medium -> hard, except working memory,
+        # which is easy -> hard -> medium (medium and hard blocks swapped).
+        diff_order = ("easy", "hard", "medium") if task == "working_memory" else ("easy", "medium", "hard")
         chosen_set_ids = []
-        for diff in ("easy", "medium", "hard"):
+        for diff in diff_order:
             candidates = [s for s in task_sets if s.startswith(diff + "_")]
             chosen_set_ids.append(rng.choice(candidates))
         period_sets.append(chosen_set_ids)
@@ -1261,20 +1307,34 @@ class BotCheck(Page):
 
 
 class IQReferencePoint(Page):
-    """Baseline reference point (randomized treatment): the participant's
-    self-perceived IQ score, elicited before they see any task."""
+    """Before-you-begin overview (all participants) plus baseline IQ reference-point
+    elicitation for the randomized treatment subgroup."""
     form_model = 'player'
     form_fields = ['iq_reference_score']
 
     @staticmethod
     def is_displayed(player: Player):
-        return (
-            player.round_number == 1
-            and player.participant.vars.get('iq_reference_asked', False)
+        return player.round_number == 1
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        period_tasks = player.participant.vars.get('period_tasks', [])
+        period_components = [TASK_CONSTRUCT.get(t, t) for t in period_tasks]
+        asked = player.participant.vars.get('iq_reference_asked', False)
+        return dict(
+            show_iq=CFG['show_iq'],
+            iq_reference_asked=asked,
+            has_optional_third=CFG['use_wta'],
+            total_questions=2 * C.PERIOD_LENGTH if CFG['use_wta'] else 3 * C.PERIOD_LENGTH,
+            period_components=period_components,
+            flat_payment=FLAT_PAYMENT_DISPLAY,
+            iq_scale=IQ_SCALE_CUTOFFS,
         )
 
     @staticmethod
     def error_message(player: Player, values):
+        if not player.participant.vars.get('iq_reference_asked', False):
+            return
         v = values.get('iq_reference_score')
         if v is None or v == '':
             return "Please move the slider to provide your estimate before continuing."
@@ -1303,7 +1363,9 @@ class TaskIntro(Page):
     """Minimal task explanation + worked example, shown before each new task.
 
     Appears once at the start of every period (rounds 1 / 16 / 31), right after
-    the Task-instructions page in period 1.
+    the Task-instructions page in period 1. Participants must answer the
+    interactive example and click Check before Next is accepted (tracked in
+    participant.vars via liveSend).
     """
 
     @staticmethod
@@ -1324,33 +1386,58 @@ class TaskIntro(Page):
         if not static_exists(example_image):
             # Real example not dropped in yet: the template shows a placeholder.
             example_image = None
+        # Fresh gate each time this page is shown.
+        player.participant.vars['task_intro_checked'] = False
         return dict(
             period=period,
             task=task,
             title=intro.get('title', TASK_LABELS.get(task, task)),
             body_html=intro.get('body_html', ''),
+            example_note=intro.get('example_note', ''),
             example_image=example_image,
             example_answer=intro.get('example_answer', ''),
+            example_prompt=intro.get('example_prompt', ''),
+            example_response_type=intro.get('example_response_type', ''),
+            example_options=intro.get('example_options', []),
+            example_correct=str(intro.get('example_correct', '')),
             big_image=task in ('ravens', 'sequences'),
+            requires_example_check=bool(intro.get('example_response_type')),
+            requires_example_check_js='true' if intro.get('example_response_type') else 'false',
+        )
+
+    @staticmethod
+    def live_method(player: Player, data):
+        if isinstance(data, dict) and data.get('action') == 'example_checked':
+            player.participant.vars['task_intro_checked'] = True
+            return {player.id_in_group: dict(action='example_checked')}
+
+    @staticmethod
+    def error_message(player: Player, values):
+        spec = round_spec(player)
+        intro = TASK_INTRO.get(spec['task'], {})
+        if not intro.get('example_response_type'):
+            return
+        if player.participant.vars.get('task_intro_checked'):
+            return
+        return (
+            "Please answer the example and click Check answer before continuing."
         )
 
 
 class QuestionPage(Page):
     """One cognitive question (task type depends on the round's plan).
 
-    On feedback rounds (every 5th) the page also shows an inline slide-in
-    sidebar with the block summary and (in social conditions) a peer report and
-    a compose-your-own panel, captured in the same form submission.
+    On feedback rounds (every 5th) the block summary and peer-message step are
+    shown on the separate, untimed ``BlockFeedback`` page that immediately
+    follows this one. Keeping them apart means this page's countdown can never
+    run behind an open overlay and, crucially, that a page refresh can never
+    let the participant skip the feedback (a refresh just reloads the untimed
+    ``BlockFeedback`` page instead of auto-advancing on an expired timer).
     """
     form_model = 'player'
     form_fields = [
         'q_answer',
         'q_response_time',
-        'report_number',
-        'report_emoji',
-        'report_message',
-        'report_shared',
-        'report_display_name',
     ]
     timeout_seconds = QUESTION_TIMEOUT_SECONDS
 
@@ -1397,25 +1484,6 @@ class QuestionPage(Page):
             prior_answer=player.field_maybe_none('q_answer') or '',
             already_tab_switched=(player.field_maybe_none('q_tab_switches') or 0) > 0,
         )
-
-        if is_feedback_round(player):
-            cond = get_condition(player)
-            signal = pilot_feedback_signals(player)
-            signal_name = (signal.get('name') or '') if isinstance(signal, dict) else ''
-            signal_initial = signal_name[:1].upper() if signal_name else '?'
-            ctx.update(
-                is_feedback_round=True,
-                condition=cond,
-                block_score_prior=block_correct_prior_in_block(player),
-                report_options=list(range(6)),
-                signal=signal,
-                signal_initial=signal_initial,
-                qual_emojis=QUAL_EMOJIS,
-                in_treatment=cond in ('quantitative_social', 'qualitative_social'),
-                is_quantitative=cond == 'quantitative_social',
-                is_qualitative=cond == 'qualitative_social',
-                has_received_message=isinstance(signal, dict) and signal.get('type') in ('quantitative', 'qualitative'),
-            )
         return ctx
 
     @staticmethod
@@ -1441,15 +1509,6 @@ class QuestionPage(Page):
             # re-render (e.g. after an empty submit) can't grant another look.
             player.q_stimulus_shown = True
             return
-        if action == 'submit_answer':
-            # Record the answer + grade it server-side so we can show the block
-            # count without ever leaking the correct answer to the client.
-            spec = round_spec(player)
-            ans = data.get('answer') or ''
-            player.q_answer = str(ans)
-            player.q_correct = grade_answer(spec['task'], spec['item_id'], ans)
-            count = block_correct_prior_in_block(player) + (1 if player.q_correct else 0)
-            return {player.id_in_group: dict(action='block_count', count=count, block_size=5)}
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
@@ -1471,6 +1530,107 @@ class QuestionPage(Page):
         else:
             player.q_correct = grade_answer(spec['task'], spec['item_id'], answer)
 
+    @staticmethod
+    def error_message(player: Player, values):
+        if values.get('timeout_happened'):
+            return
+        if not (values.get('q_answer') or '').strip():
+            return "Please answer the question before continuing."
+
+
+class BlockFeedback(Page):
+    """Block performance summary + (in social conditions) the received peer
+    message and the compose-your-own-message step.
+
+    This is its own page, deliberately **without** a timer, and appears right
+    after every feedback-round ``QuestionPage``. Because there is no timeout, a
+    page refresh simply reloads this page (oTree never auto-advances), so the
+    participant can no longer skip the summary or the message step by
+    refreshing while it is on screen.
+    """
+    form_model = 'player'
+    form_fields = [
+        'report_number',
+        'report_emoji',
+        'report_message',
+        'report_shared',
+        'report_display_name',
+    ]
+
+    @staticmethod
+    def is_displayed(player: Player):
+        if is_third_period(player) and not third_period_played(player):
+            return False
+        return is_feedback_round(player)
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        spec = round_spec(player)
+        task = spec['task']
+        item = QD.QUESTIONS[task][spec['item_id']]
+        period, q_in_period = _period_index_and_qnum(player.round_number)
+        response_type = QD.TASK_RESPONSE[task]
+        prior_answer = str(player.field_maybe_none('q_answer') or '')
+        cond = get_condition(player)
+        signal = pilot_feedback_signals(player)
+        signal_name = (signal.get('name') or '') if isinstance(signal, dict) else ''
+        signal_initial = signal_name[:1].upper() if signal_name else '?'
+        return dict(
+            condition=cond,
+            block_score=block_correct(player),
+            report_options=list(range(6)),
+            signal=signal,
+            signal_initial=signal_initial,
+            qual_emojis=QUAL_EMOJIS,
+            in_treatment=cond in ('quantitative_social', 'qualitative_social'),
+            is_quantitative=cond == 'quantitative_social',
+            is_qualitative=cond == 'qualitative_social',
+            has_received_message=isinstance(signal, dict) and signal.get('type') in ('quantitative', 'qualitative'),
+            task_construct=TASK_CONSTRUCT.get(task, "task"),
+            # Read-only backdrop: re-render the question they just completed so
+            # the summary looks like a popup over it. Purely cosmetic; no form.
+            period=period,
+            question_in_period=q_in_period,
+            task=task,
+            response_type=response_type,
+            question_prompt=TASK_PROMPT.get(task, ''),
+            big_image=task in ('ravens', 'sequences'),
+            item=item,
+            image=item.get('image'),
+            is_placeholder=item.get('is_placeholder', False),
+            prior_answer=prior_answer,
+            # Pre-mark the participant's chosen option so the read-only backdrop
+            # can highlight it (oTree's template engine has no stringformat).
+            option_rows=[
+                dict(value=o, selected=(str(o) == prior_answer))
+                for o in item.get('options', [])
+            ],
+        )
+
+    @staticmethod
+    def error_message(player: Player, values):
+        cond = get_condition(player)
+        if cond not in ('quantitative_social', 'qualitative_social'):
+            return
+        if not (values.get('report_display_name') or '').strip():
+            return "Please enter the name you want to use."
+        if cond == 'quantitative_social':
+            rn = values.get('report_number')
+            if rn is None or rn == '':
+                return "Please type how many out of 5 you got correct."
+            return
+        msg = (values.get('report_message') or '').strip()
+        if not msg:
+            return "Please add a short note before continuing."
+        if len(msg) < 5:
+            return "Please write at least 5 characters in your note."
+        if not values.get('report_emoji'):
+            return "Please indicate how the last 5 questions went."
+
+    @staticmethod
+    def before_next_page(player: Player, timeout_happened):
+        spec = round_spec(player)
+
         # Canary: if no display name was composed, the participant never filled
         # in a report, so blank out report fields rather than store 0/defaults.
         composed_name = (player.field_maybe_none('report_display_name') or '').strip()
@@ -1480,15 +1640,15 @@ class QuestionPage(Page):
             player.report_message = None
             player.report_display_name = None
 
-        if not is_feedback_round(player):
-            return
-
         cond = get_condition(player)
         signal = pilot_feedback_signals(player)
         if cond == 'quantitative_social':
             n = player.field_maybe_none('report_number')
             if n is not None:
-                player.report_message = f"Message: I got {n} out of 5 correct."
+                construct = TASK_CONSTRUCT.get(spec['task'], 'these')
+                player.report_message = (
+                    f"I got {n} out of 5 {construct} questions in this block correct."
+                )
         if cond in ('quantitative_social', 'qualitative_social'):
             player.report_display_name = (
                 (player.field_maybe_none('report_display_name') or '').strip()
@@ -1512,32 +1672,6 @@ class QuestionPage(Page):
         elif signal.get('type') == 'qualitative':
             player.received_signal_name = signal.get('name') or ''
             player.received_signal_value = signal.get('emoji') or ''
-
-    @staticmethod
-    def error_message(player: Player, values):
-        if values.get('timeout_happened'):
-            return
-        if not (values.get('q_answer') or '').strip():
-            return "Please answer the question before continuing."
-        if not is_feedback_round(player):
-            return
-        cond = get_condition(player)
-        if cond not in ('quantitative_social', 'qualitative_social'):
-            return
-        if not (values.get('report_display_name') or '').strip():
-            return "Please enter the name you want to use."
-        if cond == 'quantitative_social':
-            rn = values.get('report_number')
-            if rn is None or rn == '':
-                return "Please select the number you want to report."
-            return
-        msg = (values.get('report_message') or '').strip()
-        if not msg:
-            return "Please add a short note before continuing."
-        if len(msg) < 5:
-            return "Please write at least 5 characters in your note."
-        if not values.get('report_emoji'):
-            return "Please indicate how the last 5 questions went."
 
 
 class IQReadout(Page):
@@ -1931,11 +2065,21 @@ class RealismQuestion(Page):
         return player.round_number == C.NUM_ROUNDS
 
     @staticmethod
+    def vars_for_template(player: Player):
+        return dict(is_initial_pilot=(PILOT == "initial"))
+
+    @staticmethod
     def error_message(player: Player, values):
         text = (values.get('realism_feedback') or '').strip()
         if not text:
             return "Please share your thoughts before continuing."
         if len(text) < 50:
+            if PILOT == "initial":
+                return (
+                    "Please write at least 50 characters about your experience "
+                    "during the study (currently "
+                    f"{len(text)} characters)."
+                )
             return (
                 "Please write at least 50 characters about how the social "
                 "feedback felt during the study (currently "
@@ -2036,6 +2180,16 @@ class Results(Page):
         )
 
 
+class Comments(Page):
+    """Optional free-text comments box, shown as the last survey page."""
+    form_model = 'player'
+    form_fields = ['comments']
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return player.round_number == C.NUM_ROUNDS
+
+
 class FinalResults(Page):
     @staticmethod
     def is_displayed(player: Player):
@@ -2107,6 +2261,8 @@ class FinalResults(Page):
             stroop_amount=f"{stroop_amount:.2f}",
             switched_subtracted=f"{subtracted:.2f}",
             had_switch_deduction=subtracted > 0,
+            guess_bonus_max_display=f"{float(C.GUESS_BONUS_MAX):.2f}",
+            prolific_url=PROLIFIC_COMPLETION_URL,
         )
 
 
@@ -2129,6 +2285,7 @@ page_sequence = [
     Intro,
     TaskIntro,
     QuestionPage,
+    BlockFeedback,
     IQReadout,
     PerceivedPercentile,
     PerceivedPercentileConfidence,
@@ -2149,6 +2306,6 @@ page_sequence = [
     SocialMediaUsage,
     RealismQuestion,
     SurveyReliabilityOverall,
+    Comments,
     FinalResults,
-    ProlificCompletion,
 ]

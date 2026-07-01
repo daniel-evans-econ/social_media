@@ -1,0 +1,427 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block content %}
+<style>
+    /* ---------- Read-only backdrop: the question they just completed ---------- */
+    .q-backdrop {
+        /* dimmed + non-interactive; purely a cosmetic backdrop behind the popup */
+        filter: grayscale(15%);
+        opacity: 0.55;
+        pointer-events: none;
+        user-select: none;
+    }
+    .q-wrap { max-width: 760px; margin: 0 auto; }
+    .q-wrap.wide { max-width: 1040px; }
+    .q-image { max-width: 100%; width: 560px; border: 1px solid #ddd; border-radius: 6px; }
+    .q-image.q-image-big { width: 1000px; }
+    .q-placeholder {
+        width: 560px; max-width: 100%;
+        min-height: 220px;
+        border: 2px dashed #c0c0c0; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        color: #888; background: #fafafa; margin: 0 auto;
+        font-size: 0.95em; text-align: center; padding: 20px;
+    }
+    .q-options { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 10px; }
+    .q-opt {
+        padding: 10px 18px; border: 2px solid #d0d0d0;
+        border-radius: 8px; background: #fff; min-width: 46px; text-align: center;
+        font-weight: 600;
+    }
+    .q-opt.q-opt-selected { border-color: darkred; background: #fdecec; color: darkred; }
+    .wm-static-answer {
+        display: inline-block; min-width: 120px; padding: 8px; font-size: 1.15em;
+        text-align: center; border: 2px solid #d0d0d0; border-radius: 8px; background: #fff;
+    }
+
+    /* ---------- Slide-in feedback sidebar (restored popup look) ---------- */
+    .fb-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); opacity: 0; pointer-events: none; transition: opacity 0.25s ease; z-index: 9998; }
+    .fb-overlay.open { opacity: 1; pointer-events: auto; }
+    .fb-sidebar {
+        position: fixed; top: 0; right: 0; width: 400px; max-width: 92vw; height: 100%;
+        background: #fff; box-shadow: -8px 0 24px rgba(0,0,0,0.18);
+        transform: translateX(105%); transition: transform 0.35s cubic-bezier(0.2,0.8,0.2,1);
+        z-index: 9999; display: flex; flex-direction: column;
+        border-top-left-radius: 14px; border-bottom-left-radius: 14px; overflow: hidden;
+    }
+    .fb-sidebar.open { transform: translateX(0); }
+    .fb-header { display: flex; align-items: center; gap: 10px; padding: 16px 20px 12px; border-bottom: 1px solid #eee; }
+    .fb-app-icon { width: 32px; height: 32px; border-radius: 8px; background: darkred; color: #fff; font-weight: bold; font-size: 0.8em; display: flex; align-items: center; justify-content: center; }
+    .fb-header .fb-title { font-weight: 600; flex: 1; color: darkred; }
+    .fb-body { padding: 14px 20px 8px; flex: 1; overflow-y: auto; }
+    .fb-score { background: #f8fafc; border: 1px solid #d8dde3; border-radius: 12px; padding: 12px 16px; margin-bottom: 14px; font-size: 1.05em; }
+    .fb-post { background: #fff; border: 1px solid #e2e6eb; border-radius: 12px; padding: 12px 16px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .fb-post-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .fb-avatar { width: 36px; height: 36px; border-radius: 50%; background: #6c5ce7; color: #fff; font-weight: bold; display: flex; align-items: center; justify-content: center; font-size: 1em; }
+    .fb-post-name { font-weight: 600; font-size: 0.95em; }
+    .fb-post-body { font-size: 1em; margin-left: 46px; margin-top: 2px; }
+    .fb-post-quote { margin-top: 6px; color: #444; font-style: italic; }
+    .fb-compose { background: #f0f6ff; border: 1px solid #b9d4ff; border-radius: 12px; padding: 12px 16px; }
+    .fb-compose h4 { margin: 0 0 6px 0; color: #1a4998; font-size: 0.95em; }
+    .fb-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+    .fb-row label { cursor: pointer; padding: 6px 12px; border: 2px solid #d0d0d0; border-radius: 8px; background: #fff; min-width: 38px; text-align: center; }
+    .fb-row.fb-emoji label { font-size: 1.5em; padding: 4px 10px; }
+    .fb-row input[type="radio"] { display: none; }
+    .fb-row label:has(input[type="radio"]:checked) { border-color: #1a4998; background: #e8f0ff; font-weight: bold; }
+    .fb-compose textarea { width: 100%; min-height: 50px; padding: 8px; border: 1px solid #b9d4ff; border-radius: 6px; resize: vertical; font-family: inherit; font-size: 0.95em; }
+    .fb-share { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 0.92em; }
+    .fb-actions { padding: 12px 20px; border-top: 1px solid #eee; background: #fff; display: flex; gap: 10px; justify-content: flex-end; }
+    .fb-btn { padding: 8px 18px; border-radius: 8px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-size: 0.95em; }
+    .fb-btn-primary { background: darkred; color: #fff; border-color: darkred; }
+    body.fb-locked { overflow: hidden; }
+    .fb-share-step { display: none; margin-top: 12px; padding: 14px 16px; border: 2px solid darkred; border-radius: 10px; background: #fff8f8; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+    .fb-share-step.visible { display: block; }
+    .fb-share-step .fb-share-prompt { font-weight: 600; margin: 0 0 10px 0; color: #222; }
+    /* Centered elicitation prompt at the top of the compose block */
+    .fb-compose-prompt { font-size: 0.9em; margin: 0 0 12px 0; color: #222; }
+    /* "Your message" live tweet-style preview */
+    .fb-yourmsg { margin-top: 14px; }
+    .fb-yourmsg-title { font-weight: 600; font-size: 0.9em; color: #333; margin-bottom: 6px; }
+    .fb-preview .fb-preview-time { color: #8a8a8a; font-weight: 400; font-size: 0.9em; }
+    .fb-preview .fb-preview-body { font-style: italic; color: #555; }
+</style>
+
+<!-- ================= Read-only backdrop (the question just completed) ================= -->
+<div class="q-backdrop" aria-hidden="true">
+    <div class="q-wrap{% if big_image %} wide{% endif %}">
+        <h3 style="color:darkred; font-weight:bold;">
+            Period {{ period }}, Question {{ question_in_period }} of {{ C.PERIOD_LENGTH }}
+        </h3>
+        <br>
+
+        {% if response_type == 'count' %}
+            <div style="text-align:center; margin-top:16px;">
+                <label style="display:block; margin-bottom:8px; font-weight:600;">
+                    {{ question_prompt }}
+                </label>
+                <div class="wm-static-answer">{% if prior_answer %}{{ prior_answer }}{% else %}&mdash;{% endif %}</div>
+            </div>
+        {% else %}
+            <div style="text-align:center; margin: 20px 0;">
+                {% if is_placeholder %}
+                    <div class="q-placeholder">
+                        [{{ task }} stimulus pending] &mdash; item {{ item.item_id }}
+                    </div>
+                {% else %}
+                    <img class="q-image{% if big_image %} q-image-big{% endif %}" src="{% static image %}" alt="Question">
+                {% endif %}
+            </div>
+            {% if question_prompt %}
+            <p style="text-align:center; font-weight:600; margin-bottom:10px;">{{ question_prompt }}</p>
+            {% endif %}
+            <div class="q-options">
+                {% for opt in option_rows %}
+                    <div class="q-opt{% if opt.selected %} q-opt-selected{% endif %}">{{ opt.value }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ================= Popup sidebar (the real BlockFeedback form) ================= -->
+<div class="fb-overlay" id="fb-overlay"></div>
+
+<aside class="fb-sidebar" id="fb-sidebar" aria-label="Performance summary">
+    <div class="fb-header">
+        <div class="fb-app-icon">SM</div>
+        <div class="fb-title">Performance summary</div>
+    </div>
+
+    <div class="fb-body">
+        <div class="fb-score">
+            You got <strong style="color:darkred;">{{ block_score }} out of 5</strong>
+            correct in the last block.
+        </div>
+
+        <div id="fb-error" role="alert"
+             style="display:none; background:#fdecea; border:1px solid #d32f2f; color:#8a1c1c;
+                    border-radius:8px; padding:10px 12px; margin-bottom:12px; font-size:0.92em;"></div>
+
+        {% if in_treatment %}
+            {% if has_received_message %}
+            <p style="font-size:0.92em; color:#444; margin: 0 0 12px 0;">
+                Here is a message from a participant who answered the
+                <strong style="color:darkred;">same 5 questions that you did</strong>.
+            </p>
+            <div class="fb-post">
+                <div class="fb-post-head">
+                    <div class="fb-avatar">{{ signal_initial }}</div>
+                    <div><div class="fb-post-name">{{ signal.name }}</div></div>
+                </div>
+                <div class="fb-post-body">
+                    {% if is_quantitative %}
+                        I got {{ signal.number }} out of 5 correct.
+                    {% else %}
+                        <span style="font-size:1.6em;">{{ signal.emoji }}</span>
+                        <div class="fb-post-quote">&ldquo;{{ signal.sentence }}&rdquo;</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="fb-compose">
+                <div id="fb-compose-inputs">
+                    <p class="fb-compose-prompt">
+                        Please type a message that you would want to share with other
+                        participants about how you did on this
+                        <strong style="color:darkred;">{{ task_construct }}</strong> IQ task.
+                    </p>
+
+                    <div style="margin-bottom:12px;">
+                        <label for="id_report_display_name" style="font-size:0.9em; display:block; margin-bottom:6px;">
+                            What name do you want to use?
+                        </label>
+                        <input type="text" name="report_display_name" id="id_report_display_name"
+                               maxlength="60" autocomplete="nickname"
+                               style="width:100%; padding:8px; border:1px solid #b9d4ff; border-radius:6px; box-sizing:border-box;">
+                    </div>
+                    {% if is_quantitative %}
+                        <p style="margin:8px 0; font-size:1em;">
+                            I got
+                            <input type="number" name="report_number" id="id_report_number"
+                                   min="0" max="5" step="1"
+                                   style="width:60px; padding:6px; text-align:center;
+                                          border:1px solid #b9d4ff; border-radius:6px;">
+                            out of 5 {{ task_construct }} questions in this block correct.
+                        </p>
+                        <input type="hidden" name="report_message" id="id_report_message" value="">
+                    {% else %}
+                        <div style="font-size:0.9em;">How did the last 5 questions go?</div>
+                        <div class="fb-row fb-emoji">
+                            {% for e in qual_emojis %}
+                                <label>
+                                    <input type="radio" name="report_emoji" value="{{ e }}">
+                                    <span>{{ e }}</span>
+                                </label>
+                            {% endfor %}
+                        </div>
+                        <div style="margin-top:8px;">
+                            <label for="id_report_message" style="font-size:0.85em;">
+                                Add a short note (max 140 characters):
+                            </label>
+                            <textarea name="report_message" id="id_report_message"
+                                      minlength="5" maxlength="140"></textarea>
+                        </div>
+                    {% endif %}
+
+                    <div class="fb-yourmsg">
+                        <div class="fb-yourmsg-title">Your message</div>
+                        <div class="fb-post fb-preview">
+                            <div class="fb-post-head">
+                                <div class="fb-avatar fb-preview-avatar">?</div>
+                                <div>
+                                    <div class="fb-post-name">
+                                        <span class="fb-preview-name">Your name</span>
+                                        <span class="fb-preview-time"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="fb-post-body fb-preview-body">Your message will appear here.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="fb-share-step" class="fb-share-step" aria-live="polite">
+                    <p class="fb-share-prompt">
+                        Do you want to send your message to another participant?
+                        <br>
+                        <span style="font-weight:400; color:#333;">We will only send it if you agree.</span>
+                    </p>
+
+                    <div class="fb-yourmsg">
+                        <div class="fb-yourmsg-title">Your message</div>
+                        <div class="fb-post fb-preview">
+                            <div class="fb-post-head">
+                                <div class="fb-avatar fb-preview-avatar">?</div>
+                                <div>
+                                    <div class="fb-post-name">
+                                        <span class="fb-preview-name">Your name</span>
+                                        <span class="fb-preview-time"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="fb-post-body fb-preview-body">Your message will appear here.</div>
+                        </div>
+                    </div>
+
+                    <div class="fb-share">
+                        <input type="checkbox" name="report_shared" id="id_report_shared" value="True">
+                        <label for="id_report_shared" style="margin:0;">
+                            Yes, share my message with another participant
+                        </label>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="fb-actions">
+        {% if in_treatment %}
+            <div id="fb-actions-compose">
+                <button type="button" class="fb-btn fb-btn-primary" id="fb-compose-next">Continue</button>
+            </div>
+            <div id="fb-actions-final" style="display:none;">
+                <button type="submit" class="fb-btn fb-btn-primary" id="fb-final-submit">Continue</button>
+            </div>
+        {% else %}
+            <button type="submit" class="fb-btn fb-btn-primary" id="fb-continue-btn">Continue</button>
+        {% endif %}
+    </div>
+</aside>
+
+<script>
+(function () {
+    var TASK_CONSTRUCT = "{{ task_construct }}";
+    var sidebar = document.getElementById('fb-sidebar');
+    var overlay = document.getElementById('fb-overlay');
+    var composeNext = document.getElementById('fb-compose-next');
+    var composeInputs = document.getElementById('fb-compose-inputs');
+    var shareStep = document.getElementById('fb-share-step');
+    var actionsCompose = document.getElementById('fb-actions-compose');
+    var actionsFinal = document.getElementById('fb-actions-final');
+    var errorBox = document.getElementById('fb-error');
+
+    // Slide the popup in on load: this whole page IS the "popup" moment. The
+    // overlay dims/blocks the (already non-interactive) question backdrop.
+    function openSidebar() {
+        document.body.classList.add('fb-locked');
+        // rAF so the transition runs from the off-screen start state.
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                sidebar.classList.add('open');
+                overlay.classList.add('open');
+            });
+        });
+    }
+    openSidebar();
+
+    // On-screen (non-popup) error messages, so validation never triggers a
+    // browser dialog that could be mistaken for / interact with tab-switching.
+    function showError(msg) {
+        if (!errorBox) return;
+        errorBox.textContent = msg;
+        errorBox.style.display = 'block';
+        try { errorBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {}
+    }
+    function clearError() { if (errorBox) { errorBox.style.display = 'none'; errorBox.textContent = ''; } }
+
+    function displayNameOk() {
+        var el = document.getElementById('id_report_display_name');
+        return el && String(el.value || '').trim().length > 0;
+    }
+    function composeStepComplete() {
+        clearError();
+        if (!displayNameOk()) { showError('Please enter the name you want to use.'); return false; }
+        var numEl = document.getElementById('id_report_number');
+        if (numEl) {  // quantitative: free 0-5 number entry
+            var raw = String(numEl.value).trim();
+            if (raw === '') { showError('Please type how many out of 5 you got correct.'); return false; }
+            var n = parseInt(raw, 10);
+            if (isNaN(n) || n < 0 || n > 5) { showError('Please enter a number from 0 to 5.'); return false; }
+            var hiddenMsg = document.getElementById('id_report_message');
+            if (hiddenMsg && hiddenMsg.tagName === 'INPUT') {
+                hiddenMsg.value = 'I got ' + n + ' out of 5 ' + TASK_CONSTRUCT + ' questions in this block correct.';
+            }
+            return true;
+        }
+        var msgEl = document.getElementById('id_report_message');
+        var msg = msgEl ? String(msgEl.value || '').trim() : '';
+        if (!msg) { showError('Please add a short note before continuing.'); return false; }
+        if (msg.length < 5) { showError('Please write at least 5 characters in your note.'); return false; }
+        var emoChecked = document.querySelector('input[name="report_emoji"]:checked');
+        if (document.querySelectorAll('input[name="report_emoji"]').length && !emoChecked) {
+            showError('Please indicate how the last 5 questions went.'); return false;
+        }
+        return true;
+    }
+
+    // ---- Live "Your message" tweet-style preview (both phases) ----
+    var previews = Array.prototype.slice.call(document.querySelectorAll('.fb-preview'));
+    var lastMsgTime = '';  // time of the latest edit to the message text
+
+    function currentName() {
+        var el = document.getElementById('id_report_display_name');
+        return el ? String(el.value || '').trim() : '';
+    }
+    function currentMessage() {
+        var numEl = document.getElementById('id_report_number');
+        if (numEl) {  // quantitative: derived from the free 0-5 number
+            var raw = String(numEl.value).trim();
+            if (raw === '') return '';
+            return 'I got ' + raw + ' out of 5 ' + TASK_CONSTRUCT + ' questions in this block correct.';
+        }
+        var msgEl = document.getElementById('id_report_message');
+        return msgEl ? String(msgEl.value || '').trim() : '';
+    }
+    function currentEmoji() {
+        var e = document.querySelector('input[name="report_emoji"]:checked');
+        return e ? e.value : '';
+    }
+    function nowTimeStr() {
+        var d = new Date();
+        try {
+            return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        } catch (e) {
+            return d.getHours() + ':' + ('0' + d.getMinutes()).slice(-2);
+        }
+    }
+    function renderPreviews() {
+        var name = currentName();
+        var msg = currentMessage();
+        var emoji = currentEmoji();
+        previews.forEach(function (p) {
+            var nameEl = p.querySelector('.fb-preview-name');
+            var timeEl = p.querySelector('.fb-preview-time');
+            var bodyEl = p.querySelector('.fb-preview-body');
+            var avEl = p.querySelector('.fb-preview-avatar');
+            if (nameEl) nameEl.textContent = name || 'Your name';
+            if (avEl) avEl.textContent = name ? name.charAt(0).toUpperCase() : '?';
+            if (timeEl) timeEl.textContent = lastMsgTime ? ('\u00B7 ' + lastMsgTime) : '';
+            if (bodyEl) {
+                if (msg) {
+                    bodyEl.textContent = (emoji ? emoji + ' ' : '') + '\u201C' + msg + '\u201D';
+                } else {
+                    bodyEl.textContent = 'Your message will appear here.';
+                }
+            }
+        });
+    }
+
+    // Message edits (number / free text) stamp the "latest typed" time.
+    function onMessageEdit() {
+        var numEl = document.getElementById('id_report_number');
+        var hiddenMsg = document.getElementById('id_report_message');
+        if (numEl && hiddenMsg && hiddenMsg.tagName === 'INPUT') {
+            var n = String(numEl.value).trim();
+            hiddenMsg.value = 'I got ' + n + ' out of 5 ' + TASK_CONSTRUCT + ' questions in this block correct.';
+        }
+        if (currentMessage()) lastMsgTime = nowTimeStr();
+        clearError();
+        renderPreviews();
+    }
+
+    var numElInit = document.getElementById('id_report_number');
+    if (numElInit) numElInit.addEventListener('input', onMessageEdit);
+    var msgElInit = document.getElementById('id_report_message');
+    if (msgElInit && msgElInit.tagName === 'TEXTAREA') msgElInit.addEventListener('input', onMessageEdit);
+    var nameElInit = document.getElementById('id_report_display_name');
+    if (nameElInit) nameElInit.addEventListener('input', function () { clearError(); renderPreviews(); });
+    Array.prototype.forEach.call(document.querySelectorAll('input[name="report_emoji"]'), function (el) {
+        el.addEventListener('change', function () { clearError(); renderPreviews(); });
+    });
+    renderPreviews();
+
+    if (composeNext && composeInputs && shareStep && actionsCompose && actionsFinal) {
+        composeNext.addEventListener('click', function () {
+            if (!composeStepComplete()) return;
+            composeInputs.style.display = 'none';
+            shareStep.classList.add('visible');
+            actionsCompose.style.display = 'none';
+            actionsFinal.style.display = 'flex';
+            shareStep.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+    }
+})();
+</script>
+{% endblock %}

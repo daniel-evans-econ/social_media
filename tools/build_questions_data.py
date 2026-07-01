@@ -31,12 +31,28 @@ OUT_FILE = ROOT / "social_media" / "questions_data.py"
 # Difficulty ordering used everywhere.
 DIFFICULTIES = ["easy", "medium", "hard"]
 
-# C8 replaces C1 in the live easy Raven's block.
-RAVENS_EXCLUDED_ITEMS = {"C1"}
+# C11 replaces C1 in the live easy Raven's block; C8 stays reserved as the
+# worked example image.
+RAVENS_EXCLUDED_ITEMS = {"C1", "C8"}
+
+
+def _letter_options(n: int) -> list[str]:
+    """First ``n`` uppercase letters (A, B, C, ...).
+
+    The Raven's answer images label their options with letters, not numbers, so
+    the selectable options use letters too.
+    """
+    return [chr(ord("A") + i) for i in range(n)]
+
+
+# Every live Raven's item presents eight lettered options (A-H). Kept explicit
+# so that ``ravens_options`` is driven by an option count: an item with a
+# different number of options would still get the matching leading letters.
+RAVENS_NUM_OPTIONS = 8
 
 
 def ravens_options() -> list[str]:
-    return [str(i) for i in range(1, 9)]
+    return _letter_options(RAVENS_NUM_OPTIONS)
 
 # Multiple-choice option labels per task.
 TASK_OPTIONS = {
@@ -157,11 +173,15 @@ def build_ravens():
             continue  # not provided -> excluded from the live bank
         image = _copy_image(images[item], "ravens", item)
         options = list(TASK_OPTIONS["ravens"])
-        correct = str(int(r["Correct answer"]))
-        if correct not in options:
+        # The answer key stores the correct option as a 1-based number, but the
+        # images (and hence the options) are lettered, so map 1->A, 2->B, ...
+        correct_index = int(r["Correct answer"])
+        if not (1 <= correct_index <= len(options)):
             raise ValueError(
-                f"ravens {item}: correct answer {correct} not in options {options}"
+                f"ravens {item}: correct answer {correct_index} out of range "
+                f"for {len(options)} options {options}"
             )
+        correct = options[correct_index - 1]
         items[item] = dict(
             item_id=item, difficulty=block_to_diff[block], image=image,
             options=options, correct=correct,

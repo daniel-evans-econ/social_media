@@ -13,6 +13,12 @@
     .payoff-table tr.subtotal td { border-top: 1px solid #bbb; font-weight: 600; }
     .payoff-table tr.deduction td { color: #8a1c1c; }
     .payoff-table tr.grand td { border-top: 2px solid #333; font-size: 1.15em; font-weight: bold; color: darkred; }
+    .prolific-btn {
+        display: inline-block; margin-top: 8px; padding: 10px 22px;
+        background: darkred; color: #fff; font-weight: 600; font-size: 1em;
+        border: 1px solid darkred; border-radius: 8px; text-decoration: none;
+    }
+    .prolific-btn:hover { background: #a00000; color: #fff; }
 </style>
 
 <p style="margin-top:10px;">Here is how your bonus was earned:</p>
@@ -64,8 +70,15 @@
 {% endif %}
 
 <p style="margin-top:20px; color:#555; font-size:0.95em;">
-    If you correctly guessed your performance ranking within 10 percentage points in
-    periods 1 and 2, additional payments will be
-    forthcoming within a few days.
+    You will receive these performance-based bonus payments very soon.
 </p>
+<p style="margin-top:12px; color:#555; font-size:0.95em;">
+    Additionally, you may receive up to <strong>${{ guess_bonus_max_display }}</strong> depending on how
+    accurate your estimates of your IQ and percentile performance were. This may take some days to estimate.
+</p>
+
+<p style="margin-top:28px;">
+    You may now click the button below to return to Prolific.
+</p>
+<a class="prolific-btn" href="{{ prolific_url }}">Redirect to Prolific</a>
 {% endblock %}

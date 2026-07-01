@@ -49,23 +49,16 @@
     }
 </style>
 
-<h2 style="color:darkred; font-weight:bold;">Task instructions</h2>
+<h2 style="color:darkred; font-weight:bold;">Further instructions</h2>
 <br>
 <p>
-    You will answer a total of <strong style="color:darkred;">{{ total_questions }} questions</strong>
-    {% if has_optional_third %}across <strong style="color:darkred;">two periods</strong> (with a potential
-    <strong style="color:darkred;">third period</strong> that is strictly optional){% else %}across
-    <strong style="color:darkred;">three periods</strong>{% endif %}.
-    Your flat payment will be <strong style="color:darkred;">{{ flat_payment }}</strong> and you will be
-    paid <strong style="color:darkred;">{{ C.PAY_PER_CORRECT }}</strong> for each question you answer correctly.
-    You will have up to <strong style="color:darkred;">60 seconds</strong> to answer each question.
-</p>
-<p>
-    Each period will feature a different type of task. In each one, we ask questions
-    that test a different <strong style="color:darkred;">component of IQ</strong>.
-    One period tests the <strong style="color:darkred;">{{ period_components.0 }}</strong> component of IQ,
-    another the <strong style="color:darkred;">{{ period_components.1 }}</strong> component of IQ,
-    and the other the <strong style="color:darkred;">{{ period_components.2 }}</strong> component of IQ.
+    {% if receives_messages %}In some periods, you will
+    <strong style="color:darkred;">receive messages from other participants</strong>.
+    You will also have the chance to
+    <strong style="color:darkred;">send messages to other participants</strong> about how you did on the main task.
+    Not all other participants chose to send a message, and we did not verify the
+    truthfulness of what they wrote.{% else %}In some periods, you will have the chance to
+    <strong style="color:darkred;">send messages to other participants</strong> about how you did on the main task.{% endif %}
 </p>
 {% if show_iq %}
 <p>
@@ -74,17 +67,9 @@
 </p>
 {% endif %}
 <p>
-    At the end of each period, you will complete a handful of short tasks
-    and make some choices that affect your earnings. Answer each question carefully.
-</p>
-<p>
-    {% if receives_messages %}During this study, you will
-    <strong style="color:darkred;">receive messages from other participants</strong>.
-    You will also have the opportunity to
-    <strong style="color:darkred;">send messages of your own</strong>.
-    Not all other participants chose to send a message, and we did not verify the
-    truthfulness of what they wrote.{% else %}During this study, you will have the opportunity to
-    <strong style="color:darkred;">send messages</strong> to other participants.{% endif %}
+    After answering all of the questions in a given period,
+    you will complete a handful of short tasks and make some choices that affect your earnings.
+    Answer each question carefully.
 </p>
 <p style="background:#fff8e1; border-left:4px solid #d4a017; padding:10px 14px; margin-top:1em;">
     We <strong style="color:darkred;">prohibit the use of AI and search engines</strong>

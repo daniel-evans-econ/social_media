@@ -5,6 +5,8 @@
 <style>
     .form-group > label:empty { display: none; }
     .form-group { margin-top: 0; }
+    .exp-bullets { margin: 12px 0 16px 1.2em; line-height: 1.55; }
+    .exp-bullets li { margin-bottom: 8px; }
 </style>
 
 <h3 style="color:darkred; font-weight:bold;">Your experience</h3>
@@ -21,6 +23,18 @@
     satisfied you are with your own performance. This is perhaps similar to how you might
     compare your own life to other's lives on, e.g., Instagram.
 </p>
+
+{% if is_initial_pilot %}
+<p>
+    Thinking specifically about your experience during this study:
+</p>
+<ul class="exp-bullets">
+    <li>Did the act of sending messages feel social media-like?</li>
+    <li>Which aspects of real social media did this study capture or miss?</li>
+    <li>Did you change your behavior in response to learning or writing about your performance?</li>
+    <li>How did you choose what to write in your messages, and whether to send them?</li>
+</ul>
+{% else %}
 <p>
     Thinking specifically about
     <strong style="color:darkred;">the social feedback you received during this study</strong>
@@ -29,6 +43,7 @@
     did that feedback feel? What aspects of real social media does it capture
     or miss?
 </p>
+{% endif %}
 
 {{ formfield player.realism_feedback }}
 

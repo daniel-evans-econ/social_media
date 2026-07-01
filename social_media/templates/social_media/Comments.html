@@ -1,0 +1,42 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block content %}
+<style>
+    body { font-size: 1.1em; }
+    textarea {
+        width: 100%;
+        min-height: 180px;
+        padding: 10px;
+        font-family: inherit;
+        font-size: 1em;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        box-sizing: border-box;
+    }
+</style>
+
+<h2 style="color:darkred; font-weight:bold;">Comments</h2>
+<br>
+<p>
+    If you have any thoughts, feedback, or comments about this study, or if you
+    encountered any technical issues or bugs, please describe them below. Your
+    feedback helps us improve the experience for future participants.
+</p>
+<p>
+    <span style="color:darkred; font-weight:bold;">This field is optional.</span>
+    If you have nothing to add, you can leave it blank and proceed.
+</p>
+<br>
+
+<label for="id_comments" style="display:block; margin-bottom:10px; font-weight:bold;">
+    {{ form.comments.label }}
+</label>
+{{ form.comments }}
+{% if form.comments.errors %}
+    <div style="color:red; margin-top:10px;">{{ form.comments.errors }}</div>
+{% endif %}
+
+<br>
+{{ next_button }}
+{% endblock %}

@@ -16,13 +16,13 @@ from . import (
     round_spec, get_condition, stroop_question,
     is_feedback_round, is_third_period, third_period_played,
     is_end_of_period, is_end_of_period_with_p3,
-    BotCheck, Consent, IQReferencePoint, Intro, TaskIntro, QuestionPage, IQReadout,
+    BotCheck, Consent, IQReferencePoint, Intro, TaskIntro, QuestionPage, BlockFeedback, IQReadout,
     PerceivedPercentile, PerceivedPercentileConfidence, ColorTaskIntro,
     ColorTask1, ColorTask2, ColorTask3, ColorTask4, ColorTask5, ColorTask6,
     EndOfPeriodSurvey, WTACompare, Results,
     BigFiveSurvey, SelfEsteemSurvey, NarcissismSurvey, Demographics,
     SocialMediaUsage, RealismQuestion, SurveyReliabilityOverall,
-    FinalResults, ProlificCompletion,
+    Comments, FinalResults,
 )
 
 
@@ -46,22 +46,37 @@ class PlayerBot(Bot):
             yield Submission(Consent, dict(consent=True, llm_rule_confirm=True), check_html=False)
             if p.participant.vars.get('iq_reference_asked', False):
                 yield Submission(IQReferencePoint, dict(iq_reference_score=100), check_html=False)
+            else:
+                yield Submission(IQReferencePoint, dict(), check_html=False)
             yield Submission(Intro, dict(), check_html=False)
 
         plays_question = (not is_third_period(p)) or third_period_played(p)
 
         if p.round_number in (1, C.PERIOD_LENGTH + 1, C.THIRD_PERIOD_START) and plays_question:
+            p.participant.vars['task_intro_checked'] = True
             yield Submission(TaskIntro, dict(), check_html=False)
         if plays_question:
-            fields = dict(q_answer=_correct_answer(p), q_response_time=2.0)
+            # Exercise the timed-out feedback-round path on the first feedback
+            # round: leave the 5th question unanswered and let the 60s timer
+            # expire. BlockFeedback must still show afterwards (it is gated only
+            # on is_feedback_round, not on the answer being present).
+            if is_feedback_round(p) and p.round_number == 5:
+                yield Submission(QuestionPage, dict(), check_html=False, timeout_happened=True)
+            else:
+                yield Submission(
+                    QuestionPage,
+                    dict(q_answer=_correct_answer(p), q_response_time=2.0),
+                    check_html=False,
+                )
             if is_feedback_round(p):
                 cond = get_condition(p)
+                fb = {}
                 if cond == 'quantitative_social':
-                    fields.update(report_display_name='Bot', report_number=5, report_shared=True)
+                    fb.update(report_display_name='Bot', report_number=5, report_shared=True)
                 elif cond == 'qualitative_social':
-                    fields.update(report_display_name='Bot', report_emoji=QUAL_EMOJIS[0],
-                                  report_message='Felt good about that one.', report_shared=True)
-            yield Submission(QuestionPage, fields, check_html=False)
+                    fb.update(report_display_name='Bot', report_emoji=QUAL_EMOJIS[0],
+                              report_message='Felt good about that one.', report_shared=True)
+                yield Submission(BlockFeedback, fb, check_html=False)
 
         if CFG['show_iq'] and is_end_of_period_with_p3(p):
             yield Submission(IQReadout, dict(), check_html=False)
@@ -105,5 +120,5 @@ class PlayerBot(Bot):
                 realism_feedback='The social feedback felt fairly realistic to me overall, thanks.'
             ), check_html=False)
             yield Submission(SurveyReliabilityOverall, dict(survey_reliability=7), check_html=False)
+            yield Submission(Comments, dict(comments='Great study, no issues.'), check_html=False)
             yield Submission(FinalResults, dict(), check_html=False)
-            yield Submission(ProlificCompletion, dict(), check_html=False)

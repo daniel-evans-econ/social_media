@@ -3,20 +3,22 @@
 
 {% block content %}
 <style>
-    .slider-wrap { max-width: 640px; margin: 24px auto; }
+    .iq-block { max-width: 760px; margin: 0 auto; }
+    .dist-wrap { max-width: 760px; margin: 18px auto 0; }
+    .dist-wrap img { display: block; width: 100%; height: auto; }
+    .slider-wrap { max-width: 760px; margin: 0 auto 8px; }
     .slider-wrap input[type="range"] {
         width: 100%;
         cursor: pointer;
         display: none;
     }
     .slider-value {
-        min-width: 70px;
         text-align: center;
         font-size: 1.4em;
         font-weight: bold;
         color: darkred;
-        margin-bottom: 0.5em;
-        min-height: 1.6em;
+        margin-bottom: 0.4em;
+        min-height: 1.4em;
     }
     .track-placeholder {
         position: relative;
@@ -39,45 +41,97 @@
         justify-content: space-between;
         font-size: 0.85em;
         color: #666;
-        max-width: 640px;
-        margin: 8px auto 0 auto;
+        max-width: 760px;
+        margin: 0 auto;
     }
+    .pct-lines { max-width: 640px; margin: 6px auto 0; }
+    .pct-lines li { margin: 2px 0; }
 </style>
 
-<h3 style="color:darkred; font-weight:bold;">Before you begin</h3>
-<br>
+<div class="iq-block">
+    <h3 style="color:darkred; font-weight:bold;">Before you begin</h3>
+    <br>
 
-<p>
-    IQ tests produce
-    <strong style="color:darkred;">IQ scores</strong>, which are measures of intelligence
-    used by psychologists. IQ scores are measured on a scale where the average is
-    <strong style="color:darkred;">100</strong> and approximately 95% of people fall
-    between <strong style="color:darkred;">70</strong> and <strong style="color:darkred;">130</strong>.
-</p>
-<p>
-    If you were to take an <strong style="color:darkred;">IQ test</strong>,
-    what score do you think <strong style="color:darkred;">you would get</strong>?
-    Move the slider to the score you think you would get.
-</p>
+    <p>
+        In this study, you will answer a total of <strong style="color:darkred;">45 questions</strong>.
+        You will be paid <strong style="color:darkred;">$8</strong> for participating and can earn
+        <strong style="color:darkred;">$0.25</strong> for each question you answer correctly.
+        You will have up to <strong style="color:darkred;">60 seconds</strong> to answer each question.
+    </p>
+    <p>
+        The questions will appear across <strong style="color:darkred;">three periods</strong>.
+        Each period will feature a different type of task, and each task type tests
+        a <strong style="color:darkred;">distinct component of your IQ</strong>.
+    </p>
 
+    <p style="margin-top:16px;">
+        In the first period, we test the <strong style="color:darkred;">{{ period_components.0 }}</strong> component of your IQ.
+        In the second and third periods, we test the <strong style="color:darkred;">{{ period_components.1 }}</strong>
+        and <strong style="color:darkred;">{{ period_components.2 }}</strong> components of your IQ, respectively.
+    </p>
+
+    <p style="margin-top:16px;">
+        Your responses to these questions can be used to calculate IQ scores.
+        An IQ score is a measure of intelligence used by psychologists.
+        To give you a sense of the scale of IQ scores:
+    </p>
+    <ul class="pct-lines">
+        <li>The <strong style="color:darkred;">top 2%</strong> of people score <strong>{{ iq_scale.top_2 }}</strong> or higher.</li>
+        <li>The <strong style="color:darkred;">top 16%</strong> score <strong>{{ iq_scale.top_16 }}</strong> or higher.</li>
+        <li><strong style="color:darkred;">50%</strong> of people score higher than <strong>{{ iq_scale.median }}</strong>, and <strong>50%</strong> score lower.</li>
+        <li>The <strong style="color:darkred;">bottom 16%</strong> score <strong>{{ iq_scale.bottom_16 }}</strong> or lower.</li>
+        <li>The <strong style="color:darkred;">bottom 2%</strong> score <strong>{{ iq_scale.bottom_2 }}</strong> or lower.</li>
+    </ul>
+
+    {% if show_iq %}
+    <p style="margin-top:16px;">
+        We will calculate your IQ score by finding your place in the distribution
+        compared to <strong style="color:darkred;">100 other Prolific workers</strong>
+        who participated in this experiment.
+    </p>
+    {% endif %}
+</div>
+
+<div class="dist-wrap">
+    <img src="{% static 'images/iq_distribution.png' %}" alt="Distribution of IQ scores">
+</div>
+
+{% if iq_reference_asked %}
 <div class="slider-wrap">
     <div class="slider-value" id="slider-value"></div>
     <div class="track-placeholder" id="percentile-track-placeholder">
         <div class="track-line"></div>
     </div>
-    <input type="range" id="percentile-slider" min="50" max="150" step="1" value="100">
+    <input type="range" id="percentile-slider" min="60" max="140" step="1" value="100">
     <div class="scale-marks">
-        <span>50</span>
+        <span>60</span>
         <span>100 (average)</span>
-        <span>150</span>
+        <span>140</span>
     </div>
     <input type="hidden" name="iq_reference_score" id="iq_reference_score" value="">
 </div>
 
+<div class="iq-block">
+    <p style="margin-top:16px;">
+        Imagine that after the survey, we calculate your average IQ score across
+        the three components, compared to about
+        <strong style="color:darkred;">100 other Prolific workers</strong>.
+        Where do you think <strong style="color:darkred;">you would fall</strong>?
+        Answer on the slider above.
+    </p>
+    <p>
+        You will receive <strong style="color:darkred;">$0.50</strong> if your guess is within
+        10 points of our estimate.
+    </p>
+</div>
+{% endif %}
+
 {{ next_button }}
 
+{% if iq_reference_asked %}
 <script>
 (function () {
+    var MIN = 60, MAX = 140, RANGE = MAX - MIN;
     var placeholder = document.getElementById('percentile-track-placeholder');
     var slider = document.getElementById('percentile-slider');
     var display = document.getElementById('slider-value');
@@ -91,7 +145,7 @@
     placeholder.addEventListener('click', function (e) {
         var rect = placeholder.getBoundingClientRect();
         var pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-        var val = Math.round(50 + pct * 100);
+        var val = Math.round(MIN + pct * RANGE);
         slider.value = String(val);
         updateDisplay(val);
         placeholder.style.display = 'none';
@@ -103,4 +157,5 @@
     });
 })();
 </script>
+{% endif %}
 {% endblock %}
