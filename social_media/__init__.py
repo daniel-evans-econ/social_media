@@ -541,6 +541,9 @@ class Player(BasePlayer):
     report_message = models.StringField(blank=True, max_length=140)
     report_shared = models.BooleanField(initial=False, blank=True)
     report_display_name = models.StringField(blank=True, max_length=60)
+    # Compose-step audit trail (social feedback sidebars): prior drafts, edit-back clicks.
+    report_edit_back_count = models.IntegerField(initial=0, blank=True)
+    report_compose_history = models.LongStringField(blank=True)
     # Username chosen once on the Further-instructions page (round 1) and reused
     # for every message the participant composes in the feedback sidebars.
     display_name = models.StringField(blank=True, max_length=60, label="")
@@ -1608,6 +1611,8 @@ class BlockFeedback(Page):
         'report_emoji',
         'report_message',
         'report_shared',
+        'report_edit_back_count',
+        'report_compose_history',
     ]
 
     @staticmethod
@@ -1711,6 +1716,8 @@ class BlockFeedback(Page):
             player.report_emoji = None
             player.report_message = None
             player.report_display_name = None
+            player.report_edit_back_count = 0
+            player.report_compose_history = ''
         player.feedback_snapshot = json.dumps(dict(
             round=player.round_number,
             condition=cond,
@@ -1723,6 +1730,8 @@ class BlockFeedback(Page):
             sent_message=player.field_maybe_none('report_message'),
             shared=player.field_maybe_none('report_shared'),
             sent_display_name=player.field_maybe_none('report_display_name'),
+            edit_back_count=player.field_maybe_none('report_edit_back_count') or 0,
+            compose_history=player.field_maybe_none('report_compose_history') or '',
         ))
         if signal.get('type') == 'quantitative':
             player.received_signal_name = signal.get('name') or ''
@@ -1746,6 +1755,8 @@ class IQFeedback(Page):
         'report_emoji',
         'report_message',
         'report_shared',
+        'report_edit_back_count',
+        'report_compose_history',
     ]
 
     @staticmethod
@@ -1850,6 +1861,8 @@ class IQFeedback(Page):
             player.report_emoji = None
             player.report_message = None
             player.report_display_name = None
+            player.report_edit_back_count = 0
+            player.report_compose_history = ''
         player.feedback_snapshot = json.dumps(dict(
             round=player.round_number,
             condition=cond,
@@ -1864,6 +1877,8 @@ class IQFeedback(Page):
             sent_message=player.field_maybe_none('report_message'),
             shared=player.field_maybe_none('report_shared'),
             sent_display_name=player.field_maybe_none('report_display_name'),
+            edit_back_count=player.field_maybe_none('report_edit_back_count') or 0,
+            compose_history=player.field_maybe_none('report_compose_history') or '',
         ))
         if signal.get('type') == 'quantitative':
             player.received_signal_name = signal.get('name') or ''
