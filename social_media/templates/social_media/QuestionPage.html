@@ -40,6 +40,11 @@
     }
     .wm-cell.on { background: darkred; border-color: darkred; }
     .wm-hint { color: #666; font-size: 0.9em; text-align: center; }
+    .q-next-wrap.locked .otree-btn-next {
+        opacity: 0.45;
+        pointer-events: none;
+        cursor: not-allowed;
+    }
 </style>
 
 <script>
@@ -145,7 +150,7 @@
 
     <input type="hidden" name="q_response_time" id="q-response-time" value="">
 
-    <div style="margin-top:20px;">
+    <div style="margin-top:20px;" id="q-next-wrap"{% if response_type == 'count' %} class="q-next-wrap locked"{% endif %}>
         {{ next_button }}
     </div>
 </div>
@@ -160,18 +165,43 @@
     if (!answerWrap) return;  // not a count question
     var stimulus = document.getElementById('wm-stimulus');
     var getReady = document.getElementById('wm-getready');
+    var answerInput = document.getElementById('q-answer');
+    var nextWrap = document.getElementById('q-next-wrap');
+    var nextBtn = nextWrap ? nextWrap.querySelector('.otree-btn-next, button[type="submit"]') : null;
     var flashMs = {{ wm_stimulus_ms }};
     // Buffer before the grid appears: the 1.7s viewing window does not begin
     // until 3 seconds after the page loads (a "Get ready…" countdown shows).
     var BUFFER_MS = 3000;
     var pageStart = (performance && performance.now) ? performance.now() : Date.now();
 
+    function hasAnswer() {
+        return answerInput && String(answerInput.value || '').trim() !== '';
+    }
+    function updateNext() {
+        if (!nextWrap) return;
+        var ok = hasAnswer();
+        nextWrap.classList.toggle('locked', !ok);
+        if (nextBtn) nextBtn.disabled = !ok;
+    }
+
+    updateNext();
+    if (answerInput) answerInput.addEventListener('input', updateNext);
+    var wmForm = document.querySelector('form');
+    if (wmForm) {
+        wmForm.addEventListener('submit', function (e) {
+            if (!hasAnswer()) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+            }
+        }, true);
+    }
+
     function revealAnswer() {
         if (stimulus) stimulus.style.display = 'none';
         if (getReady) getReady.style.display = 'none';
         answerWrap.style.display = 'block';
-        var input = document.getElementById('q-answer');
-        if (input) input.focus();
+        if (answerInput) answerInput.focus();
+        updateNext();
     }
 
     // Already shown on a re-render (no stimulus rendered): input is visible.
