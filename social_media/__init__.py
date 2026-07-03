@@ -134,10 +134,10 @@ TASK_IQ_COMPONENT = {
 }
 
 IQ_COMPONENT_LABELS = {
-    "spatial": "spatial",
-    "fluid": "fluid",
+    "spatial": "spatial reasoning",
+    "fluid": "abstract reasoning",
     "working_memory": "working memory",
-    "numerical": "numerical",
+    "numerical": "numerical reasoning",
 }
 
 # Human-readable task names, named after the IQ construct each one targets (used
@@ -535,10 +535,15 @@ class Player(BasePlayer):
     # ---- Per-block report a participant might send to another participant ----
     # report_number stores the number-correct (0-5) the participant chooses to report.
     report_number = models.IntegerField(min=0, max=5, blank=True)
+    # report_iq stores the reported IQ score (quantitative_social IQ feedback).
+    report_iq = models.IntegerField(min=40, max=160, blank=True, label="")
     report_emoji = models.StringField(blank=True)
     report_message = models.StringField(blank=True, max_length=140)
     report_shared = models.BooleanField(initial=False, blank=True)
     report_display_name = models.StringField(blank=True, max_length=60)
+    # Username chosen once on the Further-instructions page (round 1) and reused
+    # for every message the participant composes in the feedback sidebars.
+    display_name = models.StringField(blank=True, max_length=60, label="")
     received_signal_name = models.StringField(blank=True)
     received_signal_value = models.StringField(blank=True)
 
@@ -560,6 +565,7 @@ class Player(BasePlayer):
     big5_8 = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True, label="")
     big5_9 = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True, label="")
     big5_10 = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True, label="")
+    self_knowledge = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True, label="")
     big5_accuracy = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True, label="")
 
     # ---- NPI-8: Narcissistic Personality Inventory (Schmalbach et al., 2020) ----
@@ -737,7 +743,7 @@ class Player(BasePlayer):
 
     # ---- Final free-text comments (optional) ----
     comments = models.LongStringField(
-        label="Do you have any thoughts or comments about this study that you would like to share with us?",
+        label="Do you have any additional thoughts or comments about this study that you would like to share with us?",
         blank=True,
     )
 
@@ -1029,6 +1035,37 @@ def pilot_feedback_signals(player: Player):
     return dict(type='qualitative', name=name, emoji=emoji, sentence=sentence)
 
 
+def pilot_iq_feedback_signal(player: Player):
+    """One simulated peer IQ message for the end-of-period IQ feedback sidebar.
+
+    Real period-level peer IQ data does not exist in the message pools, so we
+    generate a stable (seeded by session + participant + round) simulated peer
+    message per social condition.
+    """
+    cond = get_condition(player)
+    if cond not in ('quantitative_social', 'qualitative_social'):
+        return dict(type='control', name=None)
+    if CFG['received_message_source'] is None:
+        return dict(type='none', name=None)
+
+    component = component_for_player(player)
+    label = iq_component_label(component)
+    rng = random.Random(
+        f"{player.session.code}-{player.participant.code}-{player.round_number}-recviq"
+    )
+    name = rng.choice(PILOT_NAMES)
+
+    if cond == 'quantitative_social':
+        peer_score = rng.randint(0, C.PERIOD_LENGTH)
+        peer_iq = estimate_iq(component, peer_score, C.PERIOD_LENGTH)
+        peer_iq = max(55, min(145, peer_iq))
+        return dict(type='quantitative', name=name, iq=peer_iq, label=label)
+
+    emoji = rng.choice(QUAL_EMOJIS)
+    sentence = rng.choice(PILOT_QUAL_TEXT_BY_EMOJI[emoji])
+    return dict(type='qualitative', name=name, emoji=emoji, sentence=sentence)
+
+
 def experienced_conditions(player: Player):
     p1 = player.participant.period_1_condition
     p2 = player.participant.period_2_condition
@@ -1111,6 +1148,7 @@ BFI_PROMPTS = {
     'big5_8': "\u2026does a thorough job.",
     'big5_9': "\u2026gets nervous easily.",
     'big5_10': "\u2026has an active imagination.",
+    'self_knowledge': "\u2026knows himself/herself well.",
     'competitiveness': "\u2026enjoys competing with others.",
     'big5_accuracy': "\u2026is sure that my answers to these questions describe me accurately.",
 }
@@ -1141,6 +1179,7 @@ class BigFiveSurvey(Page):
     form_fields = [
         'big5_1', 'big5_2', 'big5_3', 'big5_4', 'big5_5',
         'big5_6', 'big5_7', 'big5_8', 'big5_9', 'big5_10',
+        'self_knowledge',
         'big5_accuracy',
         'competitiveness',
     ]
@@ -1167,6 +1206,7 @@ class BigFiveSurvey(Page):
         fields = [
             'big5_1', 'big5_2', 'big5_3', 'big5_4', 'big5_5',
             'big5_6', 'big5_7', 'big5_8', 'big5_9', 'big5_10',
+            'self_knowledge',
             'big5_accuracy',
             'competitiveness',
         ]
@@ -1341,6 +1381,9 @@ class IQReferencePoint(Page):
 
 
 class Intro(Page):
+    form_model = 'player'
+    form_fields = ['display_name']
+
     @staticmethod
     def is_displayed(player: Player):
         return player.round_number == 1
@@ -1357,6 +1400,17 @@ class Intro(Page):
             period_components=period_components,
             flat_payment=FLAT_PAYMENT_DISPLAY,
         )
+
+    @staticmethod
+    def error_message(player: Player, values):
+        if not (values.get('display_name') or '').strip():
+            return "Please enter the username you want to use."
+
+    @staticmethod
+    def before_next_page(player: Player, timeout_happened):
+        name = (player.field_maybe_none('display_name') or '').strip()
+        player.display_name = name
+        player.participant.vars['display_name'] = name
 
 
 class TaskIntro(Page):
@@ -1554,13 +1608,21 @@ class BlockFeedback(Page):
         'report_emoji',
         'report_message',
         'report_shared',
-        'report_display_name',
     ]
 
     @staticmethod
     def is_displayed(player: Player):
         if is_third_period(player) and not third_period_played(player):
             return False
+        if CFG['show_iq']:
+            # In IQ/Main pilots, end-of-period feedback rounds (15/30/45) show
+            # only the IQ sidebar (IQFeedback); BlockFeedback covers mid-period
+            # feedback rounds only.
+            return (
+                is_feedback_round(player)
+                and player.round_number not in C.END_OF_PERIOD_ROUNDS
+                and player.round_number != C.NUM_ROUNDS
+            )
         return is_feedback_round(player)
 
     @staticmethod
@@ -1579,6 +1641,7 @@ class BlockFeedback(Page):
             condition=cond,
             block_score=block_correct(player),
             report_options=list(range(6)),
+            display_name=player.participant.vars.get('display_name', ''),
             signal=signal,
             signal_initial=signal_initial,
             qual_emojis=QUAL_EMOJIS,
@@ -1612,8 +1675,6 @@ class BlockFeedback(Page):
         cond = get_condition(player)
         if cond not in ('quantitative_social', 'qualitative_social'):
             return
-        if not (values.get('report_display_name') or '').strip():
-            return "Please enter the name you want to use."
         if cond == 'quantitative_social':
             rn = values.get('report_number')
             if rn is None or rn == '':
@@ -1631,28 +1692,25 @@ class BlockFeedback(Page):
     def before_next_page(player: Player, timeout_happened):
         spec = round_spec(player)
 
-        # Canary: if no display name was composed, the participant never filled
-        # in a report, so blank out report fields rather than store 0/defaults.
-        composed_name = (player.field_maybe_none('report_display_name') or '').strip()
-        if not composed_name:
+        cond = get_condition(player)
+        signal = pilot_feedback_signals(player)
+        username = (player.participant.vars.get('display_name') or '').strip()
+        if cond in ('quantitative_social', 'qualitative_social'):
+            # Name comes from the username chosen on the Further-instructions page.
+            player.report_display_name = username
+            if cond == 'quantitative_social':
+                n = player.field_maybe_none('report_number')
+                if n is not None:
+                    construct = TASK_CONSTRUCT.get(spec['task'], 'these')
+                    player.report_message = (
+                        f"I got {n} out of 5 {construct} questions in this block correct."
+                    )
+        else:
+            # Control: no message composed; keep report fields blank.
             player.report_number = None
             player.report_emoji = None
             player.report_message = None
             player.report_display_name = None
-
-        cond = get_condition(player)
-        signal = pilot_feedback_signals(player)
-        if cond == 'quantitative_social':
-            n = player.field_maybe_none('report_number')
-            if n is not None:
-                construct = TASK_CONSTRUCT.get(spec['task'], 'these')
-                player.report_message = (
-                    f"I got {n} out of 5 {construct} questions in this block correct."
-                )
-        if cond in ('quantitative_social', 'qualitative_social'):
-            player.report_display_name = (
-                (player.field_maybe_none('report_display_name') or '').strip()
-            )
         player.feedback_snapshot = json.dumps(dict(
             round=player.round_number,
             condition=cond,
@@ -1674,8 +1732,21 @@ class BlockFeedback(Page):
             player.received_signal_value = signal.get('emoji') or ''
 
 
-class IQReadout(Page):
-    """Per-period IQ estimate, shown after each block of 15 in the IQ/Main pilots."""
+class IQFeedback(Page):
+    """End-of-period IQ feedback popup (IQ / Main pilots), mirroring the
+    BlockFeedback sidebar look. The estimated IQ score is the hero; in social
+    conditions the participant composes an IQ-based message (after seeing our
+    estimate) and receives a simulated peer IQ message.
+
+    Like BlockFeedback, this page has no timer and is refresh-proof.
+    """
+    form_model = 'player'
+    form_fields = [
+        'report_iq',
+        'report_emoji',
+        'report_message',
+        'report_shared',
+    ]
 
     @staticmethod
     def is_displayed(player: Player):
@@ -1683,17 +1754,123 @@ class IQReadout(Page):
 
     @staticmethod
     def vars_for_template(player: Player):
-        period, _ = _period_index_and_qnum(player.round_number)
+        spec = round_spec(player)
+        task = spec['task']
+        item = QD.QUESTIONS[task][spec['item_id']]
+        period, q_in_period = _period_index_and_qnum(player.round_number)
+        response_type = QD.TASK_RESPONSE[task]
+        prior_answer = str(player.field_maybe_none('q_answer') or '')
+        cond = get_condition(player)
+
         component = component_for_player(player)
-        score = period_correct(player)
-        iq = estimate_iq(component, score, C.PERIOD_LENGTH)
+        label = iq_component_label(component)
+        n_correct = period_correct(player)
+        iq = estimate_iq(component, n_correct, C.PERIOD_LENGTH)
         player.iq_estimate = iq
+
+        signal = pilot_iq_feedback_signal(player)
+        signal_name = (signal.get('name') or '') if isinstance(signal, dict) else ''
+        signal_initial = signal_name[:1].upper() if signal_name else '?'
         return dict(
-            period=period,
+            condition=cond,
             component=component,
-            component_label=iq_component_label(component),
+            label=label,
+            n_correct=n_correct,
             iq=iq,
+            display_name=player.participant.vars.get('display_name', ''),
+            signal=signal,
+            signal_initial=signal_initial,
+            qual_emojis=QUAL_EMOJIS,
+            in_treatment=cond in ('quantitative_social', 'qualitative_social'),
+            is_quantitative=cond == 'quantitative_social',
+            is_qualitative=cond == 'qualitative_social',
+            has_received_message=isinstance(signal, dict) and signal.get('type') in ('quantitative', 'qualitative'),
+            task_construct=TASK_CONSTRUCT.get(task, "task"),
+            # Read-only backdrop: re-render the just-completed question.
+            period=period,
+            question_in_period=q_in_period,
+            task=task,
+            response_type=response_type,
+            question_prompt=TASK_PROMPT.get(task, ''),
+            big_image=task in ('ravens', 'sequences'),
+            item=item,
+            image=item.get('image'),
+            is_placeholder=item.get('is_placeholder', False),
+            prior_answer=prior_answer,
+            option_rows=[
+                dict(value=o, selected=(str(o) == prior_answer))
+                for o in item.get('options', [])
+            ],
         )
+
+    @staticmethod
+    def error_message(player: Player, values):
+        cond = get_condition(player)
+        if cond not in ('quantitative_social', 'qualitative_social'):
+            return
+        if cond == 'quantitative_social':
+            v = values.get('report_iq')
+            if v is None or v == '':
+                return "Please enter your IQ score."
+            if v < 40 or v > 160:
+                return "Please enter an IQ score between 40 and 160."
+            return
+        msg = (values.get('report_message') or '').strip()
+        if not msg:
+            return "Please add a short note before continuing."
+        if len(msg) < 5:
+            return "Please write at least 5 characters in your note."
+        if not values.get('report_emoji'):
+            return "Please indicate how your IQ result felt."
+
+    @staticmethod
+    def before_next_page(player: Player, timeout_happened):
+        spec = round_spec(player)
+        component = component_for_player(player)
+        label = iq_component_label(component)
+        n_correct = period_correct(player)
+        iq = player.field_maybe_none('iq_estimate')
+        if iq is None:
+            iq = estimate_iq(component, n_correct, C.PERIOD_LENGTH)
+            player.iq_estimate = iq
+
+        cond = get_condition(player)
+        signal = pilot_iq_feedback_signal(player)
+        username = (player.participant.vars.get('display_name') or '').strip()
+        if cond in ('quantitative_social', 'qualitative_social'):
+            # Name comes from the username chosen on the Further-instructions page.
+            player.report_display_name = username
+            if cond == 'quantitative_social':
+                n = player.field_maybe_none('report_iq')
+                if n is not None:
+                    player.report_message = f"My {label} IQ score is {n}."
+        else:
+            # Control: no message composed; keep report fields blank.
+            player.report_iq = None
+            player.report_emoji = None
+            player.report_message = None
+            player.report_display_name = None
+        player.feedback_snapshot = json.dumps(dict(
+            round=player.round_number,
+            condition=cond,
+            task=spec['task'],
+            set_id=spec['set_id'],
+            component=component,
+            iq=iq,
+            n_correct=n_correct,
+            signal=signal,
+            sent_iq=player.field_maybe_none('report_iq'),
+            sent_emoji=player.field_maybe_none('report_emoji'),
+            sent_message=player.field_maybe_none('report_message'),
+            shared=player.field_maybe_none('report_shared'),
+            sent_display_name=player.field_maybe_none('report_display_name'),
+        ))
+        if signal.get('type') == 'quantitative':
+            player.received_signal_name = signal.get('name') or ''
+            player.received_signal_value = str(signal.get('iq'))
+        elif signal.get('type') == 'qualitative':
+            player.received_signal_name = signal.get('name') or ''
+            player.received_signal_value = signal.get('emoji') or ''
 
 
 class PerceivedPercentile(Page):
@@ -2286,7 +2463,7 @@ page_sequence = [
     TaskIntro,
     QuestionPage,
     BlockFeedback,
-    IQReadout,
+    IQFeedback,
     PerceivedPercentile,
     PerceivedPercentileConfidence,
     ColorTaskIntro,

@@ -17,12 +17,14 @@
     }
 
     /* ---------- Multiple-choice options ---------- */
-    .q-options { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 10px; }
+    .q-options { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 12px; }
     .q-options label {
-        cursor: pointer; padding: 10px 18px; border: 2px solid #d0d0d0;
-        border-radius: 8px; background: #fff; min-width: 46px; text-align: center;
-        font-weight: 600;
+        cursor: pointer; padding: 15px 27px; border: 2px solid #d0d0d0;
+        border-radius: 8px; background: #fff; min-width: 69px; text-align: center;
+        font-weight: 600; font-size: 1.25em;
     }
+    /* Question prompt (e.g. "Which number completes the sequence?") */
+    .q-prompt { text-align: center; font-weight: 600; margin-bottom: 12px; font-size: 1.25em; }
     .q-options input[type="radio"] { display: none; }
     .q-options label:has(input[type="radio"]:checked) {
         border-color: darkred; background: #fdecec; color: darkred;
@@ -102,6 +104,9 @@
     {% if response_type == 'count' %}
         {% if not already_shown %}
         <div class="wm-stimulus-wrap">
+            <div id="wm-getready" style="font-size:1.6em; font-weight:600; color:#666; margin:24px 0;">
+                Get ready&hellip;
+            </div>
             {% if image %}
             <img id="wm-stimulus" class="q-image" src="{% static image %}" alt="Pattern to memorize" style="display:none;">
             {% endif %}
@@ -109,12 +114,12 @@
         {% endif %}
 
         <div id="wm-answer-wrap" style="text-align:center; margin-top:16px; {% if not already_shown %}display:none;{% endif %}">
-            <label for="q-answer" style="display:block; margin-bottom:8px; font-weight:600;">
+            <label for="q-answer" class="q-prompt" style="display:block;">
                 {{ question_prompt }}
             </label>
             <input type="number" name="q_answer" id="q-answer" min="0" step="1"
                    value="{{ prior_answer }}"
-                   style="width:120px; padding:8px; font-size:1.15em; text-align:center; border:2px solid #d0d0d0; border-radius:8px;">
+                   style="width:140px; padding:10px; font-size:1.25em; text-align:center; border:2px solid #d0d0d0; border-radius:8px;">
         </div>
     {% else %}
         <div style="text-align:center; margin: 20px 0;">
@@ -127,7 +132,7 @@
             {% endif %}
         </div>
         {% if question_prompt %}
-        <p style="text-align:center; font-weight:600; margin-bottom:10px;">{{ question_prompt }}</p>
+        <p class="q-prompt">{{ question_prompt }}</p>
         {% endif %}
         <div class="q-options">
             {% for opt in options %}
@@ -154,10 +159,16 @@
     var answerWrap = document.getElementById('wm-answer-wrap');
     if (!answerWrap) return;  // not a count question
     var stimulus = document.getElementById('wm-stimulus');
+    var getReady = document.getElementById('wm-getready');
     var flashMs = {{ wm_stimulus_ms }};
+    // Buffer before the grid appears: the 1.7s viewing window does not begin
+    // until 3 seconds after the page loads (a "Get ready…" countdown shows).
+    var BUFFER_MS = 3000;
+    var pageStart = (performance && performance.now) ? performance.now() : Date.now();
 
     function revealAnswer() {
         if (stimulus) stimulus.style.display = 'none';
+        if (getReady) getReady.style.display = 'none';
         answerWrap.style.display = 'block';
         var input = document.getElementById('q-answer');
         if (input) input.focus();
@@ -176,15 +187,21 @@
         }
         if (attempts < 50) setTimeout(function () { markShown(attempts + 1); }, 100);
     }
-    function startFlash() {
+    function doFlash() {
+        if (getReady) getReady.style.display = 'none';
         stimulus.style.display = 'inline-block';
         markShown();
         setTimeout(revealAnswer, flashMs);
     }
+    function scheduleFlash() {
+        var now = (performance && performance.now) ? performance.now() : Date.now();
+        var wait = Math.max(0, BUFFER_MS - (now - pageStart));
+        setTimeout(doFlash, wait);
+    }
     if (stimulus.complete && stimulus.naturalWidth > 0) {
-        startFlash();
+        scheduleFlash();
     } else {
-        stimulus.addEventListener('load', startFlash);
+        stimulus.addEventListener('load', scheduleFlash);
         stimulus.addEventListener('error', function () { markShown(); revealAnswer(); });
     }
 })();

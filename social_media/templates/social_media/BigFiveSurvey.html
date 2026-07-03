@@ -54,6 +54,7 @@
             {% if row.field == 'big5_8' %}{% for choice in form.big5_8 %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
             {% if row.field == 'big5_9' %}{% for choice in form.big5_9 %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
             {% if row.field == 'big5_10' %}{% for choice in form.big5_10 %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'self_knowledge' %}{% for choice in form.self_knowledge %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
             {% if row.field == 'competitiveness' %}{% for choice in form.competitiveness %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
             {% if row.field == 'big5_accuracy' %}{% for choice in form.big5_accuracy %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
         </tr>
@@ -75,7 +76,7 @@
     var FIELD_NAMES = [
         'big5_1', 'big5_2', 'big5_3', 'big5_4', 'big5_5',
         'big5_6', 'big5_7', 'big5_8', 'big5_9', 'big5_10',
-        'big5_accuracy', 'competitiveness',
+        'self_knowledge', 'big5_accuracy', 'competitiveness',
     ];
 
     function loadStored() {

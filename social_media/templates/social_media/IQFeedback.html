@@ -119,20 +119,20 @@
     </div>
 </div>
 
-<!-- ================= Popup sidebar (the real BlockFeedback form) ================= -->
+<!-- ================= Popup sidebar (the real IQFeedback form) ================= -->
 <div class="fb-overlay" id="fb-overlay"></div>
 
-<aside class="fb-sidebar" id="fb-sidebar" aria-label="Performance summary">
+<aside class="fb-sidebar" id="fb-sidebar" aria-label="IQ estimate">
     <div class="fb-header">
         <div class="fb-app-icon">SM</div>
-        <div class="fb-title">Performance summary</div>
+        <div class="fb-title">Your IQ estimate</div>
     </div>
 
     <div class="fb-body">
         <input type="hidden" id="fb-display-name" value="{{ display_name }}">
         <div class="fb-score">
-            You got <strong style="color:darkred;">{{ block_score }} out of 5</strong>
-            correct in the last block.
+            Your estimated score on the <strong style="color:darkred;">{{ label }}</strong> component of <strong style="color:darkred;">IQ</strong> is
+            <strong style="color:darkred;">{{ iq }}</strong>.
         </div>
 
         <div id="fb-error" role="alert"
@@ -142,8 +142,8 @@
         {% if in_treatment %}
             {% if has_received_message %}
             <p style="font-size:0.92em; color:#444; margin: 0 0 12px 0;">
-                Here is a message from a participant who answered the
-                <strong style="color:darkred;">same 5 questions that you did</strong>.
+                Here is a message from a participant who completed the
+                <strong style="color:darkred;">same {{ task_construct }} IQ task</strong>.
             </p>
             <div class="fb-post">
                 <div class="fb-post-head">
@@ -152,7 +152,7 @@
                 </div>
                 <div class="fb-post-body">
                     {% if is_quantitative %}
-                        I got {{ signal.number }} out of 5 correct.
+                        My {{ label }} <strong style="color:darkred;">IQ</strong> score is {{ signal.iq }}.
                     {% else %}
                         <span style="font-size:1.6em;">{{ signal.emoji }}</span>
                         <div class="fb-post-quote">&ldquo;{{ signal.sentence }}&rdquo;</div>
@@ -169,16 +169,15 @@
 
                     {% if is_quantitative %}
                         <p style="margin:8px 0; font-size:1em;">
-                            I got
-                            <input type="number" name="report_number" id="id_report_number"
-                                   min="0" max="5" step="1"
-                                   style="width:60px; padding:6px; text-align:center;
-                                          border:1px solid #b9d4ff; border-radius:6px;">
-                            out of 5 {{ task_construct }} questions in this block correct.
+                            My {{ label }} <strong style="color:darkred;">IQ</strong> score is
+                            <input type="number" name="report_iq" id="id_report_iq"
+                                   min="40" max="160" step="1"
+                                   style="width:74px; padding:6px; text-align:center;
+                                          border:1px solid #b9d4ff; border-radius:6px;">.
                         </p>
                         <input type="hidden" name="report_message" id="id_report_message" value="">
                     {% else %}
-                        <div style="font-size:0.9em;">How did the last 5 questions go?</div>
+                        <div style="font-size:0.9em;">How did your <strong style="color:darkred;">IQ</strong> result feel?</div>
                         <div class="fb-row fb-emoji">
                             {% for e in qual_emojis %}
                                 <label>
@@ -289,7 +288,7 @@
 
 <script>
 (function () {
-    var TASK_CONSTRUCT = "{{ task_construct }}";
+    var LABEL = "{{ label }}";
     var _dnEl = document.getElementById('fb-display-name');
     var DISPLAY_NAME = _dnEl ? String(_dnEl.value || '').trim() : '';
     var sidebar = document.getElementById('fb-sidebar');
@@ -331,15 +330,15 @@
 
     function composeStepComplete() {
         clearError();
-        var numEl = document.getElementById('id_report_number');
-        if (numEl) {  // quantitative: free 0-5 number entry
-            var raw = String(numEl.value).trim();
-            if (raw === '') { showError('Please type how many out of 5 you got correct.'); return false; }
+        var iqEl = document.getElementById('id_report_iq');
+        if (iqEl) {  // quantitative: free IQ number entry
+            var raw = String(iqEl.value).trim();
+            if (raw === '') { showError('Please enter your IQ score.'); return false; }
             var n = parseInt(raw, 10);
-            if (isNaN(n) || n < 0 || n > 5) { showError('Please enter a number from 0 to 5.'); return false; }
+            if (isNaN(n) || n < 40 || n > 160) { showError('Please enter an IQ score between 40 and 160.'); return false; }
             var hiddenMsg = document.getElementById('id_report_message');
             if (hiddenMsg && hiddenMsg.tagName === 'INPUT') {
-                hiddenMsg.value = 'I got ' + n + ' out of 5 ' + TASK_CONSTRUCT + ' questions in this block correct.';
+                hiddenMsg.value = 'My ' + LABEL + ' IQ score is ' + n + '.';
             }
             return true;
         }
@@ -349,7 +348,7 @@
         if (msg.length < 5) { showError('Please write at least 5 characters in your note.'); return false; }
         var emoChecked = document.querySelector('input[name="report_emoji"]:checked');
         if (document.querySelectorAll('input[name="report_emoji"]').length && !emoChecked) {
-            showError('Please indicate how the last 5 questions went.'); return false;
+            showError('Please indicate how your IQ result felt.'); return false;
         }
         return true;
     }
@@ -362,11 +361,11 @@
         return DISPLAY_NAME || '';
     }
     function currentMessage() {
-        var numEl = document.getElementById('id_report_number');
-        if (numEl) {  // quantitative: derived from the free 0-5 number
-            var raw = String(numEl.value).trim();
+        var iqEl = document.getElementById('id_report_iq');
+        if (iqEl) {  // quantitative: derived from the free IQ number
+            var raw = String(iqEl.value).trim();
             if (raw === '') return '';
-            return 'I got ' + raw + ' out of 5 ' + TASK_CONSTRUCT + ' questions in this block correct.';
+            return 'My ' + LABEL + ' IQ score is ' + raw + '.';
         }
         var msgEl = document.getElementById('id_report_message');
         return msgEl ? String(msgEl.value || '').trim() : '';
@@ -407,19 +406,19 @@
 
     // Message edits (number / free text) stamp the "latest typed" time.
     function onMessageEdit() {
-        var numEl = document.getElementById('id_report_number');
+        var iqEl = document.getElementById('id_report_iq');
         var hiddenMsg = document.getElementById('id_report_message');
-        if (numEl && hiddenMsg && hiddenMsg.tagName === 'INPUT') {
-            var n = String(numEl.value).trim();
-            hiddenMsg.value = 'I got ' + n + ' out of 5 ' + TASK_CONSTRUCT + ' questions in this block correct.';
+        if (iqEl && hiddenMsg && hiddenMsg.tagName === 'INPUT') {
+            var raw = String(iqEl.value).trim();
+            hiddenMsg.value = raw === '' ? '' : 'My ' + LABEL + ' IQ score is ' + raw + '.';
         }
         if (currentMessage()) lastMsgTime = nowTimeStr();
         clearError();
         renderPreviews();
     }
 
-    var numElInit = document.getElementById('id_report_number');
-    if (numElInit) numElInit.addEventListener('input', onMessageEdit);
+    var iqElInit = document.getElementById('id_report_iq');
+    if (iqElInit) iqElInit.addEventListener('input', onMessageEdit);
     var msgElInit = document.getElementById('id_report_message');
     if (msgElInit && msgElInit.tagName === 'TEXTAREA') msgElInit.addEventListener('input', onMessageEdit);
     Array.prototype.forEach.call(document.querySelectorAll('input[name="report_emoji"]'), function (el) {

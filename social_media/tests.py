@@ -16,7 +16,7 @@ from . import (
     round_spec, get_condition, stroop_question,
     is_feedback_round, is_third_period, third_period_played,
     is_end_of_period, is_end_of_period_with_p3,
-    BotCheck, Consent, IQReferencePoint, Intro, TaskIntro, QuestionPage, BlockFeedback, IQReadout,
+    BotCheck, Consent, IQReferencePoint, Intro, TaskIntro, QuestionPage, BlockFeedback, IQFeedback,
     PerceivedPercentile, PerceivedPercentileConfidence, ColorTaskIntro,
     ColorTask1, ColorTask2, ColorTask3, ColorTask4, ColorTask5, ColorTask6,
     EndOfPeriodSurvey, WTACompare, Results,
@@ -48,7 +48,7 @@ class PlayerBot(Bot):
                 yield Submission(IQReferencePoint, dict(iq_reference_score=100), check_html=False)
             else:
                 yield Submission(IQReferencePoint, dict(), check_html=False)
-            yield Submission(Intro, dict(), check_html=False)
+            yield Submission(Intro, dict(display_name='Bot'), check_html=False)
 
         plays_question = (not is_third_period(p)) or third_period_played(p)
 
@@ -69,17 +69,33 @@ class PlayerBot(Bot):
                     check_html=False,
                 )
             if is_feedback_round(p):
-                cond = get_condition(p)
-                fb = {}
-                if cond == 'quantitative_social':
-                    fb.update(report_display_name='Bot', report_number=5, report_shared=True)
-                elif cond == 'qualitative_social':
-                    fb.update(report_display_name='Bot', report_emoji=QUAL_EMOJIS[0],
-                              report_message='Felt good about that one.', report_shared=True)
-                yield Submission(BlockFeedback, fb, check_html=False)
+                # BlockFeedback (number-correct sidebar) shows at all feedback
+                # rounds in the initial pilot, but only at MID-PERIOD feedback
+                # rounds in show_iq pilots (15/30/45 are handled by IQFeedback).
+                block_fb_shown = (
+                    not CFG['show_iq']
+                    or (p.round_number not in C.END_OF_PERIOD_ROUNDS
+                        and p.round_number != C.NUM_ROUNDS)
+                )
+                if block_fb_shown:
+                    cond = get_condition(p)
+                    fb = {}
+                    if cond == 'quantitative_social':
+                        fb.update(report_number=5, report_shared=True)
+                    elif cond == 'qualitative_social':
+                        fb.update(report_emoji=QUAL_EMOJIS[0],
+                                  report_message='Felt good about that one.', report_shared=True)
+                    yield Submission(BlockFeedback, fb, check_html=False)
 
         if CFG['show_iq'] and is_end_of_period_with_p3(p):
-            yield Submission(IQReadout, dict(), check_html=False)
+            cond = get_condition(p)
+            iqfb = {}
+            if cond == 'quantitative_social':
+                iqfb.update(report_iq=100, report_shared=True)
+            elif cond == 'qualitative_social':
+                iqfb.update(report_emoji=QUAL_EMOJIS[0],
+                            report_message='Felt good about that one.', report_shared=True)
+            yield Submission(IQFeedback, iqfb, check_html=False)
 
         if is_end_of_period_with_p3(p):
             yield Submission(PerceivedPercentile, dict(perceived_relative_performance=50), check_html=False)
@@ -109,6 +125,7 @@ class PlayerBot(Bot):
 
         if self.round_number == C.NUM_ROUNDS:
             bfi = {f'big5_{i}': 3 for i in range(1, 11)}
+            bfi['self_knowledge'] = 3
             bfi['big5_accuracy'] = 3
             bfi['competitiveness'] = 3
             yield Submission(BigFiveSurvey, bfi, check_html=False)
