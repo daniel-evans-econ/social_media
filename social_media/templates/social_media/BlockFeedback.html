@@ -43,13 +43,13 @@
         background: #fff; box-shadow: -8px 0 24px rgba(0,0,0,0.18);
         transform: translateX(105%); transition: transform 0.35s cubic-bezier(0.2,0.8,0.2,1);
         z-index: 9999; display: flex; flex-direction: column;
-        border-top-left-radius: 14px; border-bottom-left-radius: 14px; overflow: hidden;
+        border-top-left-radius: 14px; border-bottom-left-radius: 14px; overflow-y: auto;
     }
     .fb-sidebar.open { transform: translateX(0); }
     .fb-header { display: flex; align-items: center; gap: 10px; padding: 16px 20px 12px; border-bottom: 1px solid #eee; }
     .fb-app-icon { width: 32px; height: 32px; border-radius: 8px; background: darkred; color: #fff; font-weight: bold; font-size: 0.8em; display: flex; align-items: center; justify-content: center; }
     .fb-header .fb-title { font-weight: 600; flex: 1; color: darkred; }
-    .fb-body { padding: 14px 20px 8px; flex: 1; overflow-y: auto; }
+    .fb-body { padding: 14px 20px 20px; }
     .fb-score { background: #f8fafc; border: 1px solid #d8dde3; border-radius: 12px; padding: 12px 16px; margin-bottom: 14px; font-size: 1.05em; }
     .fb-post { background: #fff; border: 1px solid #e2e6eb; border-radius: 12px; padding: 12px 16px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
     .fb-post-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
@@ -66,7 +66,7 @@
     .fb-row label:has(input[type="radio"]:checked) { border-color: #1a4998; background: #e8f0ff; font-weight: bold; }
     .fb-compose textarea { width: 100%; min-height: 50px; padding: 8px; border: 1px solid #b9d4ff; border-radius: 6px; resize: vertical; font-family: inherit; font-size: 0.95em; }
     .fb-share { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 0.92em; }
-    .fb-actions { padding: 12px 20px; border-top: 1px solid #eee; background: #fff; display: flex; gap: 10px; justify-content: flex-end; }
+    .fb-actions { margin-top: 16px; padding: 0; display: flex; gap: 10px; justify-content: flex-end; }
     .fb-btn { padding: 8px 18px; border-radius: 8px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-size: 0.95em; }
     .fb-btn-primary { background: darkred; color: #fff; border-color: darkred; }
     body.fb-locked { overflow: hidden; }
@@ -267,23 +267,23 @@
                 </div>
             </div>
         {% endif %}
-    </div>
 
-    <div class="fb-actions">
-        {% if in_treatment %}
-            <div id="fb-actions-compose">
-                <button type="button" class="fb-btn fb-btn-primary" id="fb-compose-next">Next</button>
-            </div>
-            <div id="fb-actions-confirm" style="display:none; gap:10px;">
-                <button type="button" class="fb-btn" id="fb-edit-back">No, let me edit</button>
-                <button type="button" class="fb-btn fb-btn-primary" id="fb-confirm-next">Confirm</button>
-            </div>
-            <div id="fb-actions-final" style="display:none;">
-                <button type="submit" class="fb-btn fb-btn-primary" id="fb-final-submit">Continue</button>
-            </div>
-        {% else %}
-            <button type="submit" class="fb-btn fb-btn-primary" id="fb-continue-btn">Continue</button>
-        {% endif %}
+        <div class="fb-actions">
+            {% if in_treatment %}
+                <div id="fb-actions-compose">
+                    <button type="button" class="fb-btn fb-btn-primary" id="fb-compose-next">Next</button>
+                </div>
+                <div id="fb-actions-confirm" style="display:none; gap:10px;">
+                    <button type="button" class="fb-btn" id="fb-edit-back">No, let me edit</button>
+                    <button type="button" class="fb-btn fb-btn-primary" id="fb-confirm-next">Confirm</button>
+                </div>
+                <div id="fb-actions-final" style="display:none;">
+                    <button type="submit" class="fb-btn fb-btn-primary" id="fb-final-submit">Continue</button>
+                </div>
+            {% else %}
+                <button type="submit" class="fb-btn fb-btn-primary" id="fb-continue-btn">Continue</button>
+            {% endif %}
+        </div>
     </div>
 </aside>
 
