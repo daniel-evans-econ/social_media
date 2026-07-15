@@ -539,7 +539,7 @@ class Player(BasePlayer):
     report_iq = models.IntegerField(min=40, max=160, blank=True, label="")
     report_emoji = models.StringField(blank=True)
     report_message = models.StringField(blank=True, max_length=140)
-    report_shared = models.BooleanField(initial=False, blank=True)
+    report_shared = models.BooleanField(blank=True)
     report_display_name = models.StringField(blank=True, max_length=60)
     # Compose-step audit trail (social feedback sidebars): prior drafts, edit-back clicks.
     report_edit_back_count = models.IntegerField(initial=0, blank=True)
@@ -989,6 +989,15 @@ def period_correct(player: Player):
     return total
 
 
+def _peer_message_time(rng: random.Random) -> str:
+    """Plausible posted-at time for a peer message (stable per seeded draw)."""
+    hour = rng.randint(9, 20)
+    minute = rng.randint(0, 59)
+    h12 = hour % 12 or 12
+    suffix = 'AM' if hour < 12 else 'PM'
+    return f"{h12}:{minute:02d} {suffix}"
+
+
 def pilot_feedback_signals(player: Player):
     """One peer report shown on the feedback sidebar for the current block.
 
@@ -1014,15 +1023,18 @@ def pilot_feedback_signals(player: Player):
         if entries:
             e = rng.choice(entries)
             return dict(type='quantitative', name=e.get('name') or name,
-                        number=int(e.get('number', 0)))
-        return dict(type='quantitative', name=name, number=rng.randint(0, 5))
+                        number=int(e.get('number', 0)),
+                        time=e.get('time') or _peer_message_time(rng))
+        return dict(type='quantitative', name=name, number=rng.randint(0, 5),
+                    time=_peer_message_time(rng))
 
     entries = set_pool.get('qualitative') or []
     if entries:
         e = rng.choice(entries)
         return dict(type='qualitative', name=e.get('name') or name,
                     emoji=e.get('emoji') or QUAL_EMOJI_NEUTRAL,
-                    sentence=e.get('sentence') or '')
+                    sentence=e.get('sentence') or '',
+                    time=e.get('time') or _peer_message_time(rng))
     # Simulated fallback.
     emoji = rng.choice(QUAL_EMOJIS)
     if emoji == QUAL_EMOJI_SMILE:
@@ -1035,7 +1047,8 @@ def pilot_feedback_signals(player: Player):
         sentence = rng.choice(PILOT_QUAL_SCORE_BY_EMOJI[emoji]).format(n=n)
     else:
         sentence = rng.choice(PILOT_QUAL_TEXT_BY_EMOJI[emoji])
-    return dict(type='qualitative', name=name, emoji=emoji, sentence=sentence)
+    return dict(type='qualitative', name=name, emoji=emoji, sentence=sentence,
+                time=_peer_message_time(rng))
 
 
 def pilot_iq_feedback_signal(player: Player):
@@ -1062,11 +1075,13 @@ def pilot_iq_feedback_signal(player: Player):
         peer_score = rng.randint(0, C.PERIOD_LENGTH)
         peer_iq = estimate_iq(component, peer_score, C.PERIOD_LENGTH)
         peer_iq = max(55, min(145, peer_iq))
-        return dict(type='quantitative', name=name, iq=peer_iq, label=label)
+        return dict(type='quantitative', name=name, iq=peer_iq, label=label,
+                    time=_peer_message_time(rng))
 
     emoji = rng.choice(QUAL_EMOJIS)
     sentence = rng.choice(PILOT_QUAL_TEXT_BY_EMOJI[emoji])
-    return dict(type='qualitative', name=name, emoji=emoji, sentence=sentence)
+    return dict(type='qualitative', name=name, emoji=emoji, sentence=sentence,
+                time=_peer_message_time(rng))
 
 
 def experienced_conditions(player: Player):
@@ -1684,14 +1699,16 @@ class BlockFeedback(Page):
             rn = values.get('report_number')
             if rn is None or rn == '':
                 return "Please type how many out of 5 you got correct."
-            return
-        msg = (values.get('report_message') or '').strip()
-        if not msg:
-            return "Please add a short note before continuing."
-        if len(msg) < 5:
-            return "Please write at least 5 characters in your note."
-        if not values.get('report_emoji'):
-            return "Please indicate how the last 5 questions went."
+        else:
+            msg = (values.get('report_message') or '').strip()
+            if not msg:
+                return "Please add a short note before continuing."
+            if len(msg) < 5:
+                return "Please write at least 5 characters in your note."
+            if not values.get('report_emoji'):
+                return "Please indicate how you feel."
+        if values.get('report_shared') is None:
+            return "Please choose whether to share your message."
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
@@ -1825,14 +1842,16 @@ class IQFeedback(Page):
                 return "Please enter your IQ score."
             if v < 40 or v > 160:
                 return "Please enter an IQ score between 40 and 160."
-            return
-        msg = (values.get('report_message') or '').strip()
-        if not msg:
-            return "Please add a short note before continuing."
-        if len(msg) < 5:
-            return "Please write at least 5 characters in your note."
-        if not values.get('report_emoji'):
-            return "Please indicate how your IQ result felt."
+        else:
+            msg = (values.get('report_message') or '').strip()
+            if not msg:
+                return "Please add a short note before continuing."
+            if len(msg) < 5:
+                return "Please write at least 5 characters in your note."
+            if not values.get('report_emoji'):
+                return "Please indicate how you feel."
+        if values.get('report_shared') is None:
+            return "Please choose whether to share your message."
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
@@ -2444,6 +2463,13 @@ class FinalResults(Page):
             switched_p3 = switched_disqualified_count(player, C.THIRD_PERIOD_START, C.NUM_ROUNDS)
             subtracted += switched_p3 * p3_pay_rate
 
+        # Deferred estimate-accuracy bonus ceiling. Participants who were never
+        # asked the baseline IQ reference-point guess cannot earn its $0.50, so
+        # we drop it from the ceiling we quote them (1.25 -> 0.75).
+        guess_bonus_max = C.GUESS_BONUS_MAX
+        if not player.participant.vars.get('iq_reference_asked', False):
+            guess_bonus_max = guess_bonus_max - C.PAY_IQ_REFERENCE_GUESS
+
         return dict(
             total_payoff=total_payoff,
             task_rows=task_rows,
@@ -2453,7 +2479,7 @@ class FinalResults(Page):
             stroop_amount=f"{stroop_amount:.2f}",
             switched_subtracted=f"{subtracted:.2f}",
             had_switch_deduction=subtracted > 0,
-            guess_bonus_max_display=f"{float(C.GUESS_BONUS_MAX):.2f}",
+            guess_bonus_max_display=f"{float(guess_bonus_max):.2f}",
             prolific_url=PROLIFIC_COMPLETION_URL,
         )
 
@@ -2481,6 +2507,7 @@ page_sequence = [
     IQFeedback,
     PerceivedPercentile,
     PerceivedPercentileConfidence,
+    EndOfPeriodSurvey,
     ColorTaskIntro,
     ColorTask1,
     ColorTask2,
@@ -2488,7 +2515,6 @@ page_sequence = [
     ColorTask4,
     ColorTask5,
     ColorTask6,
-    EndOfPeriodSurvey,
     WTACompare,
     Results,
     BigFiveSurvey,

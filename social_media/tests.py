@@ -102,6 +102,9 @@ class PlayerBot(Bot):
             yield Submission(PerceivedPercentileConfidence, dict(perceived_percentile_confidence=50), check_html=False)
 
         if is_end_of_period_with_p3(p):
+            yield Submission(EndOfPeriodSurvey, dict(mood=3, task_enjoyment=3, payment_satisfaction=3), check_html=False)
+
+        if is_end_of_period_with_p3(p):
             yield Submission(ColorTaskIntro, dict(), check_html=False)
             color_pages = [ColorTask1, ColorTask2, ColorTask3, ColorTask4, ColorTask5, ColorTask6]
             for n, page in enumerate(color_pages, start=1):
@@ -111,9 +114,6 @@ class PlayerBot(Bot):
                     {f'stroop_{n}': ink, f'stroop_{n}_response_time': 1.0},
                     check_html=False,
                 )
-
-        if is_end_of_period_with_p3(p):
-            yield Submission(EndOfPeriodSurvey, dict(mood=3, task_enjoyment=3, payment_satisfaction=3), check_html=False)
 
         if CFG['use_wta'] and self.round_number == 2 * C.PERIOD_LENGTH:
             wta = {}

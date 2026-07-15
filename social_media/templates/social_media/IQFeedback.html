@@ -48,7 +48,6 @@
     }
     .fb-sidebar.open { transform: translateX(0); }
     .fb-header { display: flex; align-items: center; gap: 10px; padding: 16px 20px 12px; border-bottom: 1px solid #eee; }
-    .fb-app-icon { width: 32px; height: 32px; border-radius: 8px; background: darkred; color: #fff; font-weight: bold; font-size: 0.8em; display: flex; align-items: center; justify-content: center; }
     .fb-header .fb-title { font-weight: 600; flex: 1; color: darkred; }
     .fb-body { padding: 14px 20px 20px; }
     .fb-score { background: #f8fafc; border: 1px solid #d8dde3; border-radius: 12px; padding: 12px 16px; margin-bottom: 14px; font-size: 1.05em; }
@@ -56,6 +55,7 @@
     .fb-post-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
     .fb-avatar { width: 36px; height: 36px; border-radius: 50%; background: #6c5ce7; color: #fff; font-weight: bold; display: flex; align-items: center; justify-content: center; font-size: 1em; }
     .fb-post-name { font-weight: 600; font-size: 0.95em; }
+    .fb-post.fb-received .fb-post-name { font-weight: normal; }
     .fb-post-body { font-size: 1em; margin-left: 46px; margin-top: 2px; }
     .fb-post-quote { margin-top: 6px; color: #444; font-style: italic; }
     .fb-compose { background: #f0f6ff; border: 1px solid #b9d4ff; border-radius: 12px; padding: 12px 16px; }
@@ -71,15 +71,21 @@
     .fb-btn { padding: 8px 18px; border-radius: 8px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-size: 0.95em; }
     .fb-btn-primary { background: darkred; color: #fff; border-color: darkred; }
     body.fb-locked { overflow: hidden; }
-    .fb-share-step { display: none; margin-top: 12px; padding: 14px 16px; border: 2px solid darkred; border-radius: 10px; background: #fff8f8; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
-    .fb-share-step.visible { display: block; }
-    .fb-share-step .fb-share-prompt { font-weight: 600; margin: 0 0 10px 0; color: #222; }
+    .fb-share-box { margin-top: 4px; padding: 14px 16px; border: 2px solid darkred; border-radius: 10px; background: #fff8f8; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+    .fb-share-box .fb-share-prompt { font-weight: 600; margin: 0 0 10px 0; color: #222; }
+    .fb-share-options { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+    .fb-share-options label { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.95em; padding: 10px 12px; border: 2px solid #d0d0d0; border-radius: 8px; background: #fff; }
+    .fb-share-options input[type="radio"] { margin: 0; }
+    .fb-share-options label:has(input[type="radio"]:checked) { border-color: darkred; background: #fff0f0; font-weight: 600; }
+    /* Phase-1 performance card auto-advance hint */
+    .fb-autoadvance-hint { font-size: 0.85em; color: #8a8a8a; margin: 8px 2px 0; font-style: italic; }
     /* Centered elicitation prompt at the top of the compose block */
     .fb-compose-prompt { font-size: 0.9em; margin: 0 0 12px 0; color: #222; }
     /* "Your message" live tweet-style preview */
     .fb-yourmsg { margin-top: 14px; }
     .fb-yourmsg-title { font-weight: 600; font-size: 0.9em; color: #333; margin-bottom: 6px; }
-    .fb-preview .fb-preview-time { color: #8a8a8a; font-weight: 400; font-size: 0.9em; }
+    .fb-preview .fb-preview-time,
+    .fb-received .fb-received-time { color: #8a8a8a; font-weight: 400; font-size: 0.9em; }
     .fb-preview .fb-preview-body { font-style: italic; color: #555; }
 </style>
 
@@ -125,7 +131,6 @@
 
 <aside class="fb-sidebar" id="fb-sidebar" aria-label="IQ estimate">
     <div class="fb-header">
-        <div class="fb-app-icon">SM</div>
         <div class="fb-title">Your IQ estimate</div>
     </div>
 
@@ -133,111 +138,108 @@
         <input type="hidden" name="report_edit_back_count" id="id_report_edit_back_count" value="0">
         <input type="hidden" name="report_compose_history" id="id_report_compose_history" value="[]">
         <input type="hidden" id="fb-display-name" value="{{ display_name }}">
-        <div class="fb-score">
-            Your estimated score on the <strong style="color:darkred;">{{ label }}</strong> component of <strong style="color:darkred;">IQ</strong> is
-            <strong style="color:darkred;">{{ iq }}</strong>.
-        </div>
 
         <div id="fb-error" role="alert"
              style="display:none; background:#fdecea; border:1px solid #d32f2f; color:#8a1c1c;
                     border-radius:8px; padding:10px 12px; margin-bottom:12px; font-size:0.92em;"></div>
 
         {% if in_treatment %}
-            {% if has_received_message %}
-            <p style="font-size:0.92em; color:#444; margin: 0 0 12px 0;">
-                Here is a message from a participant who completed the
-                <strong style="color:darkred;">same {{ task_construct }} IQ task</strong>.
-            </p>
-            <div class="fb-post">
-                <div class="fb-post-head">
-                    <div class="fb-avatar">{{ signal_initial }}</div>
-                    <div><div class="fb-post-name">{{ signal.name }}</div></div>
+            <!-- Phase 1: IQ estimate only. Auto-advances after 7s and cannot be
+                 returned to (message writing is on a separate page). -->
+            <div id="fb-score-step">
+                <div class="fb-score">
+                    Your estimated score on the <strong style="color:darkred;">{{ label }}</strong> component of <strong style="color:darkred;">IQ</strong> is
+                    <strong style="color:darkred;">{{ iq }}</strong>.
                 </div>
-                <div class="fb-post-body">
-                    {% if is_quantitative %}
-                        My {{ label }} <strong style="color:darkred;">IQ</strong> score is {{ signal.iq }}.
-                    {% else %}
-                        <span style="font-size:1.6em;">{{ signal.emoji }}</span>
-                        <div class="fb-post-quote">&ldquo;{{ signal.sentence }}&rdquo;</div>
-                    {% endif %}
+                <p class="fb-autoadvance-hint" id="fb-score-hint">
+                    Continuing in a moment&hellip;
+                </p>
+            </div>
+
+            <!-- Phase 2: compose your message. -->
+            <div id="fb-compose-step" style="display:none;">
+                {% if has_received_message %}
+                <p style="font-size:0.92em; color:#444; margin: 0 0 12px 0;">
+                    Here is a message from a participant who completed the
+                    <strong style="color:darkred;">same {{ task_construct }} IQ task</strong>.
+                </p>
+                <div class="fb-post fb-received">
+                    <div class="fb-post-head">
+                        <div class="fb-avatar">{{ signal_initial }}</div>
+                        <div>
+                            <div class="fb-post-name">
+                                {{ signal.name }}
+                                {% if signal.time %}<span class="fb-received-time">&middot; {{ signal.time }}</span>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="fb-post-body">
+                        {% if is_quantitative %}
+                            My {{ label }} IQ score is {{ signal.iq }}.
+                        {% else %}
+                            <span style="font-size:1.6em;">{{ signal.emoji }}</span>
+                            <div class="fb-post-quote">&ldquo;{{ signal.sentence }}&rdquo;</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="fb-compose">
+                    <div id="fb-compose-inputs">
+                        <p class="fb-compose-prompt">
+                            Please type a message that you would want to share with others about how you did.
+                        </p>
+
+                        {% if is_quantitative %}
+                            <p style="margin:8px 0; font-size:1em;">
+                                My {{ label }} IQ score is
+                                <input type="number" name="report_iq" id="id_report_iq"
+                                       min="40" max="160" step="1"
+                                       style="width:74px; padding:6px; text-align:center;
+                                              border:1px solid #b9d4ff; border-radius:6px;">.
+                            </p>
+                            <input type="hidden" name="report_message" id="id_report_message" value="">
+                        {% else %}
+                            <div style="font-size:0.9em;">How do you feel?</div>
+                            <div class="fb-row fb-emoji">
+                                {% for e in qual_emojis %}
+                                    <label>
+                                        <input type="radio" name="report_emoji" value="{{ e }}">
+                                        <span>{{ e }}</span>
+                                    </label>
+                                {% endfor %}
+                            </div>
+                            <div style="margin-top:8px;">
+                                <label for="id_report_message" style="font-size:0.85em;">
+                                    Add a short note (max 140 characters):
+                                </label>
+                                <textarea name="report_message" id="id_report_message"
+                                          minlength="5" maxlength="140"></textarea>
+                            </div>
+                        {% endif %}
+
+                        <div class="fb-yourmsg">
+                            <div class="fb-yourmsg-title">Your message</div>
+                            <div class="fb-post fb-preview">
+                                <div class="fb-post-head">
+                                    <div class="fb-avatar fb-preview-avatar">?</div>
+                                    <div>
+                                        <div class="fb-post-name">
+                                            <span class="fb-preview-name">Your name</span>
+                                            <span class="fb-preview-time"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="fb-post-body fb-preview-body">Your message will appear here.</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            {% endif %}
 
-            <div class="fb-compose">
-                <div id="fb-compose-inputs">
-                    <p class="fb-compose-prompt">
-                        Please type a message that you would want to share with others about how you did.
-                    </p>
-
-                    {% if is_quantitative %}
-                        <p style="margin:8px 0; font-size:1em;">
-                            My {{ label }} <strong style="color:darkred;">IQ</strong> score is
-                            <input type="number" name="report_iq" id="id_report_iq"
-                                   min="40" max="160" step="1"
-                                   style="width:74px; padding:6px; text-align:center;
-                                          border:1px solid #b9d4ff; border-radius:6px;">.
-                        </p>
-                        <input type="hidden" name="report_message" id="id_report_message" value="">
-                    {% else %}
-                        <div style="font-size:0.9em;">How did your <strong style="color:darkred;">IQ</strong> result feel?</div>
-                        <div class="fb-row fb-emoji">
-                            {% for e in qual_emojis %}
-                                <label>
-                                    <input type="radio" name="report_emoji" value="{{ e }}">
-                                    <span>{{ e }}</span>
-                                </label>
-                            {% endfor %}
-                        </div>
-                        <div style="margin-top:8px;">
-                            <label for="id_report_message" style="font-size:0.85em;">
-                                Add a short note (max 140 characters):
-                            </label>
-                            <textarea name="report_message" id="id_report_message"
-                                      minlength="5" maxlength="140"></textarea>
-                        </div>
-                    {% endif %}
-
-                    <div class="fb-yourmsg">
-                        <div class="fb-yourmsg-title">Your message</div>
-                        <div class="fb-post fb-preview">
-                            <div class="fb-post-head">
-                                <div class="fb-avatar fb-preview-avatar">?</div>
-                                <div>
-                                    <div class="fb-post-name">
-                                        <span class="fb-preview-name">Your name</span>
-                                        <span class="fb-preview-time"></span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="fb-post-body fb-preview-body">Your message will appear here.</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="fb-confirm-step" class="fb-share-step" aria-live="polite">
-                    <p class="fb-share-prompt">
-                        Is this the message you would want to share with others?
-                    </p>
-
-                    <div class="fb-yourmsg">
-                        <div class="fb-yourmsg-title">Your message</div>
-                        <div class="fb-post fb-preview">
-                            <div class="fb-post-head">
-                                <div class="fb-avatar fb-preview-avatar">?</div>
-                                <div>
-                                    <div class="fb-post-name">
-                                        <span class="fb-preview-name">Your name</span>
-                                        <span class="fb-preview-time"></span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="fb-post-body fb-preview-body">Your message will appear here.</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="fb-share-step" class="fb-share-step" aria-live="polite">
+            <!-- Phase 3: send / do-not-send decision. -->
+            <div id="fb-share-step" style="display:none;">
+                <div class="fb-share-box" aria-live="polite">
                     <p class="fb-share-prompt">
                         Do you want to send your message to another participant?
                         <br>
@@ -260,24 +262,29 @@
                         </div>
                     </div>
 
-                    <div class="fb-share">
-                        <input type="checkbox" name="report_shared" id="id_report_shared" value="True">
-                        <label for="id_report_shared" style="margin:0;">
-                            Yes, share my message with another participant
+                    <div class="fb-share-options">
+                        <label>
+                            <input type="radio" name="report_shared" value="True">
+                            <span>Yes, I wish to share my message</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="report_shared" value="False">
+                            <span>No, I do not wish to share my message</span>
                         </label>
                     </div>
                 </div>
+            </div>
+        {% else %}
+            <div class="fb-score">
+                Your estimated score on the <strong style="color:darkred;">{{ label }}</strong> component of <strong style="color:darkred;">IQ</strong> is
+                <strong style="color:darkred;">{{ iq }}</strong>.
             </div>
         {% endif %}
 
         <div class="fb-actions">
             {% if in_treatment %}
-                <div id="fb-actions-compose">
+                <div id="fb-actions-compose" style="display:none;">
                     <button type="button" class="fb-btn fb-btn-primary" id="fb-compose-next">Next</button>
-                </div>
-                <div id="fb-actions-confirm" style="display:none; gap:10px;">
-                    <button type="button" class="fb-btn" id="fb-edit-back">No, let me edit</button>
-                    <button type="button" class="fb-btn fb-btn-primary" id="fb-confirm-next">Confirm</button>
                 </div>
                 <div id="fb-actions-final" style="display:none;">
                     <button type="submit" class="fb-btn fb-btn-primary" id="fb-final-submit">Continue</button>
@@ -292,20 +299,20 @@
 <script>
 (function () {
     var LABEL = "{{ label }}";
+    var AUTO_ADVANCE_MS = 7000;
     var _dnEl = document.getElementById('fb-display-name');
     var DISPLAY_NAME = _dnEl ? String(_dnEl.value || '').trim() : '';
     var sidebar = document.getElementById('fb-sidebar');
     var overlay = document.getElementById('fb-overlay');
-    var composeNext = document.getElementById('fb-compose-next');
-    var composeInputs = document.getElementById('fb-compose-inputs');
-    var confirmStep = document.getElementById('fb-confirm-step');
-    var confirmNext = document.getElementById('fb-confirm-next');
-    var editBack = document.getElementById('fb-edit-back');
+    var scoreStep = document.getElementById('fb-score-step');
+    var composeStep = document.getElementById('fb-compose-step');
     var shareStep = document.getElementById('fb-share-step');
+    var composeNext = document.getElementById('fb-compose-next');
     var actionsCompose = document.getElementById('fb-actions-compose');
-    var actionsConfirm = document.getElementById('fb-actions-confirm');
     var actionsFinal = document.getElementById('fb-actions-final');
     var errorBox = document.getElementById('fb-error');
+    var inTreatment = !!(scoreStep && composeStep && shareStep);
+    var currentPhase = 'score';
     var composeHistory = [];
     var editBackCount = 0;
     var lastLoggedDraftKey = '';
@@ -386,7 +393,7 @@
         if (msg.length < 5) { showError('Please write at least 5 characters in your note.'); return false; }
         var emoChecked = document.querySelector('input[name="report_emoji"]:checked');
         if (document.querySelectorAll('input[name="report_emoji"]').length && !emoChecked) {
-            showError('Please indicate how your IQ result felt.'); return false;
+            showError('Please indicate how you feel.'); return false;
         }
         return true;
     }
@@ -468,35 +475,49 @@
     var form = document.querySelector('form');
     if (form) form.addEventListener('submit', syncHistoryFields, true);
 
-    // Three-phase flow: compose -> confirm ("Is this the message...") -> share.
+    // Three separate pages within the sidebar:
+    //   score (IQ estimate) -> compose (write message) -> share (send?).
+    // The score page auto-advances and cannot be returned to.
     function showPhase(phase) {
-        composeInputs.style.display = (phase === 'compose') ? 'block' : 'none';
-        confirmStep.classList.toggle('visible', phase === 'confirm');
-        shareStep.classList.toggle('visible', phase === 'share');
-        actionsCompose.style.display = (phase === 'compose') ? 'flex' : 'none';
-        actionsConfirm.style.display = (phase === 'confirm') ? 'flex' : 'none';
-        actionsFinal.style.display = (phase === 'share') ? 'flex' : 'none';
+        currentPhase = phase;
+        if (scoreStep) scoreStep.style.display = (phase === 'score') ? 'block' : 'none';
+        if (composeStep) composeStep.style.display = (phase === 'compose') ? 'block' : 'none';
+        if (shareStep) shareStep.style.display = (phase === 'share') ? 'block' : 'none';
+        if (actionsCompose) actionsCompose.style.display = (phase === 'compose') ? 'flex' : 'none';
+        if (actionsFinal) actionsFinal.style.display = (phase === 'share') ? 'flex' : 'none';
     }
 
-    if (composeNext && confirmNext && editBack && composeInputs && confirmStep
-        && shareStep && actionsCompose && actionsConfirm && actionsFinal) {
-        composeNext.addEventListener('click', function () {
-            if (!composeStepComplete()) return;
-            renderPreviews();
-            logComposeEvent('compose_next', draftPayload());
-            showPhase('confirm');
-            confirmStep.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        });
-        editBack.addEventListener('click', function () {
-            editBackCount += 1;
-            logComposeEvent('edit_back');
+    if (inTreatment) {
+        showPhase('score');
+        // After a fixed delay, advance to the message-writing page. There is
+        // deliberately no way back to the IQ estimate once advanced.
+        window.setTimeout(function () {
+            if (currentPhase !== 'score') return;
             showPhase('compose');
-            composeInputs.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        });
-        confirmNext.addEventListener('click', function () {
-            showPhase('share');
-            shareStep.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        });
+            try { composeStep.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {}
+        }, AUTO_ADVANCE_MS);
+
+        if (composeNext) {
+            composeNext.addEventListener('click', function () {
+                if (!composeStepComplete()) return;
+                renderPreviews();
+                logComposeEvent('compose_next', draftPayload());
+                showPhase('share');
+                try { shareStep.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {}
+            });
+        }
+
+        // Require an explicit send / do-not-send choice and block any submit
+        // (e.g. an Enter keypress) that happens before the share page.
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                if (currentPhase !== 'share') { e.preventDefault(); return; }
+                if (!document.querySelector('input[name="report_shared"]:checked')) {
+                    e.preventDefault();
+                    showError('Please choose whether you wish to share your message.');
+                }
+            }, true);
+        }
     }
 })();
 </script>
