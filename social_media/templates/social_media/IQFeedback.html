@@ -177,7 +177,7 @@
                         {% if is_quantitative %}
                             My {{ label }} IQ score is {{ signal.iq }}.
                         {% else %}
-                            <div class="fb-post-quote">&ldquo;{{ signal.sentence }}&rdquo; <span style="font-size:1.4em;">{{ signal.emoji }}</span></div>
+                            <div class="fb-post-quote">{{ signal.sentence }} <span style="font-size:1.4em;">{{ signal.emoji }}</span></div>
                         {% endif %}
                     </div>
                 </div>
@@ -474,7 +474,7 @@
             if (timeEl) timeEl.textContent = lastMsgTime ? ('\u00B7 ' + lastMsgTime) : '';
             if (bodyEl) {
                 if (msg) {
-                    bodyEl.textContent = '\u201C' + msg + '\u201D' + (emoji ? ' ' + emoji : '');
+                    bodyEl.textContent = msg + (emoji ? ' ' + emoji : '');
                 } else {
                     bodyEl.textContent = 'Your message will appear here.';
                 }
