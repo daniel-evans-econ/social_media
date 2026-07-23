@@ -177,8 +177,7 @@
                         {% if is_quantitative %}
                             I got {{ signal.number }} out of 5 correct.
                         {% else %}
-                            <span style="font-size:1.6em;">{{ signal.emoji }}</span>
-                            <div class="fb-post-quote">&ldquo;{{ signal.sentence }}&rdquo;</div>
+                            <div class="fb-post-quote">&ldquo;{{ signal.sentence }}&rdquo; <span style="font-size:1.4em;">{{ signal.emoji }}</span></div>
                         {% endif %}
                     </div>
                 </div>
@@ -187,7 +186,7 @@
                 <div class="fb-compose">
                     <div id="fb-compose-inputs">
                         <p class="fb-compose-prompt">
-                            Please type a message that you would want to share with others about how you did.
+                            Please write a message to other participants in this study about how you did.
                         </p>
 
                         {% if is_quantitative %}
@@ -242,7 +241,7 @@
             <div id="fb-confirm-step" style="display:none;">
                 <div class="fb-share-box" aria-live="polite">
                     <p class="fb-share-prompt">
-                        Is this the message you would want to share with others?
+                        Is this the message you want to write to others?
                     </p>
 
                     <div class="fb-yourmsg">
@@ -267,7 +266,7 @@
             <div id="fb-share-step" style="display:none;">
                 <div class="fb-share-box" aria-live="polite">
                     <p class="fb-share-prompt">
-                        Do you want to send your message to another participant?
+                        Do you want to send your message to other participants?
                         <br>
                         <span style="font-weight:400; color:#333;">We will only send it if you agree.</span>
                     </p>
@@ -305,6 +304,7 @@
                 You got <strong style="color:darkred;">{{ block_score }} out of 5</strong>
                 correct in the last block.
             </div>
+            <p class="fb-autoadvance-hint">Continuing in a moment&hellip;</p>
         {% endif %}
 
         <div class="fb-actions">
@@ -329,7 +329,7 @@
 <script>
 (function () {
     var TASK_CONSTRUCT = "{{ task_construct }}";
-    var AUTO_ADVANCE_MS = 7000;
+    var AUTO_ADVANCE_MS = 5000;
     var _dnEl = document.getElementById('fb-display-name');
     var DISPLAY_NAME = _dnEl ? String(_dnEl.value || '').trim() : '';
     var sidebar = document.getElementById('fb-sidebar');
@@ -475,7 +475,7 @@
             if (timeEl) timeEl.textContent = lastMsgTime ? ('\u00B7 ' + lastMsgTime) : '';
             if (bodyEl) {
                 if (msg) {
-                    bodyEl.textContent = (emoji ? emoji + ' ' : '') + '\u201C' + msg + '\u201D';
+                    bodyEl.textContent = '\u201C' + msg + '\u201D' + (emoji ? ' ' + emoji : '');
                 } else {
                     bodyEl.textContent = 'Your message will appear here.';
                 }
@@ -569,6 +569,16 @@
                 }
             }, true);
         }
+    } else {
+        // Control condition: the score is the whole feedback. Show it for a
+        // fixed time then advance automatically, mirroring the social
+        // conditions (no manual button, no way back).
+        var continueBtn = document.getElementById('fb-continue-btn');
+        if (continueBtn) continueBtn.style.display = 'none';
+        window.setTimeout(function () {
+            if (!form) return;
+            if (form.requestSubmit) form.requestSubmit(); else form.submit();
+        }, AUTO_ADVANCE_MS);
     }
 })();
 </script>

@@ -776,9 +776,8 @@ def _build_plan(participant):
     for pi, task in enumerate(period_tasks):
         task_sets = QD.SETS[task]
         # One randomly-chosen set per difficulty, presented in a fixed difficulty
-        # order. Every task ramps easy -> medium -> hard, except working memory,
-        # which is easy -> hard -> medium (medium and hard blocks swapped).
-        diff_order = ("easy", "hard", "medium") if task == "working_memory" else ("easy", "medium", "hard")
+        # order. Every task (including working memory) ramps easy -> medium -> hard.
+        diff_order = ("easy", "medium", "hard")
         chosen_set_ids = []
         for diff in diff_order:
             candidates = [s for s in task_sets if s.startswith(diff + "_")]
