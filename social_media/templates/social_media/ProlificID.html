@@ -1,0 +1,16 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block content %}
+<style>
+    body {
+        font-size: 1.2em;
+    }
+</style>
+
+<h2 style="color:darkred; font-weight:bold; font-size:1.8em;">Prolific ID</h2>
+<br>
+{% formfield player.prolific_id %}
+
+{{ next_button }}
+{% endblock %}

@@ -167,6 +167,13 @@ TASK_IQ_LABEL = {
     "ravens": "abstract reasoning IQ",
 }
 
+
+def task_iq_title(task: str) -> str:
+    """Title-cased IQ component for page titles, e.g. 'Abstract Reasoning IQ'."""
+    base = TASK_LABELS.get(task, "IQ")
+    titled = " ".join(w.capitalize() for w in base.split())
+    return f"{titled} IQ"
+
 # Targeted prompt shown directly above the answer choices / box on each question.
 TASK_PROMPT = {
     "sequences": "Which number completes the sequence?",
@@ -499,6 +506,11 @@ class Player(BasePlayer):
     # ---- Consent ----
     consent = models.BooleanField(label="")
     llm_rule_confirm = models.BooleanField(label="")
+
+    # ---- Prolific ID (elicited after consent, same as cd_intake_survey) ----
+    prolific_id = models.StringField(
+        label="Please enter your unique Prolific ID below."
+    )
 
     condition = models.StringField(blank=True)
 
@@ -1363,6 +1375,29 @@ class BotCheck(Page):
         player.participant.vars['captcha_verified'] = True
 
 
+class ProlificID(Page):
+    """Elicit and record the participant's Prolific ID (round 1 only)."""
+    form_model = 'player'
+    form_fields = ['prolific_id']
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return player.round_number == 1
+
+    @staticmethod
+    def error_message(player: Player, values):
+        prolific_id = (values.get('prolific_id') or '').strip()
+        if len(prolific_id) != 24:
+            return "Please enter your Prolific ID exactly as shown on Prolific (24 characters)."
+
+    @staticmethod
+    def before_next_page(player: Player, timeout_happened):
+        pid = (player.field_maybe_none('prolific_id') or '').strip()
+        if pid:
+            # Keep participant.label in sync for matching Prolific submissions.
+            player.participant.label = pid
+
+
 class IQReferencePoint(Page):
     """Before-you-begin overview (all participants) plus baseline IQ reference-point
     elicitation for the randomized treatment subgroup."""
@@ -1669,6 +1704,7 @@ class BlockFeedback(Page):
             is_qualitative=cond == 'qualitative_social',
             has_received_message=isinstance(signal, dict) and signal.get('type') in ('quantitative', 'qualitative'),
             task_construct=TASK_CONSTRUCT.get(task, "task"),
+            iq_component_title=task_iq_title(task),
             # Read-only backdrop: re-render the question they just completed so
             # the summary looks like a popup over it. Purely cosmetic; no form.
             period=period,
@@ -1813,6 +1849,7 @@ class IQFeedback(Page):
             is_qualitative=cond == 'qualitative_social',
             has_received_message=isinstance(signal, dict) and signal.get('type') in ('quantitative', 'qualitative'),
             task_construct=TASK_CONSTRUCT.get(task, "task"),
+            iq_component_title=task_iq_title(task),
             # Read-only backdrop: re-render the just-completed question.
             period=period,
             question_in_period=q_in_period,
@@ -1917,7 +1954,12 @@ class PerceivedPercentile(Page):
     @staticmethod
     def vars_for_template(player: Player):
         period, _ = _period_index_and_qnum(player.round_number)
-        return dict(period=period)
+        task = round_spec(player)['task']
+        return dict(
+            period=period,
+            iq_component=TASK_IQ_LABEL.get(task, 'IQ'),
+            iq_component_title=task_iq_title(task),
+        )
 
     @staticmethod
     def error_message(player: Player, values):
@@ -1939,10 +1981,12 @@ class PerceivedPercentileConfidence(Page):
     def vars_for_template(player: Player):
         period, _ = _period_index_and_qnum(player.round_number)
         prior_guess = player.field_maybe_none('perceived_relative_performance')
+        task = round_spec(player)['task']
         return dict(
             period=period,
             prior_guess=prior_guess,
             has_prior_guess=prior_guess is not None,
+            iq_component_title=task_iq_title(task),
         )
 
     @staticmethod
@@ -2498,6 +2542,7 @@ class ProlificCompletion(Page):
 page_sequence = [
     BotCheck,
     Consent,
+    ProlificID,
     IQReferencePoint,
     Intro,
     TaskIntro,

@@ -10,13 +10,13 @@
         display: none;
     }
     .slider-value {
-        min-width: 70px;
         text-align: center;
-        font-size: 1.4em;
+        font-size: 1.15em;
         font-weight: bold;
         color: darkred;
         margin-bottom: 0.5em;
-        min-height: 1.6em;
+        min-height: 2.4em;
+        line-height: 1.35;
     }
     .track-placeholder {
         position: relative;
@@ -44,7 +44,7 @@
     }
 </style>
 
-<h3 style="color:darkred; font-weight:bold;">Period {{ period }} performance estimate</h3>
+<h3 style="color:darkred; font-weight:bold;">Period {{ period }} {{ iq_component_title }} performance estimate</h3>
 <br>
 
 <p>
@@ -52,21 +52,21 @@
     <strong style="color:darkred;">answered the same fifteen questions</strong>
     that you just did.
     How do you think
-    <strong style="color:darkred;">your performance</strong>, in terms of the number of questions answered correctly,
+    <strong style="color:darkred;">your performance</strong>, in terms of the number of {{ iq_component }} questions answered correctly,
     <strong style="color:darkred;">ranks</strong>
     compared to these 100 other participants?
 </p>
 <p>
     Move the slider from <strong style="color:darkred;">0</strong> to <strong style="color:darkred;">100</strong>. For example:
-    <br>&nbsp;&nbsp;&bull; <strong style="color:darkred;">0</strong> means you think you did worse than every other participant.
-    <br>&nbsp;&nbsp;&bull; <strong style="color:darkred;">50</strong> means you think you did better than half of the other participants.
-    <br>&nbsp;&nbsp;&bull; <strong style="color:darkred;">100</strong> means you think you did better than every other participant.
+    <br>&nbsp;&nbsp;&bull; <strong style="color:darkred;">0</strong> means you think you did <strong style="color:darkred;">worse</strong> than every other participant.
+    <br>&nbsp;&nbsp;&bull; <strong style="color:darkred;">50</strong> means you think you did <strong style="color:darkred;">better than half</strong> of the other participants, and <strong style="color:darkred;">worse than the other half</strong>.
+    <br>&nbsp;&nbsp;&bull; <strong style="color:darkred;">100</strong> means you think you did <strong style="color:darkred;">better</strong> than every other participant.
 </p>
 <p>
     You will be paid <strong style="color:darkred;">$0.25</strong> if your answer is
-    within 10 percentage points of the true percentile.
+    within 10 percentage points of your true percentile.
     The payment will come a few days after data collection is complete, so we can compare
-    your answer against the true percentile.
+    your answer against your true percentile.
 </p>
 
 <div class="slider-wrap">
@@ -90,9 +90,10 @@
     var slider = document.getElementById('percentile-slider');
     var display = document.getElementById('slider-value');
     var hidden = document.getElementById('perceived_relative_performance');
+    var iqComponent = "{{ iq_component|escapejs }}";
 
     function updateDisplay(val) {
-        display.textContent = val;
+        display.textContent = 'I think I have a higher ' + iqComponent + ' than ' + val + '% of the other participants.';
         hidden.value = String(val);
     }
 
