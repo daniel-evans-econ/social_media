@@ -80,6 +80,7 @@
         <span>100: I am better than everyone else</span>
     </div>
     <input type="hidden" name="perceived_relative_performance" id="perceived_relative_performance" value="">
+    <input type="hidden" id="iq-component-label" value="{{ iq_component }}">
 </div>
 
 {{ next_button }}
@@ -90,7 +91,8 @@
     var slider = document.getElementById('percentile-slider');
     var display = document.getElementById('slider-value');
     var hidden = document.getElementById('perceived_relative_performance');
-    var iqComponent = "{{ iq_component|escapejs }}";
+    var labelEl = document.getElementById('iq-component-label');
+    var iqComponent = labelEl ? labelEl.value : 'IQ';
 
     function updateDisplay(val) {
         display.textContent = 'I think I have a higher ' + iqComponent + ' than ' + val + '% of the other participants.';
