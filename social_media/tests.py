@@ -21,7 +21,7 @@ from . import (
     ColorTask1, ColorTask2, ColorTask3, ColorTask4, ColorTask5, ColorTask6,
     EndOfPeriodSurvey, WTACompare, Results,
     BigFiveSurvey, SelfEsteemSurvey, NarcissismSurvey, Demographics,
-    SocialMediaUsage, RealismQuestion, SurveyReliabilityOverall,
+    PlatformUsage, RealismQuestion, SurveyReliabilityOverall,
     Comments, FinalResults,
 )
 
@@ -133,7 +133,7 @@ class PlayerBot(Bot):
             yield Submission(SelfEsteemSurvey, {f'rses_{i}': 2 for i in range(1, 11)}, check_html=False)
             yield Submission(NarcissismSurvey, {f'npi_{i}': 1 for i in range(1, 9)}, check_html=False)
             yield Submission(Demographics, dict(age=30, gender='woman', education='bachelor'), check_html=False)
-            yield Submission(SocialMediaUsage, dict(sm_instagram=True, social_media_hours=2.0), check_html=False)
+            yield Submission(PlatformUsage, dict(sm_instagram=True, social_media_hours=2.0), check_html=False)
             yield Submission(RealismQuestion, dict(
                 realism_feedback='The social feedback felt fairly realistic to me overall, thanks.'
             ), check_html=False)

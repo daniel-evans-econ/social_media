@@ -469,7 +469,7 @@ TURNSTILE_TEST_SECRET_KEY = "1x0000000000000000000000000000000AA"
 
 
 class C(BaseConstants):
-    NAME_IN_URL = 'social_media'
+    NAME_IN_URL = 'cognitive_tasks'
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 45
 
@@ -2278,7 +2278,7 @@ class WTACompare(Page):
                 return "Please make a choice for every payment level in both blocks."
 
 
-class SocialMediaUsage(Page):
+class PlatformUsage(Page):
     form_model = 'player'
     form_fields = [
         'sm_instagram', 'sm_tiktok', 'sm_twitter', 'sm_facebook',
@@ -2565,7 +2565,7 @@ page_sequence = [
     SelfEsteemSurvey,
     NarcissismSurvey,
     Demographics,
-    SocialMediaUsage,
+    PlatformUsage,
     RealismQuestion,
     SurveyReliabilityOverall,
     Comments,

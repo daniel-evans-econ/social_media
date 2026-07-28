@@ -11,8 +11,8 @@ if Path('.env').exists():
 # launching, e.g. (PowerShell)  $env:EXPERIMENT_PILOT="iq"; otree devserver
 SESSION_CONFIGS = [
     dict(
-        name='social_media',
-        display_name='Social Media and Well-being Experiment',
+        name='cognitive_tasks',
+        display_name='Cognitive Tasks Study',
         app_sequence=['social_media'],
         num_demo_participants=40,
     ),
