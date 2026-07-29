@@ -18,8 +18,9 @@ design, order randomized). The experiment runs in one of three pilot modes
 """
 
 # Prolific study completion redirect (participant return URL)
-PROLIFIC_COMPLETION_URL = (
-    "https://app.prolific.com/submissions/complete?cc=REPLACE_WITH_YOUR_COMPLETION_CODE"
+PROLIFIC_COMPLETION_URL = os.environ.get(
+    "PROLIFIC_COMPLETION_URL",
+    "https://app.prolific.com/submissions/complete?cc=C16FOI42",
 )
 
 STROOP_COLORS = ["Blue", "Red", "Green", "Yellow"]
