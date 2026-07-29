@@ -103,7 +103,9 @@ class PlayerBot(Bot):
             yield Submission(PerceivedPercentileConfidence, dict(perceived_percentile_confidence=50), check_html=False)
 
         if is_end_of_period_with_p3(p):
-            yield Submission(EndOfPeriodSurvey, dict(mood=3, task_enjoyment=3, payment_satisfaction=3), check_html=False)
+            yield Submission(EndOfPeriodSurvey, dict(
+                mood=3, performance_satisfaction=3, task_enjoyment=3, payment_satisfaction=3,
+            ), check_html=False)
 
         if is_end_of_period_with_p3(p):
             yield Submission(ColorTaskIntro, dict(), check_html=False)

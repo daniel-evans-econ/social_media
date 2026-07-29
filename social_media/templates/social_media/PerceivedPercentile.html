@@ -12,8 +12,8 @@
     .slider-value {
         text-align: center;
         font-size: 1.15em;
-        font-weight: bold;
-        color: darkred;
+        font-weight: normal;
+        color: #222;
         margin-bottom: 0.5em;
         min-height: 2.4em;
         line-height: 1.35;
@@ -95,7 +95,8 @@
     var iqComponent = labelEl ? labelEl.value : 'IQ';
 
     function updateDisplay(val) {
-        display.textContent = 'I think I have a higher ' + iqComponent + ' than ' + val + '% of the other participants.';
+        display.innerHTML = 'I think I have a higher ' + iqComponent
+            + ' than <strong style="color:darkred;">' + val + '%</strong> of the other participants.';
         hidden.value = String(val);
     }
 

@@ -20,6 +20,15 @@
             </p>
             {{ formfield player.mood }}
         </div>
+    {% elif key == 'performance_satisfaction' %}
+        <div class="form-group">
+            <p style="margin-bottom:6px;">
+                How <strong style="color:darkred;">satisfied</strong> are you with your performance on the
+                <span style="color:darkred; font-weight:bold;">{{ task_construct }} task</span>
+                in this period?
+            </p>
+            {{ formfield player.performance_satisfaction }}
+        </div>
     {% elif key == 'task_enjoyment' %}
         <div class="form-group">
             <p style="margin-bottom:6px;">

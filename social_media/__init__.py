@@ -683,6 +683,10 @@ class Player(BasePlayer):
         choices=LIKERT_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True,
         label="",
     )
+    performance_satisfaction = models.IntegerField(
+        choices=LIKERT_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True,
+        label="",
+    )
     mood = models.IntegerField(
         choices=MOOD_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True,
         label="",
@@ -2159,7 +2163,7 @@ class ColorTask6(Page):
 
 class EndOfPeriodSurvey(Page):
     form_model = 'player'
-    form_fields = ['mood', 'task_enjoyment', 'payment_satisfaction']
+    form_fields = ['mood', 'performance_satisfaction', 'payment_satisfaction', 'task_enjoyment']
 
     @staticmethod
     def is_displayed(player: Player):
@@ -2187,9 +2191,13 @@ class EndOfPeriodSurvey(Page):
 
         task = round_spec(player)['task']
 
-        rng = random.Random(f"{player.participant.code}-eop-survey")
-        question_keys = ['mood', 'task_enjoyment', 'payment_satisfaction']
-        rng.shuffle(question_keys)
+        # Mood -> performance satisfaction -> payment satisfaction stay contiguous
+        # (as requested); task enjoyment is randomized before or after that block.
+        rng = random.Random(f"{player.participant.code}-eop-survey-{period}")
+        core = ['mood', 'performance_satisfaction', 'payment_satisfaction']
+        question_keys = list(core)
+        insert_at = rng.choice([0, len(core)])
+        question_keys.insert(insert_at, 'task_enjoyment')
 
         return dict(
             period=period,
@@ -2202,7 +2210,9 @@ class EndOfPeriodSurvey(Page):
 
     @staticmethod
     def error_message(player: Player, values):
-        if (values.get('mood') is None or values.get('task_enjoyment') is None
+        if (values.get('mood') is None
+                or values.get('performance_satisfaction') is None
+                or values.get('task_enjoyment') is None
                 or values.get('payment_satisfaction') is None):
             return "Please answer all questions before continuing."
 
