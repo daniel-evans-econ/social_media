@@ -2192,13 +2192,11 @@ class EndOfPeriodSurvey(Page):
 
         task = round_spec(player)['task']
 
-        # Mood -> performance satisfaction -> payment satisfaction stay contiguous
-        # (as requested); task enjoyment is randomized before or after that block.
-        rng = random.Random(f"{player.participant.code}-eop-survey-{period}")
-        core = ['mood', 'performance_satisfaction', 'payment_satisfaction']
-        question_keys = list(core)
-        insert_at = rng.choice([0, len(core)])
-        question_keys.insert(insert_at, 'task_enjoyment')
+        question_keys = _stable_shuffled(
+            player,
+            f'eop-survey-{period}',
+            ['mood', 'performance_satisfaction', 'payment_satisfaction', 'task_enjoyment'],
+        )
 
         return dict(
             period=period,
