@@ -1,3 +1,1548 @@
 {
-  "_README": "Messages collected from the INITIAL pilot, served to IQ-pilot participants who face the same (task, set_id). Generate with tools/export_pilot_data.py. Structure: { task: { set_id: { 'quantitative': [{'name','number'}], 'qualitative': [{'name','emoji','sentence'}] } } }. Empty pools fall back to simulated messages in code."
+  "_README": "Portable pilot-1 messages for the IQ pilot. Built by tools/build_messages_from_coded.py: qualitative entries come from data/notes_coded.csv (kept only when task_specific==time_specific==nonsense==0 and sent==1); quantitative entries come from data/quant_reports_initial.csv (shared numeric reports).",
+  "working_memory": {
+    "easy_1": {
+      "quantitative": [
+        {
+          "name": "Liz",
+          "number": 5
+        },
+        {
+          "name": "Aten",
+          "number": 2
+        },
+        {
+          "name": "Seb",
+          "number": 5
+        },
+        {
+          "name": "danny",
+          "number": 5
+        },
+        {
+          "name": "ZXZX",
+          "number": 0
+        },
+        {
+          "name": "FoulRabbit",
+          "number": 5
+        },
+        {
+          "name": "hi",
+          "number": 5
+        },
+        {
+          "name": "mousegirl",
+          "number": 5
+        },
+        {
+          "name": "sammy",
+          "number": 5
+        },
+        {
+          "name": "Shay",
+          "number": 5
+        },
+        {
+          "name": "Hummingbird",
+          "number": 5
+        },
+        {
+          "name": "dangerouswithrocks",
+          "number": 5
+        }
+      ],
+      "qualitative": [
+        {
+          "name": "CL",
+          "emoji": "😃",
+          "sentence": "great feel for the result"
+        },
+        {
+          "name": "Lovely",
+          "emoji": "😃",
+          "sentence": "This looks good."
+        },
+        {
+          "name": "Ade.",
+          "emoji": "😃",
+          "sentence": "Smashing it."
+        },
+        {
+          "name": "QueenJuliet",
+          "emoji": "😃",
+          "sentence": "This isn’t difficult at all"
+        },
+        {
+          "name": "Annie",
+          "emoji": "😃",
+          "sentence": "How's everyone doing?"
+        },
+        {
+          "name": "Cherra",
+          "emoji": "😃",
+          "sentence": "Yay! I got 5/5!"
+        },
+        {
+          "name": "Jam",
+          "emoji": "😃",
+          "sentence": "Feel good"
+        },
+        {
+          "name": "Maestro1701",
+          "emoji": "😃",
+          "sentence": "I feel like I did a good job in this section"
+        }
+      ]
+    },
+    "medium_1": {
+      "quantitative": [
+        {
+          "name": "Liz",
+          "number": 1
+        },
+        {
+          "name": "Leaf",
+          "number": 5
+        },
+        {
+          "name": "dixie",
+          "number": 4
+        },
+        {
+          "name": "ZXZX",
+          "number": 0
+        },
+        {
+          "name": "FoulRabbit",
+          "number": 3
+        },
+        {
+          "name": "sammy",
+          "number": 2
+        },
+        {
+          "name": "April",
+          "number": 3
+        }
+      ],
+      "qualitative": [
+        {
+          "name": "joo",
+          "emoji": "😞",
+          "sentence": "I'm bad"
+        },
+        {
+          "name": "Declan",
+          "emoji": "😐",
+          "sentence": "great"
+        },
+        {
+          "name": "jenn",
+          "emoji": "😃",
+          "sentence": "tricky"
+        },
+        {
+          "name": "VV223",
+          "emoji": "😃",
+          "sentence": "gooddddddddddddddd"
+        }
+      ]
+    },
+    "hard_2": {
+      "quantitative": [
+        {
+          "name": "Liz",
+          "number": 1
+        },
+        {
+          "name": "MaxC",
+          "number": 0
+        },
+        {
+          "name": "Aten",
+          "number": 0
+        },
+        {
+          "name": "Seb",
+          "number": 2
+        },
+        {
+          "name": "dixie",
+          "number": 4
+        },
+        {
+          "name": "ZXZX",
+          "number": 1
+        },
+        {
+          "name": "FoulRabbit",
+          "number": 0
+        },
+        {
+          "name": "AY",
+          "number": 4
+        },
+        {
+          "name": "Shay",
+          "number": 3
+        }
+      ],
+      "qualitative": [
+        {
+          "name": "CM",
+          "emoji": "😞",
+          "sentence": "so sad im not too good at these"
+        },
+        {
+          "name": "CL",
+          "emoji": "😐",
+          "sentence": "I tried"
+        },
+        {
+          "name": "J",
+          "emoji": "😞",
+          "sentence": "Okay, I'm cooked."
+        },
+        {
+          "name": "Declan",
+          "emoji": "😃",
+          "sentence": "great"
+        },
+        {
+          "name": "Dax",
+          "emoji": "😐",
+          "sentence": "lol, I'm doomed"
+        },
+        {
+          "name": "RES",
+          "emoji": "😐",
+          "sentence": "I'd like to revise my estimated IQ lol"
+        },
+        {
+          "name": "Jam",
+          "emoji": "😞",
+          "sentence": "i feel sad"
+        },
+        {
+          "name": "Kasper",
+          "emoji": "😞",
+          "sentence": "I am disappointed in myself"
+        }
+      ]
+    },
+    "easy_2": {
+      "quantitative": [
+        {
+          "name": "cathy",
+          "number": 3
+        },
+        {
+          "name": "LeBron",
+          "number": 5
+        },
+        {
+          "name": "MaxC",
+          "number": 5
+        },
+        {
+          "name": "dixie",
+          "number": 5
+        },
+        {
+          "name": "asdasdadsasd",
+          "number": 5
+        },
+        {
+          "name": "Bob",
+          "number": 4
+        },
+        {
+          "name": "AY",
+          "number": 4
+        },
+        {
+          "name": "chloe",
+          "number": 5
+        }
+      ],
+      "qualitative": [
+        {
+          "name": "joo",
+          "emoji": "😃",
+          "sentence": "I'm good"
+        },
+        {
+          "name": "CM",
+          "emoji": "😃",
+          "sentence": "good luck"
+        },
+        {
+          "name": "Declan",
+          "emoji": "😃",
+          "sentence": "great"
+        },
+        {
+          "name": "jenn",
+          "emoji": "😃",
+          "sentence": "enjoyed that"
+        },
+        {
+          "name": "lgn1001",
+          "emoji": "😃",
+          "sentence": "finally"
+        },
+        {
+          "name": "Tony",
+          "emoji": "😐",
+          "sentence": "did ok"
+        },
+        {
+          "name": "lee",
+          "emoji": "😐",
+          "sentence": "3/5, I did okay"
+        },
+        {
+          "name": "nootnoot",
+          "emoji": "😐",
+          "sentence": "Meh, could be better"
+        },
+        {
+          "name": "VV223",
+          "emoji": "😃",
+          "sentence": "Greattttttttttttttttttttttttt"
+        },
+        {
+          "name": "Kasper",
+          "emoji": "😃",
+          "sentence": "I am fired up at the moment"
+        }
+      ]
+    },
+    "medium_2": {
+      "quantitative": [
+        {
+          "name": "LeBron",
+          "number": 1
+        },
+        {
+          "name": "MaxC",
+          "number": 2
+        },
+        {
+          "name": "Aten",
+          "number": 0
+        },
+        {
+          "name": "hi",
+          "number": 2
+        },
+        {
+          "name": "mousegirl",
+          "number": 1
+        },
+        {
+          "name": "Bob",
+          "number": 1
+        },
+        {
+          "name": "AY",
+          "number": 4
+        },
+        {
+          "name": "dangerouswithrocks",
+          "number": 3
+        }
+      ],
+      "qualitative": [
+        {
+          "name": "CM",
+          "emoji": "😞",
+          "sentence": "way too fast for me"
+        },
+        {
+          "name": "CL",
+          "emoji": "😞",
+          "sentence": "too bad i got non correct"
+        },
+        {
+          "name": "Don",
+          "emoji": "😞",
+          "sentence": "tough"
+        },
+        {
+          "name": "KD",
+          "emoji": "😞",
+          "sentence": "I am not good at these..."
+        },
+        {
+          "name": "Tony",
+          "emoji": "😞",
+          "sentence": "did bad"
+        },
+        {
+          "name": "Cherra",
+          "emoji": "😐",
+          "sentence": "This was a bit challenging! I got 3/5"
+        },
+        {
+          "name": "Anthony",
+          "emoji": "😞",
+          "sentence": "Just as I thought"
+        },
+        {
+          "name": "Jam",
+          "emoji": "😞",
+          "sentence": "I feel sad."
+        },
+        {
+          "name": "funnie",
+          "emoji": "😃",
+          "sentence": "predictable"
+        }
+      ]
+    },
+    "hard_1": {
+      "quantitative": [
+        {
+          "name": "LeBron",
+          "number": 0
+        },
+        {
+          "name": "Leaf",
+          "number": 0
+        },
+        {
+          "name": "hi",
+          "number": 3
+        },
+        {
+          "name": "mousegirl",
+          "number": 2
+        },
+        {
+          "name": "Bob",
+          "number": 1
+        },
+        {
+          "name": "sammy",
+          "number": 0
+        },
+        {
+          "name": "April",
+          "number": 1
+        },
+        {
+          "name": "dangerouswithrocks",
+          "number": 3
+        }
+      ],
+      "qualitative": [
+        {
+          "name": "joo",
+          "emoji": "😞",
+          "sentence": "I'm bad"
+        },
+        {
+          "name": "Ade.",
+          "emoji": "😞",
+          "sentence": "hmmmmm"
+        },
+        {
+          "name": "jenn",
+          "emoji": "😐",
+          "sentence": "tough"
+        },
+        {
+          "name": "lgn1001",
+          "emoji": "😃",
+          "sentence": "woohooo"
+        },
+        {
+          "name": "Tony",
+          "emoji": "😞",
+          "sentence": "no good"
+        },
+        {
+          "name": "Cherra",
+          "emoji": "😃",
+          "sentence": "Got all 5 correct!"
+        },
+        {
+          "name": "VV223",
+          "emoji": "😃",
+          "sentence": "okayyyyyyyyyyy"
+        }
+      ]
+    }
+  },
+  "ravens": {
+    "easy_1": {
+      "quantitative": [
+        {
+          "name": "Liz",
+          "number": 2
+        },
+        {
+          "name": "Seb",
+          "number": 2
+        },
+        {
+          "name": "Chasity",
+          "number": 1
+        },
+        {
+          "name": "ZXZX",
+          "number": 1
+        }
+      ],
+      "qualitative": [
+        {
+          "name": "Vaughan",
+          "emoji": "😐",
+          "sentence": "Not sure how to process these..."
+        }
+      ]
+    },
+    "medium_1": {
+      "quantitative": [
+        {
+          "name": "Liz",
+          "number": 2
+        },
+        {
+          "name": "Seb",
+          "number": 2
+        },
+        {
+          "name": "realcashcereal",
+          "number": 2
+        },
+        {
+          "name": "danny",
+          "number": 3
+        },
+        {
+          "name": "sammy",
+          "number": 2
+        }
+      ],
+      "qualitative": [
+        {
+          "name": "AJ26",
+          "emoji": "😃",
+          "sentence": "I did better than I thought I would"
+        },
+        {
+          "name": "Lovely",
+          "emoji": "😐",
+          "sentence": "Hard phase."
+        },
+        {
+          "name": "Vaughan",
+          "emoji": "😞",
+          "sentence": "Thought I did better than I actually did.."
+        },
+        {
+          "name": "Bob",
+          "emoji": "😞",
+          "sentence": "Too hard for me."
+        },
+        {
+          "name": "VV223",
+          "emoji": "😐",
+          "sentence": "Very fun"
+        },
+        {
+          "name": "Stickz",
+          "emoji": "😞",
+          "sentence": "I was wrong."
+        }
+      ]
+    },
+    "hard_1": {
+      "quantitative": [
+        {
+          "name": "Liz",
+          "number": 2
+        },
+        {
+          "name": "DM",
+          "number": 2
+        },
+        {
+          "name": "Chasity",
+          "number": 1
+        },
+        {
+          "name": "sammy",
+          "number": 1
+        }
+      ],
+      "qualitative": [
+        {
+          "name": "Vaughan",
+          "emoji": "😐",
+          "sentence": "Did better than I thought that time."
+        },
+        {
+          "name": "Cherra",
+          "emoji": "😐",
+          "sentence": "I only got 2/5"
+        },
+        {
+          "name": "Rsmith2030",
+          "emoji": "😞",
+          "sentence": "Really hard"
+        }
+      ]
+    },
+    "easy_2": {
+      "quantitative": [
+        {
+          "name": "DM",
+          "number": 3
+        },
+        {
+          "name": "Nano",
+          "number": 1
+        },
+        {
+          "name": "sammy",
+          "number": 4
+        },
+        {
+          "name": "johnpork",
+          "number": 3
+        },
+        {
+          "name": "Azra",
+          "number": 5
+        }
+      ],
+      "qualitative": [
+        {
+          "name": "Lovely",
+          "emoji": "😃",
+          "sentence": "I am trying my best, but this task is so challenging."
+        },
+        {
+          "name": "QueenJuliet",
+          "emoji": "😐",
+          "sentence": "This wasn’t as easy as i expected! prep prep prep"
+        },
+        {
+          "name": "Rsmith2030",
+          "emoji": "😞",
+          "sentence": "Really hard"
+        },
+        {
+          "name": "VV223",
+          "emoji": "😃",
+          "sentence": "It has been fun"
+        },
+        {
+          "name": "Stickz",
+          "emoji": "😐",
+          "sentence": "i didnt understand it at first but I think I got it now"
+        }
+      ]
+    },
+    "medium_2": {
+      "quantitative": [
+        {
+          "name": "Nano",
+          "number": 0
+        },
+        {
+          "name": "ZXZX",
+          "number": 4
+        },
+        {
+          "name": "Dee",
+          "number": 2
+        },
+        {
+          "name": "johnpork",
+          "number": 5
+        },
+        {
+          "name": "Azra",
+          "number": 4
+        }
+      ],
+      "qualitative": [
+        {
+          "name": "QueenJuliet",
+          "emoji": "😞",
+          "sentence": "Helpppp"
+        },
+        {
+          "name": "Olive-Narwhal",
+          "emoji": "😃",
+          "sentence": "Did pretty good on this set."
+        },
+        {
+          "name": "Rsmith2030",
+          "emoji": "😐",
+          "sentence": "Really hard"
+        }
+      ]
+    },
+    "hard_2": {
+      "quantitative": [
+        {
+          "name": "Nano",
+          "number": 1
+        },
+        {
+          "name": "Seb",
+          "number": 0
+        },
+        {
+          "name": "ZXZX",
+          "number": 4
+        },
+        {
+          "name": "dabucs",
+          "number": 3
+        }
+      ],
+      "qualitative": [
+        {
+          "name": "QueenJuliet",
+          "emoji": "😞",
+          "sentence": "Brce yourselves"
+        },
+        {
+          "name": "Bob",
+          "emoji": "😐",
+          "sentence": "Keep at it, even if it's hard."
+        },
+        {
+          "name": "Olive-Narwhal",
+          "emoji": "😐",
+          "sentence": "You win some you lose some, lol."
+        },
+        {
+          "name": "VV223",
+          "emoji": "😞",
+          "sentence": "Well there it is"
+        },
+        {
+          "name": "Stickz",
+          "emoji": "😞",
+          "sentence": "Yeah idk im lost on these"
+        }
+      ]
+    }
+  },
+  "sequences": {
+    "hard_1": {
+      "quantitative": [
+        {
+          "name": "DM",
+          "number": 3
+        },
+        {
+          "name": "Chasity",
+          "number": 1
+        },
+        {
+          "name": "FoulRabbit",
+          "number": 1
+        },
+        {
+          "name": "AY",
+          "number": 5
+        },
+        {
+          "name": "Jomama",
+          "number": 2
+        }
+      ],
+      "qualitative": [
+        {
+          "name": "KJ",
+          "emoji": "😞",
+          "sentence": "Did bad."
+        },
+        {
+          "name": "CL",
+          "emoji": "😞",
+          "sentence": "challenging"
+        },
+        {
+          "name": "Prolifical",
+          "emoji": "😞",
+          "sentence": "missed one"
+        },
+        {
+          "name": "Vaughan",
+          "emoji": "😞",
+          "sentence": "I'm too slow"
+        },
+        {
+          "name": "Annie",
+          "emoji": "😞",
+          "sentence": "No more of these, please..."
+        },
+        {
+          "name": "Mr Ebony",
+          "emoji": "😞",
+          "sentence": "how is it"
+        },
+        {
+          "name": "Tony",
+          "emoji": "😞",
+          "sentence": "not good"
+        },
+        {
+          "name": "Jam",
+          "emoji": "😞",
+          "sentence": "I feel sad"
+        }
+      ]
+    },
+    "easy_1": {
+      "quantitative": [
+        {
+          "name": "Greg",
+          "number": 5
+        },
+        {
+          "name": "jerry",
+          "number": 4
+        },
+        {
+          "name": "MaxC",
+          "number": 5
+        },
+        {
+          "name": "Lolie",
+          "number": 5
+        },
+        {
+          "name": "Chasity",
+          "number": 2
+        },
+        {
+          "name": "john",
+          "number": 5
+        },
+        {
+          "name": "dixie",
+          "number": 5
+        },
+        {
+          "name": "D",
+          "number": 4
+        },
+        {
+          "name": "mousegirl",
+          "number": 5
+        },
+        {
+          "name": "chloe",
+          "number": 5
+        },
+        {
+          "name": "Jomama",
+          "number": 4
+        },
+        {
+          "name": "Lily",
+          "number": 5
+        },
+        {
+          "name": "Azra",
+          "number": 4
+        },
+        {
+          "name": "rl",
+          "number": 4
+        }
+      ],
+      "qualitative": [
+        {
+          "name": "Lopez",
+          "emoji": "😃",
+          "sentence": "I am excited"
+        },
+        {
+          "name": "Prolifical",
+          "emoji": "😃",
+          "sentence": "Fairly easy :D"
+        },
+        {
+          "name": "Declan",
+          "emoji": "😃",
+          "sentence": "great"
+        },
+        {
+          "name": "Don",
+          "emoji": "😃",
+          "sentence": "moving on"
+        },
+        {
+          "name": "Vaughan",
+          "emoji": "😐",
+          "sentence": "Most of those were very easy, but I glitched on one"
+        },
+        {
+          "name": "Dax",
+          "emoji": "😃",
+          "sentence": "feeling good"
+        },
+        {
+          "name": "Kasper",
+          "emoji": "😐",
+          "sentence": "I can't believe I got only 3"
+        }
+      ]
+    },
+    "medium_1": {
+      "quantitative": [
+        {
+          "name": "jerry",
+          "number": 4
+        },
+        {
+          "name": "MaxC",
+          "number": 5
+        },
+        {
+          "name": "rm537",
+          "number": 5
+        },
+        {
+          "name": "Chasity",
+          "number": 2
+        },
+        {
+          "name": "john",
+          "number": 4
+        },
+        {
+          "name": "dixie",
+          "number": 4
+        },
+        {
+          "name": "FoulRabbit",
+          "number": 5
+        },
+        {
+          "name": "D",
+          "number": 4
+        },
+        {
+          "name": "Bob",
+          "number": 2
+        },
+        {
+          "name": "Jomama",
+          "number": 3
+        },
+        {
+          "name": "sweetthang",
+          "number": 5
+        },
+        {
+          "name": "dabucs",
+          "number": 3
+        }
+      ],
+      "qualitative": [
+        {
+          "name": "CL",
+          "emoji": "😐",
+          "sentence": "tough"
+        },
+        {
+          "name": "Prolifical",
+          "emoji": "😃",
+          "sentence": "hooray"
+        },
+        {
+          "name": "Declan",
+          "emoji": "😃",
+          "sentence": "great"
+        },
+        {
+          "name": "Dax",
+          "emoji": "😐",
+          "sentence": "I need more time"
+        },
+        {
+          "name": "jenn",
+          "emoji": "😐",
+          "sentence": "these are tough"
+        },
+        {
+          "name": "teeeeeeeee",
+          "emoji": "😃",
+          "sentence": "gooddddd"
+        },
+        {
+          "name": "lilbro",
+          "emoji": "😃",
+          "sentence": "I am enjoying this"
+        },
+        {
+          "name": "Tony",
+          "emoji": "😞",
+          "sentence": "very bad"
+        },
+        {
+          "name": "Anthony",
+          "emoji": "😃",
+          "sentence": "Great"
+        },
+        {
+          "name": "Jam",
+          "emoji": "😞",
+          "sentence": "I feel sad"
+        }
+      ]
+    },
+    "easy_2": {
+      "quantitative": [
+        {
+          "name": "girloncomputer",
+          "number": 5
+        },
+        {
+          "name": "Aten",
+          "number": 0
+        },
+        {
+          "name": "rm537",
+          "number": 4
+        },
+        {
+          "name": "FoulRabbit",
+          "number": 5
+        },
+        {
+          "name": "Bob",
+          "number": 3
+        },
+        {
+          "name": "AY",
+          "number": 5
+        },
+        {
+          "name": "johnpork",
+          "number": 4
+        },
+        {
+          "name": "dabucs",
+          "number": 5
+        }
+      ],
+      "qualitative": [
+        {
+          "name": "KJ",
+          "emoji": "😐",
+          "sentence": "Did pretty well, but missed one."
+        },
+        {
+          "name": "CL",
+          "emoji": "😃",
+          "sentence": "never expected all"
+        },
+        {
+          "name": "Bob",
+          "emoji": "😃",
+          "sentence": "Easy stuff, don't overthink it."
+        },
+        {
+          "name": "jenn",
+          "emoji": "😃",
+          "sentence": "harder than I expected!"
+        },
+        {
+          "name": "Annie",
+          "emoji": "😐",
+          "sentence": "Oh, Dear...."
+        },
+        {
+          "name": "teeeeeeeee",
+          "emoji": "😃",
+          "sentence": "gooddd"
+        },
+        {
+          "name": "Chocolate",
+          "emoji": "😃",
+          "sentence": "I did good."
+        },
+        {
+          "name": "Mr Ebony",
+          "emoji": "😐",
+          "sentence": "i think the study is lying about my answers"
+        },
+        {
+          "name": "Tony",
+          "emoji": "😐",
+          "sentence": "not bad"
+        },
+        {
+          "name": "Jam",
+          "emoji": "😃",
+          "sentence": "I feel happy"
+        },
+        {
+          "name": "Rsmith2030",
+          "emoji": "😃",
+          "sentence": "Going well"
+        },
+        {
+          "name": "Maestro1701",
+          "emoji": "😃",
+          "sentence": "Pretty good"
+        },
+        {
+          "name": "drendell",
+          "emoji": "😐",
+          "sentence": "I am surprised that I got one wrong"
+        }
+      ]
+    },
+    "hard_2": {
+      "quantitative": [
+        {
+          "name": "girloncomputer",
+          "number": 2
+        },
+        {
+          "name": "MaxC",
+          "number": 5
+        },
+        {
+          "name": "john",
+          "number": 2
+        },
+        {
+          "name": "D",
+          "number": 0
+        },
+        {
+          "name": "mousegirl",
+          "number": 3
+        },
+        {
+          "name": "Bob",
+          "number": 0
+        },
+        {
+          "name": "Lily",
+          "number": 3
+        },
+        {
+          "name": "rl",
+          "number": 0
+        },
+        {
+          "name": "dabucs",
+          "number": 2
+        }
+      ],
+      "qualitative": [
+        {
+          "name": "Bob",
+          "emoji": "😞",
+          "sentence": "Too hard."
+        },
+        {
+          "name": "jenn",
+          "emoji": "😐",
+          "sentence": "that was guessing"
+        },
+        {
+          "name": "Chocolate",
+          "emoji": "😃",
+          "sentence": "I did decent"
+        },
+        {
+          "name": "Olive-Narwhal",
+          "emoji": "😐",
+          "sentence": "Got kinda frustrated towards the end."
+        },
+        {
+          "name": "Anthony",
+          "emoji": "😐",
+          "sentence": "Lucky guesses"
+        },
+        {
+          "name": "chess-matcha-17",
+          "emoji": "😃",
+          "sentence": "Got lucky, had to guess for the last couple"
+        }
+      ]
+    },
+    "medium_2": {
+      "quantitative": [
+        {
+          "name": "Aten",
+          "number": 0
+        },
+        {
+          "name": "mousegirl",
+          "number": 0
+        },
+        {
+          "name": "AY",
+          "number": 1
+        },
+        {
+          "name": "johnpork",
+          "number": 4
+        },
+        {
+          "name": "Lily",
+          "number": 3
+        },
+        {
+          "name": "Azra",
+          "number": 0
+        },
+        {
+          "name": "rl",
+          "number": 3
+        }
+      ],
+      "qualitative": [
+        {
+          "name": "genxbutterfly",
+          "emoji": "😐",
+          "sentence": "Yikes!"
+        },
+        {
+          "name": "Vaughan",
+          "emoji": "😞",
+          "sentence": "Need more than a minute on some of these"
+        },
+        {
+          "name": "Annie",
+          "emoji": "😐",
+          "sentence": "UGG@ This is tuff!"
+        },
+        {
+          "name": "Chocolate",
+          "emoji": "😃",
+          "sentence": "I think i did good."
+        },
+        {
+          "name": "ian",
+          "emoji": "😃",
+          "sentence": "cool!"
+        },
+        {
+          "name": "Kasper",
+          "emoji": "😞",
+          "sentence": "Why am I getting only 3"
+        }
+      ]
+    }
+  },
+  "shape_rotation": {
+    "easy_2": {
+      "quantitative": [
+        {
+          "name": "Greg",
+          "number": 1
+        },
+        {
+          "name": "Nano",
+          "number": 1
+        },
+        {
+          "name": "john",
+          "number": 0
+        },
+        {
+          "name": "hi",
+          "number": 1
+        },
+        {
+          "name": "Jomama",
+          "number": 2
+        },
+        {
+          "name": "Lily",
+          "number": 3
+        },
+        {
+          "name": "rl",
+          "number": 3
+        },
+        {
+          "name": "dangerouswithrocks",
+          "number": 1
+        }
+      ],
+      "qualitative": [
+        {
+          "name": "AJ26",
+          "emoji": "😐",
+          "sentence": "did worse than I thought I would lol"
+        },
+        {
+          "name": "KJ",
+          "emoji": "😐",
+          "sentence": "I did better than I thought."
+        },
+        {
+          "name": "Ade.",
+          "emoji": "😞",
+          "sentence": "That was quite intense. I need to focus going forward."
+        },
+        {
+          "name": "sharkbait",
+          "emoji": "😞",
+          "sentence": "these are hard"
+        },
+        {
+          "name": "lgn1001",
+          "emoji": "😐",
+          "sentence": "Bummer"
+        },
+        {
+          "name": "Chocolate",
+          "emoji": "😐",
+          "sentence": "I did bad."
+        },
+        {
+          "name": "Mr Ebony",
+          "emoji": "😐",
+          "sentence": "okay i tried"
+        },
+        {
+          "name": "lilbro",
+          "emoji": "😐",
+          "sentence": "i am not good at this!"
+        },
+        {
+          "name": "drendell",
+          "emoji": "😃",
+          "sentence": "Happy"
+        }
+      ]
+    },
+    "medium_1": {
+      "quantitative": [
+        {
+          "name": "Greg",
+          "number": 2
+        },
+        {
+          "name": "cathy",
+          "number": 1
+        },
+        {
+          "name": "Leaf",
+          "number": 3
+        },
+        {
+          "name": "john",
+          "number": 1
+        },
+        {
+          "name": "rl",
+          "number": 0
+        }
+      ],
+      "qualitative": [
+        {
+          "name": "AJ26",
+          "emoji": "😃",
+          "sentence": "didn't do so bad"
+        }
+      ]
+    },
+    "hard_1": {
+      "quantitative": [
+        {
+          "name": "Greg",
+          "number": 0
+        },
+        {
+          "name": "LeBron",
+          "number": 4
+        },
+        {
+          "name": "Nano",
+          "number": 1
+        },
+        {
+          "name": "D",
+          "number": 0
+        },
+        {
+          "name": "Lily",
+          "number": 3
+        },
+        {
+          "name": "Shay",
+          "number": 3
+        },
+        {
+          "name": "dangerouswithrocks",
+          "number": 1
+        }
+      ],
+      "qualitative": [
+        {
+          "name": "joo",
+          "emoji": "😞",
+          "sentence": "I'm bad"
+        },
+        {
+          "name": "KJ",
+          "emoji": "😃",
+          "sentence": "I did better than I thought."
+        },
+        {
+          "name": "sharkbait",
+          "emoji": "😐",
+          "sentence": "idk try your best"
+        },
+        {
+          "name": "Stickz",
+          "emoji": "😃",
+          "sentence": "I focused more and was able to get them all"
+        }
+      ]
+    },
+    "hard_2": {
+      "quantitative": [
+        {
+          "name": "jerry",
+          "number": 1
+        },
+        {
+          "name": "JagzFan",
+          "number": 2
+        },
+        {
+          "name": "girloncomputer",
+          "number": 3
+        },
+        {
+          "name": "Leaf",
+          "number": 1
+        },
+        {
+          "name": "john",
+          "number": 3
+        },
+        {
+          "name": "Dee",
+          "number": 1
+        },
+        {
+          "name": "hi",
+          "number": 1
+        },
+        {
+          "name": "Jomama",
+          "number": 2
+        },
+        {
+          "name": "rl",
+          "number": 4
+        }
+      ],
+      "qualitative": [
+        {
+          "name": "lgn1001",
+          "emoji": "😐",
+          "sentence": "not good"
+        },
+        {
+          "name": "lilbro",
+          "emoji": "😃",
+          "sentence": "i am done"
+        }
+      ]
+    },
+    "easy_1": {
+      "quantitative": [
+        {
+          "name": "cathy",
+          "number": 1
+        },
+        {
+          "name": "LeBron",
+          "number": 5
+        },
+        {
+          "name": "Leaf",
+          "number": 5
+        }
+      ],
+      "qualitative": [
+        {
+          "name": "ian",
+          "emoji": "😞",
+          "sentence": "I didn't do well"
+        },
+        {
+          "name": "lee",
+          "emoji": "😞",
+          "sentence": "2/5 So sad!"
+        },
+        {
+          "name": "Stickz",
+          "emoji": "😃",
+          "sentence": "The exercise while thought provoking is also fun."
+        }
+      ]
+    },
+    "medium_2": {
+      "quantitative": [
+        {
+          "name": "LeBron",
+          "number": 0
+        },
+        {
+          "name": "Nano",
+          "number": 2
+        },
+        {
+          "name": "hi",
+          "number": 0
+        },
+        {
+          "name": "Jomama",
+          "number": 1
+        },
+        {
+          "name": "Lily",
+          "number": 3
+        },
+        {
+          "name": "dangerouswithrocks",
+          "number": 2
+        }
+      ],
+      "qualitative": [
+        {
+          "name": "KJ",
+          "emoji": "😞",
+          "sentence": "I did bad!"
+        },
+        {
+          "name": "lgn1001",
+          "emoji": "😐",
+          "sentence": "Yikes"
+        },
+        {
+          "name": "lilbro",
+          "emoji": "😐",
+          "sentence": "I am just trucking on"
+        }
+      ]
+    }
+  }
 }

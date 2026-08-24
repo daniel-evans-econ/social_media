@@ -5,6 +5,8 @@ admin (Data tab). It produces, in ``social_media/data/``:
 
   - ``messages_<pilot>.json`` : shared peer messages keyed by (task, set_id),
     which the NEXT pilot serves to participants facing the same set.
+    Qualitative messages that name task-specific vocabulary are dropped
+    (only task_specific=0 / generic notes are kept).
   - ``iq_scores_<pilot>.json`` : the list of period scores (number correct out
     of 15) per IQ component, to help you fit the IQ distribution that the next
     pilot reads from ``iq_distribution_<pilot>.json``.
@@ -13,6 +15,14 @@ Usage:
     python tools/export_pilot_data.py --pilot initial --csv path/to/wide.csv
 
 The script only reads the CSV; it never touches the live database.
+
+DEPRECATED for messages_initial.json: the pilot-1 -> pilot-2 qualitative pool is
+now built by ``tools/build_messages_from_coded.py`` from the analysis project's
+coded notes, which additionally drop time-specific and nonsense messages
+(task_specific == time_specific == nonsense == 0). This script's message output
+only applies the task-vocabulary filter, so do NOT use it to regenerate
+messages_initial.json or you will lose the extra filtering. Its iq_scores export
+is still current.
 """
 from __future__ import annotations
 
@@ -20,10 +30,13 @@ import argparse
 import csv
 import json
 import re
+import sys
 from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+from social_media.message_vocab import is_task_specific
 DATA_DIR = ROOT / "social_media" / "data"
 
 NUM_ROUNDS = 45
@@ -67,6 +80,7 @@ def build(pilot: str, csv_path: Path):
 
     # messages[task][set_id][quant|qual] -> list of entries
     messages: dict = defaultdict(lambda: defaultdict(lambda: {"quantitative": [], "qualitative": []}))
+    qual_skipped_task_specific = 0
     # scores[component] -> list of period scores
     scores: dict = defaultdict(list)
 
@@ -112,6 +126,9 @@ def build(pilot: str, csv_path: Path):
                 sentence = (rec.get("report_message") or "").strip()
                 if not sentence:
                     continue
+                if is_task_specific(sentence):
+                    qual_skipped_task_specific += 1
+                    continue
                 messages[task][set_id]["qualitative"].append(
                     {"name": name, "emoji": emoji, "sentence": sentence}
                 )
@@ -138,6 +155,8 @@ def build(pilot: str, csv_path: Path):
     n_msgs = sum(len(v.get("quantitative", [])) + len(v.get("qualitative", []))
                  for sets in msg_out.values() for v in sets.values())
     print(f"Wrote {msg_path} ({n_msgs} shared messages across {len(msg_out)} tasks)")
+    if qual_skipped_task_specific:
+        print(f"  Skipped {qual_skipped_task_specific} task-specific qualitative messages")
     print(f"Wrote {scores_path} (period scores per component)")
 
 

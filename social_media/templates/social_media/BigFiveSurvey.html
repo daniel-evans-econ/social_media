@@ -56,6 +56,16 @@
             {% if row.field == 'big5_10' %}{% for choice in form.big5_10 %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
             {% if row.field == 'self_knowledge' %}{% for choice in form.self_knowledge %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
             {% if row.field == 'competitiveness' %}{% for choice in form.competitiveness %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'pref_risk' %}{% for choice in form.pref_risk %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'pref_patience' %}{% for choice in form.pref_patience %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'pref_trust' %}{% for choice in form.pref_trust %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'pref_altruism' %}{% for choice in form.pref_altruism %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'pref_reciprocity' %}{% for choice in form.pref_reciprocity %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'pref_punish' %}{% for choice in form.pref_punish %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'pref_share_success' %}{% for choice in form.pref_share_success %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'pref_share_fail' %}{% for choice in form.pref_share_fail %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'pref_compare' %}{% for choice in form.pref_compare %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'pref_dislike_brag' %}{% for choice in form.pref_dislike_brag %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
             {% if row.field == 'big5_accuracy' %}{% for choice in form.big5_accuracy %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
         </tr>
         {% endfor %}
@@ -67,16 +77,18 @@
 
 <script>
 (function () {
-    // Persist BFI / competitiveness / self-reliability picks across refreshes
-    // and validation re-renders, the same way we do on the WTA, RSES, and
-    // NPI pages. The selector covers both `big5_*` rows (including
-    // big5_accuracy) and the `competitiveness` row that lives in the same
-    // grid.
+    // Persist BFI / preference / competitiveness / self-reliability picks across
+    // refreshes and validation re-renders, the same way we do on the WTA, RSES,
+    // and NPI pages.
     var STORAGE_KEY = 'bfi_picks_{{ player.participant.code }}';
     var FIELD_NAMES = [
         'big5_1', 'big5_2', 'big5_3', 'big5_4', 'big5_5',
         'big5_6', 'big5_7', 'big5_8', 'big5_9', 'big5_10',
-        'self_knowledge', 'big5_accuracy', 'competitiveness',
+        'self_knowledge', 'competitiveness',
+        'pref_risk', 'pref_patience', 'pref_trust', 'pref_altruism',
+        'pref_reciprocity', 'pref_punish', 'pref_share_success',
+        'pref_share_fail', 'pref_compare', 'pref_dislike_brag',
+        'big5_accuracy',
     ];
 
     function loadStored() {

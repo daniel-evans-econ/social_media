@@ -3,13 +3,13 @@
 
 {% block content %}
 <style>
-    /* ---------- Read-only backdrop: the question they just completed ---------- */
-    .q-backdrop {
-        /* dimmed + non-interactive; purely a cosmetic backdrop behind the popup */
-        filter: grayscale(15%);
-        opacity: 0.55;
-        pointer-events: none;
-        user-select: none;
+    .q-backdrop.q-backdrop--blank {
+        position: fixed;
+        inset: 0;
+        background: #f3f3f3;
+        filter: none;
+        opacity: 1;
+        z-index: 1;
     }
     .q-wrap { max-width: 760px; margin: 0 auto; }
     .q-wrap.wide { max-width: 1040px; }
@@ -89,42 +89,8 @@
     .fb-preview .fb-preview-body { font-style: italic; color: #555; }
 </style>
 
-<!-- ================= Read-only backdrop (the question just completed) ================= -->
-<div class="q-backdrop" aria-hidden="true">
-    <div class="q-wrap{% if big_image %} wide{% endif %}">
-        <h3 style="color:darkred; font-weight:bold;">
-            Period {{ period }}, Question {{ question_in_period }} of {{ C.PERIOD_LENGTH }}
-        </h3>
-        <br>
-
-        {% if response_type == 'count' %}
-            <div style="text-align:center; margin-top:16px;">
-                <label class="q-prompt" style="display:block;">
-                    {{ question_prompt }}
-                </label>
-                <div class="wm-static-answer">{% if prior_answer %}{{ prior_answer }}{% else %}&mdash;{% endif %}</div>
-            </div>
-        {% else %}
-            <div style="text-align:center; margin: 20px 0;">
-                {% if is_placeholder %}
-                    <div class="q-placeholder">
-                        [{{ task }} stimulus pending] &mdash; item {{ item.item_id }}
-                    </div>
-                {% else %}
-                    <img class="q-image{% if big_image %} q-image-big{% endif %}" src="{% static image %}" alt="Question">
-                {% endif %}
-            </div>
-            {% if question_prompt %}
-            <p class="q-prompt">{{ question_prompt }}</p>
-            {% endif %}
-            <div class="q-options">
-                {% for opt in option_rows %}
-                    <div class="q-opt{% if opt.selected %} q-opt-selected{% endif %}">{{ opt.value }}</div>
-                {% endfor %}
-            </div>
-        {% endif %}
-    </div>
-</div>
+<!-- Blank page behind the IQ sidebar popup -->
+<div class="q-backdrop q-backdrop--blank" aria-hidden="true"></div>
 
 <!-- ================= Popup sidebar (the real IQFeedback form) ================= -->
 <div class="fb-overlay" id="fb-overlay"></div>
@@ -135,8 +101,8 @@
     </div>
 
     <div class="fb-body">
-        <input type="hidden" name="report_edit_back_count" id="id_report_edit_back_count" value="0">
-        <input type="hidden" name="report_compose_history" id="id_report_compose_history" value="[]">
+        <input type="hidden" name="global_report_edit_back_count" id="id_report_edit_back_count" value="0">
+        <input type="hidden" name="global_report_compose_history" id="id_report_compose_history" value="[]">
         <input type="hidden" id="fb-display-name" value="{{ display_name }}">
 
         <div id="fb-error" role="alert"
@@ -148,7 +114,7 @@
                  returned to (message writing is on a separate page). -->
             <div id="fb-score-step">
                 <div class="fb-score">
-                    Your estimated score on the <strong style="color:darkred;">{{ label }}</strong> component of <strong style="color:darkred;">IQ</strong> is
+                    Your estimated <strong style="color:darkred;">overall IQ</strong> score across both periods is
                     <strong style="color:darkred;">{{ iq }}</strong>.
                 </div>
                 <p class="fb-autoadvance-hint" id="fb-score-hint">
@@ -161,7 +127,7 @@
                 {% if has_received_message %}
                 <p style="font-size:0.92em; color:#444; margin: 0 0 12px 0;">
                     Here is a message from a participant who completed the
-                    <strong style="color:darkred;">same {{ task_construct }} IQ task</strong>.
+                    <strong style="color:darkred;">same set of IQ tasks</strong>.
                 </p>
                 <div class="fb-post fb-received">
                     <div class="fb-post-head">
@@ -175,7 +141,7 @@
                     </div>
                     <div class="fb-post-body">
                         {% if is_quantitative %}
-                            My {{ label }} IQ score is {{ signal.iq }}.
+                            My overall IQ score is {{ signal.iq }}.
                         {% else %}
                             <div class="fb-post-quote">{{ signal.sentence }} <span style="font-size:1.4em;">{{ signal.emoji }}</span></div>
                         {% endif %}
@@ -191,19 +157,19 @@
 
                         {% if is_quantitative %}
                             <p style="margin:8px 0; font-size:1em;">
-                                My {{ label }} IQ score is
-                                <input type="number" name="report_iq" id="id_report_iq"
+                                My overall IQ score is
+                                <input type="number" name="global_report_iq" id="id_report_iq"
                                        min="60" max="140" step="1"
                                        style="width:74px; padding:6px; text-align:center;
                                               border:1px solid #b9d4ff; border-radius:6px;">.
                             </p>
-                            <input type="hidden" name="report_message" id="id_report_message" value="">
+                            <input type="hidden" name="global_report_message" id="id_report_message" value="">
                         {% else %}
                             <div style="font-size:0.9em;">How do you feel?</div>
                             <div class="fb-row fb-emoji">
                                 {% for e in qual_emojis %}
                                     <label>
-                                        <input type="radio" name="report_emoji" value="{{ e }}">
+                                        <input type="radio" name="global_report_emoji" value="{{ e }}">
                                         <span>{{ e }}</span>
                                     </label>
                                 {% endfor %}
@@ -212,7 +178,7 @@
                                 <label for="id_report_message" style="font-size:0.85em;">
                                     Add a short note (max 140 characters):
                                 </label>
-                                <textarea name="report_message" id="id_report_message"
+                                <textarea name="global_report_message" id="id_report_message"
                                           minlength="5" maxlength="140"></textarea>
                             </div>
                         {% endif %}
@@ -288,11 +254,11 @@
 
                     <div class="fb-share-options">
                         <label>
-                            <input type="radio" name="report_shared" value="True">
+                            <input type="radio" name="global_report_shared" value="True">
                             <span>Yes, I wish to share my message</span>
                         </label>
                         <label>
-                            <input type="radio" name="report_shared" value="False">
+                            <input type="radio" name="global_report_shared" value="False">
                             <span>No, I do not wish to share my message</span>
                         </label>
                     </div>
@@ -300,7 +266,7 @@
             </div>
         {% else %}
             <div class="fb-score">
-                Your estimated score on the <strong style="color:darkred;">{{ label }}</strong> component of <strong style="color:darkred;">IQ</strong> is
+                Your estimated <strong style="color:darkred;">overall IQ</strong> score across both periods is
                 <strong style="color:darkred;">{{ iq }}</strong>.
             </div>
             <p class="fb-autoadvance-hint">Continuing in a moment&hellip;</p>
@@ -424,8 +390,8 @@
         var msg = msgEl ? String(msgEl.value || '').trim() : '';
         if (!msg) { showError('Please add a short note before continuing.'); return false; }
         if (msg.length < 5) { showError('Please write at least 5 characters in your note.'); return false; }
-        var emoChecked = document.querySelector('input[name="report_emoji"]:checked');
-        if (document.querySelectorAll('input[name="report_emoji"]').length && !emoChecked) {
+        var emoChecked = document.querySelector('input[name="global_report_emoji"]:checked');
+        if (document.querySelectorAll('input[name="global_report_emoji"]').length && !emoChecked) {
             showError('Please indicate how you feel.'); return false;
         }
         return true;
@@ -449,7 +415,7 @@
         return msgEl ? String(msgEl.value || '').trim() : '';
     }
     function currentEmoji() {
-        var e = document.querySelector('input[name="report_emoji"]:checked');
+        var e = document.querySelector('input[name="global_report_emoji"]:checked');
         return e ? e.value : '';
     }
     function nowTimeStr() {
@@ -500,7 +466,7 @@
     if (iqElInit) iqElInit.addEventListener('input', onMessageEdit);
     var msgElInit = document.getElementById('id_report_message');
     if (msgElInit && msgElInit.tagName === 'TEXTAREA') msgElInit.addEventListener('input', onMessageEdit);
-    Array.prototype.forEach.call(document.querySelectorAll('input[name="report_emoji"]'), function (el) {
+    Array.prototype.forEach.call(document.querySelectorAll('input[name="global_report_emoji"]'), function (el) {
         el.addEventListener('change', function () { logDraftIfChanged(); clearError(); renderPreviews(); });
     });
     renderPreviews();
@@ -562,7 +528,7 @@
         if (form) {
             form.addEventListener('submit', function (e) {
                 if (currentPhase !== 'share') { e.preventDefault(); return; }
-                if (!document.querySelector('input[name="report_shared"]:checked')) {
+                if (!document.querySelector('input[name="global_report_shared"]:checked')) {
                     e.preventDefault();
                     showError('Please choose whether you wish to share your message.');
                 }

@@ -1,0 +1,137 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block content %}
+<style>
+    .motive-list { list-style: none; padding: 0; margin: 0 0 8px 0; }
+    .motive-list li {
+        margin: 0 0 10px 0;
+        padding: 12px 14px;
+        border: 1px solid #d0d0d0;
+        border-radius: 8px;
+        background: #fff;
+    }
+    .motive-list li.disabled {
+        opacity: 0.45;
+        background: #f3f3f3;
+        pointer-events: none;
+    }
+    .motive-list label {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        cursor: pointer;
+        margin: 0;
+        font-weight: 400;
+        line-height: 1.45;
+    }
+    .motive-list input[type="checkbox"] {
+        margin-top: 3px;
+        flex-shrink: 0;
+        width: 1.15em;
+        height: 1.15em;
+    }
+    .motive-hint { color: #555; margin-top: 8px; }
+    .motive-block {
+        margin: 20px 0 4px 0;
+        padding: 14px 16px;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        background: #fafafa;
+    }
+    .motive-block-heading {
+        margin: 0 0 12px 0;
+        line-height: 1.45;
+    }
+</style>
+
+<h3 style="color:darkred; font-weight:bold;">Your experience</h3>
+<br>
+
+<p>
+    Thinking specifically about your experience during this study, which of the following apply to you?
+    Please select <strong style="color:darkred;">all that apply</strong>.
+</p>
+
+<div id="motive-checklists">
+{% if motive_blocks %}
+    {% for block in motive_blocks %}
+    <div class="motive-block">
+        <p class="motive-block-heading">
+            <strong style="color:darkred;">{{ block.heading }}&hellip;</strong>
+        </p>
+        <ul class="motive-list">
+            {% for m in block.choices %}
+            <li data-none="{{ m.data_none }}">
+                <label>
+                    <input type="checkbox" name="{{ m.field }}" value="True"
+                           id="id_{{ m.field }}" {% if m.checked %}checked{% endif %}>
+                    <span>{{ m.text }}</span>
+                </label>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endfor %}
+    <ul class="motive-list" id="motive-list-none">
+        <li data-none="{{ none_motive.data_none }}">
+            <label>
+                <input type="checkbox" name="{{ none_motive.field }}" value="True"
+                       id="id_{{ none_motive.field }}" {% if none_motive.checked %}checked{% endif %}>
+                <span>{{ none_motive.text }}</span>
+            </label>
+        </li>
+    </ul>
+{% else %}
+    <ul class="motive-list" id="motive-list">
+        {% for m in motives %}
+        <li data-none="{{ m.data_none }}">
+            <label>
+                <input type="checkbox" name="{{ m.field }}" value="True"
+                       id="id_{{ m.field }}" {% if m.checked %}checked{% endif %}>
+                <span>{{ m.text }}</span>
+            </label>
+        </li>
+        {% endfor %}
+    </ul>
+{% endif %}
+</div>
+
+{{ next_button }}
+
+<script>
+(function () {
+    var root = document.getElementById('motive-checklists');
+    if (!root) return;
+    var noneLi = root.querySelector('li[data-none="1"]');
+    var noneBox = noneLi ? noneLi.querySelector('input[type="checkbox"]') : null;
+    var others = Array.prototype.slice.call(
+        root.querySelectorAll('li[data-none="0"]')
+    );
+
+    function sync() {
+        var noneOn = !!(noneBox && noneBox.checked);
+        others.forEach(function (li) {
+            var box = li.querySelector('input[type="checkbox"]');
+            if (noneOn) {
+                if (box) box.checked = false;
+                li.classList.add('disabled');
+            } else {
+                li.classList.remove('disabled');
+            }
+        });
+    }
+
+    if (noneBox) noneBox.addEventListener('change', sync);
+    others.forEach(function (li) {
+        var box = li.querySelector('input[type="checkbox"]');
+        if (!box) return;
+        box.addEventListener('change', function () {
+            if (box.checked && noneBox) noneBox.checked = false;
+            sync();
+        });
+    });
+    sync();
+})();
+</script>
+{% endblock %}

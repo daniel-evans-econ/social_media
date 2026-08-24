@@ -12,17 +12,18 @@ IQ readout are exercised) and fills in all surveys.
 from otree.api import Bot, Submission
 
 from . import (
-    C, CFG, QD, WTA_AMOUNTS, QUAL_EMOJIS,
-    round_spec, get_condition, stroop_question,
+    C, CFG, QD, WTA_AMOUNTS, QUAL_EMOJIS, BFI_CORE_FIELDS,
+    round_spec, get_condition, experienced_conditions,
     is_feedback_round, is_third_period, third_period_played,
-    is_end_of_period, is_end_of_period_with_p3,
+    is_end_of_period_with_p3,
     BotCheck, Consent, ProlificID, IQReferencePoint, Intro, TaskIntro, QuestionPage, BlockFeedback, IQFeedback,
-    PerceivedPercentile, PerceivedPercentileConfidence, ColorTaskIntro,
-    ColorTask1, ColorTask2, ColorTask3, ColorTask4, ColorTask5, ColorTask6,
-    EndOfPeriodSurvey, WTACompare, Results,
+    EndOfPeriodSurvey, TaskEffort, WTACompare, Results, GlobalIQFeedback,
+    PerceivedPercentile, PerceivedPercentileConfidence,
     BigFiveSurvey, SelfEsteemSurvey, NarcissismSurvey, Demographics,
-    PlatformUsage, RealismQuestion, SurveyReliabilityOverall,
-    Comments, FinalResults,
+    PlatformUsage, RealismQuestion,
+    ExperienceChecklist1, ExperienceChecklist2, ExperienceChecklist3,
+    experience_page_order, ToolsUsed,
+    SurveyReliabilityOverall, Comments, FinalResults,
 )
 
 
@@ -107,18 +108,19 @@ class PlayerBot(Bot):
                 mood=3, performance_satisfaction=3, task_enjoyment=3, payment_satisfaction=3,
             ), check_html=False)
 
-        if is_end_of_period_with_p3(p):
-            yield Submission(ColorTaskIntro, dict(), check_html=False)
-            color_pages = [ColorTask1, ColorTask2, ColorTask3, ColorTask4, ColorTask5, ColorTask6]
-            for n, page in enumerate(color_pages, start=1):
-                ink = stroop_question(p, n)['color']
-                yield Submission(
-                    page,
-                    {f'stroop_{n}': ink, f'stroop_{n}_response_time': 1.0},
-                    check_html=False,
-                )
-
         if CFG['use_wta'] and self.round_number == 2 * C.PERIOD_LENGTH:
+            if CFG['show_iq']:
+                treatment, _ = experienced_conditions(p)
+                gifb = {}
+                if treatment == 'quantitative_social':
+                    gifb.update(global_report_iq=100, global_report_shared=True)
+                elif treatment == 'qualitative_social':
+                    gifb.update(
+                        global_report_emoji=QUAL_EMOJIS[0],
+                        global_report_message='Felt good overall.',
+                        global_report_shared=True,
+                    )
+                yield Submission(GlobalIQFeedback, gifb, check_html=False)
             wta = {}
             for i in range(1, len(WTA_AMOUNTS) + 1):
                 wta[f'wta_t_{i}'] = 'Yes'
@@ -127,17 +129,66 @@ class PlayerBot(Bot):
             yield Submission(Results, dict(), check_html=False)
 
         if self.round_number == C.NUM_ROUNDS:
-            bfi = {f'big5_{i}': 3 for i in range(1, 11)}
-            bfi['self_knowledge'] = 3
+            bfi = {f: 3 for f in BFI_CORE_FIELDS}
             bfi['big5_accuracy'] = 3
-            bfi['competitiveness'] = 3
             yield Submission(BigFiveSurvey, bfi, check_html=False)
             yield Submission(SelfEsteemSurvey, {f'rses_{i}': 2 for i in range(1, 11)}, check_html=False)
             yield Submission(NarcissismSurvey, {f'npi_{i}': 1 for i in range(1, 9)}, check_html=False)
-            yield Submission(Demographics, dict(age=30, gender='woman', education='bachelor'), check_html=False)
+            yield Submission(Demographics, dict(
+                age=30, gender='woman', education='bachelor', taken_iq_test_before='Yes',
+            ), check_html=False)
+            yield Submission(TaskEffort, dict(task_effort=75), check_html=False)
             yield Submission(PlatformUsage, dict(sm_instagram=True, social_media_hours=2.0), check_html=False)
             yield Submission(RealismQuestion, dict(
                 realism_feedback='The social feedback felt fairly realistic to me overall, thanks.'
+            ), check_html=False)
+            _exp_write = dict(
+                write_well_show=True,
+                write_well_downplay=False,
+                write_poor_honest=False,
+                write_poor_exaggerate=False,
+                write_peer_well_up=False,
+                write_peer_well_down=False,
+                write_peer_poor_up=False,
+                write_peer_poor_down=False,
+                write_match_tone=False,
+                write_none=False,
+            )
+            _exp_share = dict(
+                share_well_positive=True,
+                share_well_withhold=False,
+                share_poor_positive=False,
+                share_poor_withhold=True,
+                share_peer_well_up=False,
+                share_peer_well_down=False,
+                share_peer_poor_up=False,
+                share_peer_poor_down=False,
+                share_helpful=False,
+                share_none=False,
+            )
+            _exp_impact = dict(
+                impact_recv_mood=True,
+                impact_recv_sat=False,
+                impact_recv_effort=False,
+                impact_send_mood=False,
+                impact_send_sat=True,
+                impact_send_effort=False,
+                impact_none=False,
+            )
+            _exp_by_key = dict(writing=_exp_write, sharing=_exp_share, impacts=_exp_impact)
+            for slot, page_cls in enumerate((
+                ExperienceChecklist1, ExperienceChecklist2, ExperienceChecklist3,
+            )):
+                page_key = experience_page_order(p.participant)[slot]
+                yield Submission(page_cls, _exp_by_key[page_key], check_html=False)
+            yield Submission(ToolsUsed, dict(
+                tool_pen_paper=True,
+                tool_calculator=False,
+                tool_ai=False,
+                tool_cellphone_camera=False,
+                tool_search_engine=False,
+                tool_ask_someone_else=False,
+                tool_none=False,
             ), check_html=False)
             yield Submission(SurveyReliabilityOverall, dict(survey_reliability=7), check_html=False)
             yield Submission(Comments, dict(comments='Great study, no issues.'), check_html=False)

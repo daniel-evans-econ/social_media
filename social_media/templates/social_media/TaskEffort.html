@@ -1,0 +1,102 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block content %}
+<style>
+    .slider-wrap { max-width: 640px; margin: 24px auto; }
+    .slider-wrap input[type="range"] {
+        width: 100%;
+        cursor: pointer;
+        display: none;
+    }
+    .slider-value {
+        min-width: 70px;
+        text-align: center;
+        font-size: 1.4em;
+        font-weight: bold;
+        color: darkred;
+        margin-bottom: 0.5em;
+        min-height: 1.6em;
+    }
+    .track-placeholder {
+        position: relative;
+        width: 100%;
+        height: 36px;
+        cursor: pointer;
+    }
+    .track-placeholder .track-line {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: #ccc;
+        border-radius: 2px;
+        transform: translateY(-50%);
+    }
+    .scale-marks {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.85em;
+        color: #666;
+        max-width: 640px;
+        margin: 8px auto 0 auto;
+    }
+</style>
+
+<h3 style="color:darkred; font-weight:bold;">Your effort on the intelligence tests</h3>
+<br>
+
+<p>
+    Thinking about the <strong style="color:darkred;">main intelligence-test questions</strong>
+    you answered during this study, how much effort did you exert overall?
+</p>
+<p>
+    Move the slider from <strong style="color:darkred;">0</strong>
+    (&ldquo;no effort at all&rdquo;) to <strong style="color:darkred;">100</strong>
+    (&ldquo;maximum effort&rdquo;).
+</p>
+
+<div class="slider-wrap">
+    <div class="slider-value" id="slider-value"></div>
+    <div class="track-placeholder" id="effort-track-placeholder">
+        <div class="track-line"></div>
+    </div>
+    <input type="range" id="effort-slider" min="0" max="100" step="1" value="50">
+    <div class="scale-marks">
+        <span>0 (no effort at all)</span>
+        <span>100 (maximum effort)</span>
+    </div>
+    <input type="hidden" name="task_effort" id="task_effort" value="">
+</div>
+
+{{ next_button }}
+
+<script>
+(function () {
+    var placeholder = document.getElementById('effort-track-placeholder');
+    var slider = document.getElementById('effort-slider');
+    var display = document.getElementById('slider-value');
+    var hidden = document.getElementById('task_effort');
+
+    function updateDisplay(val) {
+        display.textContent = val;
+        hidden.value = String(val);
+    }
+
+    placeholder.addEventListener('click', function (e) {
+        var rect = placeholder.getBoundingClientRect();
+        var pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        var val = Math.round(pct * 100);
+        slider.value = String(val);
+        updateDisplay(val);
+        placeholder.style.display = 'none';
+        slider.style.display = 'block';
+    });
+
+    slider.addEventListener('input', function () {
+        updateDisplay(slider.value);
+    });
+})();
+</script>
+{% endblock %}

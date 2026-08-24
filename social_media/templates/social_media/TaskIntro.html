@@ -234,4 +234,15 @@
     if (checkBtn) checkBtn.addEventListener('click', reveal);
 })();
 </script>
+
+{% if preload_images %}
+{# Preload upcoming stimuli into the browser cache while the participant reads
+   the example. Working memory images are shown for only ~1.7s, so a first-load
+   fetch during the task would cause visible lag. Hidden but eagerly fetched. #}
+<div aria-hidden="true" style="position:absolute; left:-9999px; top:auto; width:1px; height:1px; overflow:hidden;">
+    {% for img in preload_images %}
+    <img src="{% static img %}" alt="" loading="eager" decoding="async" fetchpriority="high">
+    {% endfor %}
+</div>
+{% endif %}
 {% endblock %}

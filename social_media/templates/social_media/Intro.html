@@ -4,61 +4,17 @@
 {% block content %}
 <style>
     body { font-size: 1.1em; }
-
-    .info-tip {
-        position: relative;
-        display: inline-block;
-        margin-left: 4px;
-        cursor: help;
-        color: #1a4998;
-        font-weight: bold;
-        border: 1px solid #1a4998;
-        border-radius: 50%;
-        width: 1.3em;
-        height: 1.3em;
-        line-height: 1.25em;
-        text-align: center;
-        font-size: 0.8em;
-        vertical-align: middle;
-    }
-    .info-tip .info-tip-text {
-        visibility: hidden;
-        opacity: 0;
-        width: 330px;
-        max-width: 80vw;
-        background: #333;
-        color: #fff;
-        text-align: left;
-        border-radius: 8px;
-        padding: 10px 12px;
-        position: absolute;
-        z-index: 100;
-        bottom: 145%;
-        left: 50%;
-        transform: translateX(-50%);
-        transition: opacity 0.15s ease;
-        font-size: 0.85rem;
-        font-weight: normal;
-        line-height: 1.45;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
-    }
-    .info-tip:hover .info-tip-text,
-    .info-tip:focus .info-tip-text {
-        visibility: visible;
-        opacity: 1;
-    }
 </style>
 
 <h2 style="color:darkred; font-weight:bold;">Further instructions</h2>
 <br>
 <p>
-    {% if receives_messages %}In some periods, you will
-    <strong style="color:darkred;">receive messages from other participants</strong>.
-    We will <strong style="color:darkred;">not verify the truthfulness</strong> of the messages you write to other participants.
-    You will also have the opportunity to
+    {% if receives_messages %}In some periods, you will have the opportunity to
     <strong style="color:darkred;">send messages to other participants</strong> about how you did on the main task.
-    Not all other participants chose to send a message, and we did
-    <strong style="color:darkred;">not verify the truthfulness</strong> of what they wrote.{% else %}In some periods, you will have the opportunity to
+    We will <strong style="color:darkred;">not verify the truthfulness</strong> of the messages you write to other participants.
+    You will also
+    <strong style="color:darkred;">receive messages from other participants</strong>.
+    Not all other participants chose to send a message.{% else %}In some periods, you will have the opportunity to
     <strong style="color:darkred;">send messages to other participants</strong> about how you did on the main task.
     We will <strong style="color:darkred;">not verify the truthfulness</strong> of the messages you write to other participants.{% endif %}
 </p>
@@ -68,12 +24,6 @@
 <input type="text" name="display_name" id="id_display_name" maxlength="60" autocomplete="nickname"
        style="width:100%; max-width:420px; padding:10px; font-size:1em;
               border:1px solid #b9d4ff; border-radius:6px; box-sizing:border-box;">
-{% if show_iq %}
-<p>
-    In each period, we will use your answers to estimate your score on the relevant
-    <strong style="color:darkred;">component of IQ</strong>.<span class="info-tip" tabindex="0" aria-label="More information about the IQ components">i<span class="info-tip-text">The questions we will ask you were specifically selected to target each component of IQ. The IQ scores we will report to you are merely estimates. They have been calculated relative to other Prolific participants and are therefore sample-specific.</span></span>
-</p>
-{% endif %}
 <p>
     After answering all of the questions in a given period,
     you will complete a handful of short tasks and make some choices that affect your earnings.

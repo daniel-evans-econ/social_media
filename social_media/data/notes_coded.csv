@@ -1,0 +1,306 @@
+﻿pcode,prolific_id,username,session,finished,block_global,period,block_in_period,task_label,difficulty,set_id,score,sent,emoji_label,msg_words,msg_len,msg,cat_states_a_number,cat_says_they_did_well,cat_says_they_did_badly,cat_mentions_the_task_being_hard,cat_blames_own_ability,cat_brags_about_own_ability,cat_names_an_emotion,cat_compares_to_own_expectation,cat_compares_across_blocks,cat_addresses_the_audience,cat_says_it_was_enjoyable,cat_sarcasm_or_gallows_humour,vocab_numerical,vocab_spatial,vocab_working_memory,vocab_abstract,n_categories,uncoded,task_specific,names_other_task,time_ref,time_comparative,time_specific,nonsense,sentiment_pos,sentiment_neg,sentiment
+0eugu0o3,69b5fbeb75748ae2b41bc489,joo,4nes3mql,True,1,1,1,Spatial reasoning,easy,easy_1,5,0,Positive,2,9,Very good,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+0eugu0o3,69b5fbeb75748ae2b41bc489,joo,4nes3mql,True,2,1,2,Spatial reasoning,medium,medium_2,2,0,Neutral,2,7,I'm bad,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+0eugu0o3,69b5fbeb75748ae2b41bc489,joo,4nes3mql,True,3,1,3,Spatial reasoning,hard,hard_1,1,1,Negative,2,7,I'm bad,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+0eugu0o3,69b5fbeb75748ae2b41bc489,joo,4nes3mql,True,4,2,1,Working memory,easy,easy_2,5,1,Positive,2,8,I'm good,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,1,0,1
+0eugu0o3,69b5fbeb75748ae2b41bc489,joo,4nes3mql,True,5,2,2,Working memory,medium,medium_1,1,1,Negative,2,7,I'm bad,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+0eugu0o3,69b5fbeb75748ae2b41bc489,joo,4nes3mql,True,6,2,3,Working memory,hard,hard_1,1,1,Negative,2,7,I'm bad,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+0q9gg4qy,69c45e1ec41a12dde0aac876,k,4nes3mql,True,1,1,1,Spatial reasoning,easy,easy_1,5,0,Neutral,2,9,It's Ok,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+0q9gg4qy,69c45e1ec41a12dde0aac876,k,4nes3mql,True,2,1,2,Spatial reasoning,medium,medium_1,4,0,Neutral,3,12,It' too hard,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+0q9gg4qy,69c45e1ec41a12dde0aac876,k,4nes3mql,True,3,1,3,Spatial reasoning,hard,hard_2,2,0,Negative,3,12,That too bad,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+0q9gg4qy,69c45e1ec41a12dde0aac876,k,4nes3mql,True,4,2,1,Working memory,easy,easy_2,5,0,Positive,2,7,It's OK,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+0q9gg4qy,69c45e1ec41a12dde0aac876,k,4nes3mql,True,5,2,2,Working memory,medium,medium_2,2,0,Negative,2,8,Too hard,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+0q9gg4qy,69c45e1ec41a12dde0aac876,k,4nes3mql,True,6,2,3,Working memory,hard,hard_2,0,0,Negative,1,10,Impossible,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+1ux3am8b,69aafa2956b44dbc95d9a56e,AJ26,4nes3mql,True,1,1,1,Spatial reasoning,easy,easy_2,2,1,Neutral,8,36,did worse than I thought I would lol,0,0,1,0,0,0,0,1,1,0,0,1,0,0,0,0,4,0,0,0,0,0,0,0,0,1,-1
+1ux3am8b,69aafa2956b44dbc95d9a56e,AJ26,4nes3mql,True,2,1,2,Spatial reasoning,medium,medium_1,3,1,Positive,4,16,didn't do so bad,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+1ux3am8b,69aafa2956b44dbc95d9a56e,AJ26,4nes3mql,True,3,1,3,Spatial reasoning,hard,hard_1,2,0,Neutral,4,20,didn't do that great,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+1ux3am8b,69aafa2956b44dbc95d9a56e,AJ26,4nes3mql,True,4,2,1,Abstract reasoning,easy,easy_2,5,0,Positive,3,11,I did great,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,1,0,1
+1ux3am8b,69aafa2956b44dbc95d9a56e,AJ26,4nes3mql,True,5,2,2,Abstract reasoning,medium,medium_1,5,1,Positive,8,35,I did better than I thought I would,0,1,0,0,0,0,0,1,1,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,1,0,1
+1ux3am8b,69aafa2956b44dbc95d9a56e,AJ26,4nes3mql,True,6,2,3,Abstract reasoning,hard,hard_2,2,1,Neutral,11,48,"This one was a bit harder, I didn't do that well",0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,1,0,1
+2l0ytatc,69c13c0ad9ea03501703d527,KJ,4nes3mql,True,1,1,1,Numerical reasoning,easy,easy_2,4,1,Neutral,6,32,"Did pretty well, but missed one.",0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+2l0ytatc,69c13c0ad9ea03501703d527,KJ,4nes3mql,True,2,1,2,Numerical reasoning,medium,medium_1,4,0,Positive,3,13,I did decent.,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+2l0ytatc,69c13c0ad9ea03501703d527,KJ,4nes3mql,True,3,1,3,Numerical reasoning,hard,hard_1,0,1,Negative,2,8,Did bad.,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+2l0ytatc,69c13c0ad9ea03501703d527,KJ,4nes3mql,True,7,3,1,Spatial reasoning,easy,easy_2,3,1,Neutral,6,28,I did better than I thought.,0,1,0,0,0,0,0,1,1,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,1,0,1
+2l0ytatc,69c13c0ad9ea03501703d527,KJ,4nes3mql,True,8,3,2,Spatial reasoning,medium,medium_2,0,1,Negative,3,10,I did bad!,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+2l0ytatc,69c13c0ad9ea03501703d527,KJ,4nes3mql,True,9,3,3,Spatial reasoning,hard,hard_1,3,1,Positive,6,28,I did better than I thought.,0,1,0,0,0,0,0,1,1,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,1,0,1
+2n6g3i0s,69fe16237f64f9b270be8071,CM,4nes3mql,False,4,2,1,Working memory,easy,easy_2,4,1,Positive,2,10,good luck,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+2n6g3i0s,69fe16237f64f9b270be8071,CM,4nes3mql,False,5,2,2,Working memory,medium,medium_2,1,1,Negative,5,21,way too fast for me,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+2n6g3i0s,69fe16237f64f9b270be8071,CM,4nes3mql,False,6,2,3,Working memory,hard,hard_2,1,1,Negative,8,31,so sad im not too good at these,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,1,1,0
+2n6g3i0s,69fe16237f64f9b270be8071,CM,4nes3mql,False,7,3,1,Numerical reasoning,easy,easy_2,3,1,Neutral,2,15,getting harder,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,2,0,0,0,1,1,1,0,0,0,0
+2oky51f9,69fcc8642de981c893eb6958,genxbutterfly,4nes3mql,True,1,1,1,Numerical reasoning,easy,easy_1,5,1,Positive,4,20,Pretty good so far.,0,1,0,0,0,1,0,0,1,0,0,0,0,0,0,0,3,0,0,0,1,0,1,0,1,0,1
+2oky51f9,69fcc8642de981c893eb6958,genxbutterfly,4nes3mql,True,2,1,2,Numerical reasoning,medium,medium_2,2,1,Neutral,1,6,Yikes!,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+2oky51f9,69fcc8642de981c893eb6958,genxbutterfly,4nes3mql,True,3,1,3,Numerical reasoning,hard,hard_1,2,0,Neutral,3,9,Oh no lol,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0
+2oky51f9,69fcc8642de981c893eb6958,genxbutterfly,4nes3mql,True,4,2,1,Spatial reasoning,easy,easy_2,1,0,Negative,4,11,No no oh no,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+2oky51f9,69fcc8642de981c893eb6958,genxbutterfly,4nes3mql,True,5,2,2,Spatial reasoning,medium,medium_1,2,0,Negative,4,14,Do I have to?,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0
+2oky51f9,69fcc8642de981c893eb6958,genxbutterfly,4nes3mql,True,6,2,3,Spatial reasoning,hard,hard_2,1,0,Negative,10,58,Oh my! I have always been terrible with spatial relations.,0,0,0,0,1,0,0,0,0,0,0,1,0,1,0,0,2,0,1,0,0,0,0,0,0,1,-1
+2pu2mfou,6a0096aa88d8d5acbe62aea5,Lopez,4nes3mql,True,1,1,1,Numerical reasoning,easy,easy_1,5,1,Positive,3,12,I am excited,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+2pu2mfou,6a0096aa88d8d5acbe62aea5,Lopez,4nes3mql,True,2,1,2,Numerical reasoning,medium,medium_2,4,0,Positive,4,17,I love this game.,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,2,0,0,0,0,0,0,0,1,0,1
+2pu2mfou,6a0096aa88d8d5acbe62aea5,Lopez,4nes3mql,True,3,1,3,Numerical reasoning,hard,hard_2,4,0,Positive,1,11,interesting,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+2pu2mfou,6a0096aa88d8d5acbe62aea5,Lopez,4nes3mql,True,7,3,1,Spatial reasoning,easy,easy_1,3,0,Positive,3,12,I am excited,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+2pu2mfou,6a0096aa88d8d5acbe62aea5,Lopez,4nes3mql,True,8,3,2,Spatial reasoning,medium,medium_1,1,0,Positive,1,11,interesting,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+2pu2mfou,6a0096aa88d8d5acbe62aea5,Lopez,4nes3mql,True,9,3,3,Spatial reasoning,hard,hard_1,2,0,Neutral,3,19,I performed poorly.,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+3ijn0kbl,6a11c023ec847ce1395368e1,CL,4nes3mql,True,1,1,1,Working memory,easy,easy_1,5,1,Positive,5,25,great feel for the result,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,1
+3ijn0kbl,6a11c023ec847ce1395368e1,CL,4nes3mql,True,2,1,2,Working memory,medium,medium_2,0,1,Negative,6,25,too bad i got non correct,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,1,-1
+3ijn0kbl,6a11c023ec847ce1395368e1,CL,4nes3mql,True,3,1,3,Working memory,hard,hard_2,1,1,Neutral,2,7,I tried,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+3ijn0kbl,6a11c023ec847ce1395368e1,CL,4nes3mql,True,7,3,1,Numerical reasoning,easy,easy_2,5,1,Positive,3,18,never expected all,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+3ijn0kbl,6a11c023ec847ce1395368e1,CL,4nes3mql,True,8,3,2,Numerical reasoning,medium,medium_1,3,1,Neutral,1,5,tough,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+3ijn0kbl,6a11c023ec847ce1395368e1,CL,4nes3mql,True,9,3,3,Numerical reasoning,hard,hard_1,0,1,Negative,1,11,challenging,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+3w9ubh5a,6a1db4d50cadfea4ace0ad2a,Lovely,4nes3mql,True,1,1,1,Abstract reasoning,easy,easy_2,3,1,Positive,11,53,"I am trying my best, but this task is so challenging.",0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+3w9ubh5a,6a1db4d50cadfea4ace0ad2a,Lovely,4nes3mql,True,2,1,2,Abstract reasoning,medium,medium_1,2,1,Neutral,2,11,Hard phase.,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+3w9ubh5a,6a1db4d50cadfea4ace0ad2a,Lovely,4nes3mql,True,3,1,3,Abstract reasoning,hard,hard_1,1,0,Negative,5,25,Hard phase to know answer,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+3w9ubh5a,6a1db4d50cadfea4ace0ad2a,Lovely,4nes3mql,True,4,2,1,Working memory,easy,easy_1,5,1,Positive,3,16,This looks good.,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,1
+3w9ubh5a,6a1db4d50cadfea4ace0ad2a,Lovely,4nes3mql,True,5,2,2,Working memory,medium,medium_2,0,0,Negative,2,11,That's hard,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+3w9ubh5a,6a1db4d50cadfea4ace0ad2a,Lovely,4nes3mql,True,6,2,3,Working memory,hard,hard_1,0,0,Negative,3,21,That's very difficult,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+4s05upbq,67d46a8b5b34b2142875e4a4,J,4nes3mql,True,4,2,1,Working memory,easy,easy_1,5,1,Neutral,9,39,"I didn't do well, math is not my forte.",0,0,1,0,1,0,0,0,0,0,0,0,1,0,0,0,2,0,1,1,0,0,0,0,1,0,1
+4s05upbq,67d46a8b5b34b2142875e4a4,J,4nes3mql,True,5,2,2,Working memory,medium,medium_1,2,1,Neutral,8,43,"Only slightly better, not all of them wrong",0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,1,1,0
+4s05upbq,67d46a8b5b34b2142875e4a4,J,4nes3mql,True,6,2,3,Working memory,hard,hard_2,0,1,Negative,3,17,"Okay, I'm cooked.",0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0
+4s05upbq,67d46a8b5b34b2142875e4a4,J,4nes3mql,True,7,3,1,Abstract reasoning,easy,easy_2,0,0,Negative,5,25,Now this is just stupid.,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,2,0,0,0,0,0,0,0,0,1,-1
+4s05upbq,67d46a8b5b34b2142875e4a4,J,4nes3mql,True,8,3,2,Abstract reasoning,medium,medium_2,0,0,Neutral,3,16,Nope got nothing,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+4s05upbq,67d46a8b5b34b2142875e4a4,J,4nes3mql,True,9,3,3,Abstract reasoning,hard,hard_2,0,0,Neutral,3,11,Not for me.,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+53a6zigc,695c76d277e610a000cc4bfe,Prolifical,4nes3mql,True,1,1,1,Numerical reasoning,easy,easy_1,5,1,Positive,3,14,Fairly easy :D,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+53a6zigc,695c76d277e610a000cc4bfe,Prolifical,4nes3mql,True,2,1,2,Numerical reasoning,medium,medium_1,5,1,Positive,1,6,hooray,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+53a6zigc,695c76d277e610a000cc4bfe,Prolifical,4nes3mql,True,3,1,3,Numerical reasoning,hard,hard_1,4,1,Negative,2,10,missed one,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+53a6zigc,695c76d277e610a000cc4bfe,Prolifical,4nes3mql,True,4,2,1,Abstract reasoning,easy,easy_1,3,0,Negative,2,11,nooooo whyy,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+53a6zigc,695c76d277e610a000cc4bfe,Prolifical,4nes3mql,True,5,2,2,Abstract reasoning,medium,medium_1,3,1,Negative,1,11,rthsrthsrth,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0
+53a6zigc,695c76d277e610a000cc4bfe,Prolifical,4nes3mql,True,6,2,3,Abstract reasoning,hard,hard_1,0,0,Negative,1,6,whoops,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+71uwqxuo,67745cfb4893225ef8d4bc4a,Eddd,4nes3mql,True,1,1,1,Numerical reasoning,easy,easy_2,3,0,Neutral,2,8,I'm okay,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+71uwqxuo,67745cfb4893225ef8d4bc4a,Eddd,4nes3mql,True,2,1,2,Numerical reasoning,medium,medium_2,0,0,Negative,5,20,i'm not good at math,0,0,1,0,1,0,0,0,0,0,0,0,1,0,0,0,2,0,1,0,0,0,0,0,1,0,1
+71uwqxuo,67745cfb4893225ef8d4bc4a,Eddd,4nes3mql,True,3,1,3,Numerical reasoning,hard,hard_2,2,0,Neutral,2,6,i'm ok,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+71uwqxuo,67745cfb4893225ef8d4bc4a,Eddd,4nes3mql,True,7,3,1,Spatial reasoning,easy,easy_2,1,0,Neutral,3,7,i am ok,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+71uwqxuo,67745cfb4893225ef8d4bc4a,Eddd,4nes3mql,True,8,3,2,Spatial reasoning,medium,medium_1,1,0,Negative,6,22,i am not good at these,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,1,0,1
+71uwqxuo,67745cfb4893225ef8d4bc4a,Eddd,4nes3mql,True,9,3,3,Spatial reasoning,hard,hard_1,2,0,Neutral,3,12,i feel bored,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+7teyu6ff,6a1a044f8d5dd96837dc9ae7,Ade.,4nes3mql,True,1,1,1,Spatial reasoning,easy,easy_2,0,1,Negative,10,54,That was quite intense. I need to focus going forward.,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+7teyu6ff,6a1a044f8d5dd96837dc9ae7,Ade.,4nes3mql,True,2,1,2,Spatial reasoning,medium,medium_2,1,1,Neutral,14,66,"Some were tricky, but got 1. I should do better in the last block.",1,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,3,0,0,0,1,1,1,0,1,0,1
+7teyu6ff,6a1a044f8d5dd96837dc9ae7,Ade.,4nes3mql,True,3,1,3,Spatial reasoning,hard,hard_2,1,0,Neutral,1,5,hhumm,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+7teyu6ff,6a1a044f8d5dd96837dc9ae7,Ade.,4nes3mql,True,7,3,1,Working memory,easy,easy_1,4,1,Positive,2,12,Smashing it.,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0
+7teyu6ff,6a1a044f8d5dd96837dc9ae7,Ade.,4nes3mql,True,8,3,2,Working memory,medium,medium_2,1,1,Negative,3,16,no more smashing,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,0,0,0
+7teyu6ff,6a1a044f8d5dd96837dc9ae7,Ade.,4nes3mql,True,9,3,3,Working memory,hard,hard_1,1,1,Negative,1,6,hmmmmm,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+97l3hijd,5b4991de56e0140001acb76b,Kebins,4nes3mql,False,1,1,1,Numerical reasoning,easy,easy_2,4,0,Positive,1,6,Great!,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,1
+9chwblz2,62162ab583fc823e78c025e2,Sadie,4nes3mql,True,1,1,1,Numerical reasoning,easy,easy_2,4,0,Positive,3,14,That was cool.,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+9chwblz2,62162ab583fc823e78c025e2,Sadie,4nes3mql,True,2,1,2,Numerical reasoning,medium,medium_1,5,0,Positive,4,23,Really making me think.,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+9chwblz2,62162ab583fc823e78c025e2,Sadie,4nes3mql,True,3,1,3,Numerical reasoning,hard,hard_2,1,0,Neutral,8,39,That was a very difficult round for me.,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+9chwblz2,62162ab583fc823e78c025e2,Sadie,4nes3mql,True,7,3,1,Working memory,easy,easy_1,5,0,Neutral,3,12,easy and fun,0,0,0,0,0,1,1,0,0,0,1,0,0,0,0,0,3,0,0,0,0,0,0,0,2,0,2
+9chwblz2,62162ab583fc823e78c025e2,Sadie,4nes3mql,True,8,3,2,Working memory,medium,medium_2,1,0,Negative,6,21,oh oh not so good now,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,1,0,1
+9chwblz2,62162ab583fc823e78c025e2,Sadie,4nes3mql,True,9,3,3,Working memory,hard,hard_1,0,0,Negative,7,31,"I thought I had 1 right, bummer",0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0
+bnjrpmdg,69df2ec1ca2069bf6eeea6b5,Declan,4nes3mql,True,1,1,1,Numerical reasoning,easy,easy_1,4,1,Positive,1,5,great,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,1
+bnjrpmdg,69df2ec1ca2069bf6eeea6b5,Declan,4nes3mql,True,2,1,2,Numerical reasoning,medium,medium_1,5,1,Positive,1,5,great,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,1
+bnjrpmdg,69df2ec1ca2069bf6eeea6b5,Declan,4nes3mql,True,3,1,3,Numerical reasoning,hard,hard_1,0,0,Negative,1,5,tough,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+bnjrpmdg,69df2ec1ca2069bf6eeea6b5,Declan,4nes3mql,True,4,2,1,Working memory,easy,easy_2,5,1,Positive,1,5,great,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,1
+bnjrpmdg,69df2ec1ca2069bf6eeea6b5,Declan,4nes3mql,True,5,2,2,Working memory,medium,medium_1,3,1,Neutral,1,5,great,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,1
+bnjrpmdg,69df2ec1ca2069bf6eeea6b5,Declan,4nes3mql,True,6,2,3,Working memory,hard,hard_2,4,1,Positive,1,5,great,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,1
+cdeh4tzl,5ba292385301b80001c71ba2,Don,4nes3mql,True,1,1,1,Numerical reasoning,easy,easy_1,5,1,Positive,2,9,moving on,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+cdeh4tzl,5ba292385301b80001c71ba2,Don,4nes3mql,True,2,1,2,Numerical reasoning,medium,medium_2,2,0,Negative,2,8,not good,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+cdeh4tzl,5ba292385301b80001c71ba2,Don,4nes3mql,True,3,1,3,Numerical reasoning,hard,hard_2,1,0,Negative,2,8,not good,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+cdeh4tzl,5ba292385301b80001c71ba2,Don,4nes3mql,True,4,2,1,Working memory,easy,easy_2,3,0,Negative,2,8,not good,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+cdeh4tzl,5ba292385301b80001c71ba2,Don,4nes3mql,True,5,2,2,Working memory,medium,medium_2,2,1,Negative,1,5,tough,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+cdeh4tzl,5ba292385301b80001c71ba2,Don,4nes3mql,True,6,2,3,Working memory,hard,hard_1,0,0,Negative,1,5,baddy,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+cy6zq9z6,56ad40ce5ea7aa000cbe1947,Vaughan,4nes3mql,True,1,1,1,Numerical reasoning,easy,easy_1,4,1,Neutral,11,51,"Most of those were very easy, but I glitched on one",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,1
+cy6zq9z6,56ad40ce5ea7aa000cbe1947,Vaughan,4nes3mql,True,2,1,2,Numerical reasoning,medium,medium_2,2,1,Negative,9,40,Need more than a minute on some of these,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+cy6zq9z6,56ad40ce5ea7aa000cbe1947,Vaughan,4nes3mql,True,3,1,3,Numerical reasoning,hard,hard_1,2,1,Negative,3,12,I'm too slow,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+cy6zq9z6,56ad40ce5ea7aa000cbe1947,Vaughan,4nes3mql,True,4,2,1,Abstract reasoning,easy,easy_1,4,1,Neutral,6,32,Not sure how to process these...,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+cy6zq9z6,56ad40ce5ea7aa000cbe1947,Vaughan,4nes3mql,True,5,2,2,Abstract reasoning,medium,medium_1,2,1,Negative,8,42,Thought I did better than I actually did..,0,1,0,0,0,0,0,1,1,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,1,0,1
+cy6zq9z6,56ad40ce5ea7aa000cbe1947,Vaughan,4nes3mql,True,6,2,3,Abstract reasoning,hard,hard_1,3,1,Neutral,7,36,Did better than I thought that time.,0,1,0,0,0,0,0,1,1,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,1,0,1
+d66asaan,5d53bffa147a7d00015aae5a,KD,4nes3mql,True,1,1,1,Abstract reasoning,easy,easy_2,5,0,Neutral,1,6,Trying,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+d66asaan,5d53bffa147a7d00015aae5a,KD,4nes3mql,True,2,1,2,Abstract reasoning,medium,medium_2,5,0,Positive,2,10,going good,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+d66asaan,5d53bffa147a7d00015aae5a,KD,4nes3mql,True,3,1,3,Abstract reasoning,hard,hard_1,4,0,Negative,7,28,I didn't get that one at all,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+d66asaan,5d53bffa147a7d00015aae5a,KD,4nes3mql,True,4,2,1,Working memory,easy,easy_2,5,0,Positive,2,10,cool beans,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+d66asaan,5d53bffa147a7d00015aae5a,KD,4nes3mql,True,5,2,2,Working memory,medium,medium_2,0,1,Negative,6,25,I am not good at these...,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,1,0,1
+d66asaan,5d53bffa147a7d00015aae5a,KD,4nes3mql,True,6,2,3,Working memory,hard,hard_1,0,0,Negative,5,18,I hate these a lot,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+egadnrdq,6a0b725a3e1ce679fd30a9be,QueenJuliet,4nes3mql,True,4,2,1,Abstract reasoning,easy,easy_2,1,1,Neutral,10,50,This wasn’t as easy as i expected! prep prep prep,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,1
+egadnrdq,6a0b725a3e1ce679fd30a9be,QueenJuliet,4nes3mql,True,5,2,2,Abstract reasoning,medium,medium_2,0,1,Negative,1,7,Helpppp,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+egadnrdq,6a0b725a3e1ce679fd30a9be,QueenJuliet,4nes3mql,True,6,2,3,Abstract reasoning,hard,hard_2,1,1,Negative,2,16,Brce yourselves,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+egadnrdq,6a0b725a3e1ce679fd30a9be,QueenJuliet,4nes3mql,True,7,3,1,Working memory,easy,easy_1,5,1,Positive,5,28,This isn’t difficult at all,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+egadnrdq,6a0b725a3e1ce679fd30a9be,QueenJuliet,4nes3mql,True,8,3,2,Working memory,medium,medium_2,3,1,Neutral,2,15,Getting harder,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,2,0,0,0,1,1,1,0,0,0,0
+egadnrdq,6a0b725a3e1ce679fd30a9be,QueenJuliet,4nes3mql,True,9,3,3,Working memory,hard,hard_1,1,1,Positive,19,98,"Maybe i would’ve done better if the images stayed for 3 seconds on the page lol, this wasn’t easy",0,0,0,1,0,0,0,0,1,0,0,1,0,0,1,0,3,0,1,0,0,0,0,0,2,0,2
+eonx1zdc,69b9c6588581f04030920529,sharkbait,4nes3mql,True,1,1,1,Working memory,easy,easy_2,5,1,Positive,2,11,don't blink,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,1,0,1,0,0,0,0,0,0,0,0
+eonx1zdc,69b9c6588581f04030920529,sharkbait,4nes3mql,True,2,1,2,Working memory,medium,medium_1,3,1,Neutral,5,17,count them 1 by 1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,1,0,1,0,0,0,0,0,0,0,0
+eonx1zdc,69b9c6588581f04030920529,sharkbait,4nes3mql,True,3,1,3,Working memory,hard,hard_1,2,1,Negative,8,44,"good luck, count the white squares this time",0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,1,0,1,0,0,0,0,0,1,0,1
+eonx1zdc,69b9c6588581f04030920529,sharkbait,4nes3mql,True,4,2,1,Spatial reasoning,easy,easy_2,2,1,Negative,3,14,these are hard,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+eonx1zdc,69b9c6588581f04030920529,sharkbait,4nes3mql,True,5,2,2,Spatial reasoning,medium,medium_2,4,1,Positive,13,73,"imagine just 1 rotation and then compare the answers, only 1 usually fits",0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1,0,1,0,0,0,0,0,0,0,0
+eonx1zdc,69b9c6588581f04030920529,sharkbait,4nes3mql,True,6,2,3,Spatial reasoning,hard,hard_1,3,1,Neutral,4,17,idk try your best,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+fyg8qx76,671e55aeca0216c5762de35a,Bob,4nes3mql,True,1,1,1,Numerical reasoning,easy,easy_2,5,1,Positive,5,31,"Easy stuff, don't overthink it.",0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,2,0,0,0,0,0,0,0,1,0,1
+fyg8qx76,671e55aeca0216c5762de35a,Bob,4nes3mql,True,2,1,2,Numerical reasoning,medium,medium_2,0,1,Neutral,4,26,Things are getting harder.,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,2,0,0,0,1,1,1,0,0,0,0
+fyg8qx76,671e55aeca0216c5762de35a,Bob,4nes3mql,True,3,1,3,Numerical reasoning,hard,hard_2,1,1,Negative,2,9,Too hard.,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+fyg8qx76,671e55aeca0216c5762de35a,Bob,4nes3mql,True,4,2,1,Abstract reasoning,easy,easy_1,4,1,Neutral,4,22,The puzzles are  hard.,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,1,0,1,0,0,0,0,0,0,1,-1
+fyg8qx76,671e55aeca0216c5762de35a,Bob,4nes3mql,True,5,2,2,Abstract reasoning,medium,medium_1,2,1,Negative,4,16,Too hard for me.,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+fyg8qx76,671e55aeca0216c5762de35a,Bob,4nes3mql,True,6,2,3,Abstract reasoning,hard,hard_2,3,1,Neutral,7,30,"Keep at it, even if it's hard.",0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,1,-1
+g2yb8q4v,5d89106d1719af0001ee23e5,Dax,4nes3mql,True,1,1,1,Working memory,easy,easy_1,5,1,Positive,5,19,Off to a good start,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,1,0,1
+g2yb8q4v,5d89106d1719af0001ee23e5,Dax,4nes3mql,True,2,1,2,Working memory,medium,medium_2,1,1,Neutral,5,25,well that was short lived,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,1,0,1
+g2yb8q4v,5d89106d1719af0001ee23e5,Dax,4nes3mql,True,3,1,3,Working memory,hard,hard_2,0,1,Neutral,3,15,"lol, I'm doomed",0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0
+g2yb8q4v,5d89106d1719af0001ee23e5,Dax,4nes3mql,True,7,3,1,Numerical reasoning,easy,easy_1,4,1,Positive,2,12,feeling good,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+g2yb8q4v,5d89106d1719af0001ee23e5,Dax,4nes3mql,True,8,3,2,Numerical reasoning,medium,medium_1,3,1,Neutral,4,16,I need more time,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+g2yb8q4v,5d89106d1719af0001ee23e5,Dax,4nes3mql,True,9,3,3,Numerical reasoning,hard,hard_1,0,1,Negative,4,21,not good with numbers,0,0,1,0,1,0,0,0,0,0,0,0,1,0,0,0,2,0,1,0,0,0,0,0,1,0,1
+ganj1hf4,69f8d4265b93aa2a6beb30d7,jenn,4nes3mql,True,4,2,1,Numerical reasoning,easy,easy_2,2,1,Positive,4,23,harder than I expected!,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0
+ganj1hf4,69f8d4265b93aa2a6beb30d7,jenn,4nes3mql,True,5,2,2,Numerical reasoning,medium,medium_1,2,1,Neutral,3,15,these are tough,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+ganj1hf4,69f8d4265b93aa2a6beb30d7,jenn,4nes3mql,True,6,2,3,Numerical reasoning,hard,hard_2,1,1,Neutral,3,17,that was guessing,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+ganj1hf4,69f8d4265b93aa2a6beb30d7,jenn,4nes3mql,True,7,3,1,Working memory,easy,easy_2,4,1,Positive,2,12,enjoyed that,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0
+ganj1hf4,69f8d4265b93aa2a6beb30d7,jenn,4nes3mql,True,8,3,2,Working memory,medium,medium_1,3,1,Positive,1,6,tricky,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+ganj1hf4,69f8d4265b93aa2a6beb30d7,jenn,4nes3mql,True,9,3,3,Working memory,hard,hard_1,1,1,Neutral,1,5,tough,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+gn9qtg3z,608437f0b139060610c9f0c1,Annie,4nes3mql,True,4,2,1,Working memory,easy,easy_1,5,1,Positive,3,21,How's everyone doing?,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+gn9qtg3z,608437f0b139060610c9f0c1,Annie,4nes3mql,True,5,2,2,Working memory,medium,medium_1,0,0,Negative,1,5,BOO!!,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+gn9qtg3z,608437f0b139060610c9f0c1,Annie,4nes3mql,True,6,2,3,Working memory,hard,hard_2,1,0,Neutral,5,24,Too quick on those dots!,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,0,0,0,0,0,0,0,0
+gn9qtg3z,608437f0b139060610c9f0c1,Annie,4nes3mql,True,7,3,1,Numerical reasoning,easy,easy_2,2,1,Neutral,2,12,"Oh, Dear....",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+gn9qtg3z,608437f0b139060610c9f0c1,Annie,4nes3mql,True,8,3,2,Numerical reasoning,medium,medium_2,1,1,Neutral,4,18,UGG@ This is tuff!,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+gn9qtg3z,608437f0b139060610c9f0c1,Annie,4nes3mql,True,9,3,3,Numerical reasoning,hard,hard_1,1,1,Negative,5,27,"No more of these, please...",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+hg3xmlfd,69bc5489f5ecef4bd3af96b7,teeeeeeeee,4nes3mql,True,1,1,1,Spatial reasoning,easy,easy_2,0,0,Negative,4,15,Did not do well,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,1
+hg3xmlfd,69bc5489f5ecef4bd3af96b7,teeeeeeeee,4nes3mql,True,2,1,2,Spatial reasoning,medium,medium_2,2,0,Neutral,1,5,mehhh,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+hg3xmlfd,69bc5489f5ecef4bd3af96b7,teeeeeeeee,4nes3mql,True,3,1,3,Spatial reasoning,hard,hard_1,2,0,Neutral,1,5,mehhh,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+hg3xmlfd,69bc5489f5ecef4bd3af96b7,teeeeeeeee,4nes3mql,True,7,3,1,Numerical reasoning,easy,easy_2,5,1,Positive,1,6,gooddd,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+hg3xmlfd,69bc5489f5ecef4bd3af96b7,teeeeeeeee,4nes3mql,True,8,3,2,Numerical reasoning,medium,medium_1,5,1,Positive,1,8,gooddddd,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+hg3xmlfd,69bc5489f5ecef4bd3af96b7,teeeeeeeee,4nes3mql,True,9,3,3,Numerical reasoning,hard,hard_2,3,0,Neutral,1,5,mehhh,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+i3sgzhen,69eaa4daa55854d17fc676ed,lgn1001,4nes3mql,True,1,1,1,Spatial reasoning,easy,easy_2,1,1,Neutral,1,6,Bummer,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+i3sgzhen,69eaa4daa55854d17fc676ed,lgn1001,4nes3mql,True,2,1,2,Spatial reasoning,medium,medium_2,2,1,Neutral,1,5,Yikes,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+i3sgzhen,69eaa4daa55854d17fc676ed,lgn1001,4nes3mql,True,3,1,3,Spatial reasoning,hard,hard_2,1,1,Neutral,2,8,not good,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+i3sgzhen,69eaa4daa55854d17fc676ed,lgn1001,4nes3mql,True,4,2,1,Working memory,easy,easy_2,5,1,Positive,1,7,finally,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+i3sgzhen,69eaa4daa55854d17fc676ed,lgn1001,4nes3mql,True,5,2,2,Working memory,medium,medium_2,3,1,Neutral,6,34,hopefully I'll do better next time,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,1,0,1
+i3sgzhen,69eaa4daa55854d17fc676ed,lgn1001,4nes3mql,True,6,2,3,Working memory,hard,hard_1,5,1,Positive,1,7,woohooo,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+jx0qf5w7,69e122b016fbeb103ddd2ef3,Chocolate,4nes3mql,True,1,1,1,Numerical reasoning,easy,easy_2,5,1,Positive,3,11,I did good.,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,1,0,1
+jx0qf5w7,69e122b016fbeb103ddd2ef3,Chocolate,4nes3mql,True,2,1,2,Numerical reasoning,medium,medium_2,4,1,Positive,5,19,I think i did good.,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,1,0,1
+jx0qf5w7,69e122b016fbeb103ddd2ef3,Chocolate,4nes3mql,True,3,1,3,Numerical reasoning,hard,hard_2,4,1,Positive,3,12,I did decent,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+jx0qf5w7,69e122b016fbeb103ddd2ef3,Chocolate,4nes3mql,True,4,2,1,Spatial reasoning,easy,easy_2,1,1,Neutral,3,10,I did bad.,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+jx0qf5w7,69e122b016fbeb103ddd2ef3,Chocolate,4nes3mql,True,5,2,2,Spatial reasoning,medium,medium_2,1,1,Neutral,5,21,Wow. I did bad again.,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,2,0,0,0,1,0,1,0,0,1,-1
+jx0qf5w7,69e122b016fbeb103ddd2ef3,Chocolate,4nes3mql,True,6,2,3,Spatial reasoning,hard,hard_2,4,1,Positive,3,13,I did better.,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,2,0,0,0,0,1,1,0,1,0,1
+k35iggqj,63d7fb6ee49281f6c41d6630,ian,4nes3mql,True,4,2,1,Numerical reasoning,easy,easy_1,4,0,Neutral,10,43,I feel like I could have got them all right,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+k35iggqj,63d7fb6ee49281f6c41d6630,ian,4nes3mql,True,5,2,2,Numerical reasoning,medium,medium_2,5,1,Positive,1,5,cool!,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+k35iggqj,63d7fb6ee49281f6c41d6630,ian,4nes3mql,True,6,2,3,Numerical reasoning,hard,hard_2,3,0,Negative,4,22,could have done better,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,1,0,1
+k35iggqj,63d7fb6ee49281f6c41d6630,ian,4nes3mql,True,7,3,1,Spatial reasoning,easy,easy_1,0,1,Negative,4,16,I didn't do well,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+k35iggqj,63d7fb6ee49281f6c41d6630,ian,4nes3mql,True,8,3,2,Spatial reasoning,medium,medium_1,2,0,Neutral,2,7,I tried,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+k35iggqj,63d7fb6ee49281f6c41d6630,ian,4nes3mql,True,9,3,3,Spatial reasoning,hard,hard_2,1,0,Negative,2,8,not good,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+kaa222c3,6a149e73bc56be14452307c5,RES,4nes3mql,True,1,1,1,Numerical reasoning,easy,easy_2,4,0,Positive,12,54,Good news! I passed 4 out of 5 basic math problems. /s,1,1,0,0,0,0,0,0,0,0,0,1,1,0,0,0,3,0,1,0,0,0,0,0,1,0,1
+kaa222c3,6a149e73bc56be14452307c5,RES,4nes3mql,True,2,1,2,Numerical reasoning,medium,medium_2,3,0,Positive,7,35,It's okay to be wrong about things.,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,-1
+kaa222c3,6a149e73bc56be14452307c5,RES,4nes3mql,True,3,1,3,Numerical reasoning,hard,hard_2,2,0,Positive,1,12,Incredulous,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+kaa222c3,6a149e73bc56be14452307c5,RES,4nes3mql,True,4,2,1,Working memory,easy,easy_2,5,0,Positive,1,7,Thanks!,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+kaa222c3,6a149e73bc56be14452307c5,RES,4nes3mql,True,5,2,2,Working memory,medium,medium_1,2,0,Positive,3,13,Crushing it 😎,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0
+kaa222c3,6a149e73bc56be14452307c5,RES,4nes3mql,True,6,2,3,Working memory,hard,hard_2,0,1,Neutral,8,38,I'd like to revise my estimated IQ lol,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+lqu81ih5,6a0ccabeb492695467a7d337,Mr Ebony,4nes3mql,True,4,2,1,Numerical reasoning,easy,easy_2,3,1,Neutral,9,43,i think the study is lying about my answers,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+lqu81ih5,6a0ccabeb492695467a7d337,Mr Ebony,4nes3mql,True,5,2,2,Numerical reasoning,medium,medium_1,2,1,Neutral,1,6,better,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,1,0,1
+lqu81ih5,6a0ccabeb492695467a7d337,Mr Ebony,4nes3mql,True,6,2,3,Numerical reasoning,hard,hard_1,0,1,Negative,3,10,how is it,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+lqu81ih5,6a0ccabeb492695467a7d337,Mr Ebony,4nes3mql,True,7,3,1,Spatial reasoning,easy,easy_2,2,1,Neutral,3,12,okay i tried,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+lqu81ih5,6a0ccabeb492695467a7d337,Mr Ebony,4nes3mql,True,8,3,2,Spatial reasoning,medium,medium_2,1,0,Negative,3,12,not so good,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+lqu81ih5,6a0ccabeb492695467a7d337,Mr Ebony,4nes3mql,True,9,3,3,Spatial reasoning,hard,hard_1,0,0,Negative,3,11,not so good,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+lus8nw9s,66082cedc761ee3612cbd394,lilbro,4nes3mql,True,4,2,1,Spatial reasoning,easy,easy_2,1,1,Neutral,6,22,i am not good at this!,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,1,0,1
+lus8nw9s,66082cedc761ee3612cbd394,lilbro,4nes3mql,True,5,2,2,Spatial reasoning,medium,medium_2,2,1,Neutral,5,21,I am just trucking on,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+lus8nw9s,66082cedc761ee3612cbd394,lilbro,4nes3mql,True,6,2,3,Spatial reasoning,hard,hard_2,1,1,Positive,3,9,i am done,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+lus8nw9s,66082cedc761ee3612cbd394,lilbro,4nes3mql,True,7,3,1,Numerical reasoning,easy,easy_2,5,1,Positive,3,12,i love logix,0,0,0,0,0,0,1,0,0,0,1,0,1,0,0,0,2,0,1,0,0,0,0,0,1,0,1
+lus8nw9s,66082cedc761ee3612cbd394,lilbro,4nes3mql,True,8,3,2,Numerical reasoning,medium,medium_1,5,1,Positive,4,18,I am enjoying this,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0
+lus8nw9s,66082cedc761ee3612cbd394,lilbro,4nes3mql,True,9,3,3,Numerical reasoning,hard,hard_1,1,1,Neutral,3,13,Lost my steam,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,0,1,-1
+lxv5w82f,5b233660648d5b0001b7de87,Tony,4nes3mql,True,4,2,1,Working memory,easy,easy_2,3,1,Neutral,2,6,did ok,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+lxv5w82f,5b233660648d5b0001b7de87,Tony,4nes3mql,True,5,2,2,Working memory,medium,medium_2,0,1,Negative,2,7,did bad,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+lxv5w82f,5b233660648d5b0001b7de87,Tony,4nes3mql,True,6,2,3,Working memory,hard,hard_1,0,1,Negative,2,7,no good,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+lxv5w82f,5b233660648d5b0001b7de87,Tony,4nes3mql,True,7,3,1,Numerical reasoning,easy,easy_2,3,1,Neutral,2,7,not bad,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+lxv5w82f,5b233660648d5b0001b7de87,Tony,4nes3mql,True,8,3,2,Numerical reasoning,medium,medium_1,1,1,Negative,2,8,very bad,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+lxv5w82f,5b233660648d5b0001b7de87,Tony,4nes3mql,True,9,3,3,Numerical reasoning,hard,hard_1,0,1,Negative,2,8,not good,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+ond0yoqr,67f02740d233a50f479c4e20,Cherra,4nes3mql,True,1,1,1,Abstract reasoning,easy,easy_2,1,1,Negative,9,41,I only got 1/5 correct in the last block!,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,0,0,0
+ond0yoqr,67f02740d233a50f479c4e20,Cherra,4nes3mql,True,2,1,2,Abstract reasoning,medium,medium_1,2,1,Neutral,7,28,I got 2 in the second block!,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,0,0,0
+ond0yoqr,67f02740d233a50f479c4e20,Cherra,4nes3mql,True,3,1,3,Abstract reasoning,hard,hard_1,2,1,Neutral,4,14,I only got 2/5,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+ond0yoqr,67f02740d233a50f479c4e20,Cherra,4nes3mql,True,4,2,1,Working memory,easy,easy_1,5,1,Positive,4,15,Yay! I got 5/5!,1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,3,0,0,0,0,0,0,0,1,0,1
+ond0yoqr,67f02740d233a50f479c4e20,Cherra,4nes3mql,True,5,2,2,Working memory,medium,medium_2,3,1,Neutral,8,37,This was a bit challenging! I got 3/5,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0
+ond0yoqr,67f02740d233a50f479c4e20,Cherra,4nes3mql,True,6,2,3,Working memory,hard,hard_1,5,1,Positive,4,18,Got all 5 correct!,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+q2dqw3xz,6a22125d831a7b96b3ebd029,Olive-Narwhal,4nes3mql,True,4,2,1,Numerical reasoning,easy,easy_2,3,1,Positive,8,40,This one is easier than the spatial one.,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,1,1,1,1,1,0,0,0,0
+q2dqw3xz,6a22125d831a7b96b3ebd029,Olive-Narwhal,4nes3mql,True,5,2,2,Numerical reasoning,medium,medium_1,3,1,Positive,6,34,Doing slightly better on this one.,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,1,0,1
+q2dqw3xz,6a22125d831a7b96b3ebd029,Olive-Narwhal,4nes3mql,True,6,2,3,Numerical reasoning,hard,hard_2,2,1,Neutral,6,37,Got kinda frustrated towards the end.,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+q2dqw3xz,6a22125d831a7b96b3ebd029,Olive-Narwhal,4nes3mql,True,7,3,1,Abstract reasoning,easy,easy_1,3,1,Neutral,14,89,This is slightly less frustrating than the spatial but more frustrating than the numbers.,0,0,0,0,0,0,1,0,0,0,0,0,1,1,0,0,1,0,1,1,1,1,1,0,0,2,-2
+q2dqw3xz,6a22125d831a7b96b3ebd029,Olive-Narwhal,4nes3mql,True,8,3,2,Abstract reasoning,medium,medium_2,4,1,Positive,6,28,Did pretty good on this set.,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+q2dqw3xz,6a22125d831a7b96b3ebd029,Olive-Narwhal,4nes3mql,True,9,3,3,Abstract reasoning,hard,hard_2,2,1,Neutral,7,32,"You win some you lose some, lol.",0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+qilu1fz6,69cdabe316038f0f3b399391,Anon,4nes3mql,True,1,1,1,Spatial reasoning,easy,easy_1,5,0,Positive,6,28,Felt like a very easy start.,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,1,0,1
+qilu1fz6,69cdabe316038f0f3b399391,Anon,4nes3mql,True,2,1,2,Spatial reasoning,medium,medium_1,3,0,Neutral,3,18,Bit more difficult,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,2,0,0,0,0,1,1,0,0,1,-1
+qilu1fz6,69cdabe316038f0f3b399391,Anon,4nes3mql,True,3,1,3,Spatial reasoning,hard,hard_2,3,0,Neutral,2,18,Somewhat difficult,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+qilu1fz6,69cdabe316038f0f3b399391,Anon,4nes3mql,True,7,3,1,Numerical reasoning,easy,easy_2,5,0,Positive,2,12,Easy section,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+qilu1fz6,69cdabe316038f0f3b399391,Anon,4nes3mql,True,8,3,2,Numerical reasoning,medium,medium_2,5,0,Positive,3,15,Still very easy,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,2,0,0,0,1,0,1,0,1,0,1
+qilu1fz6,69cdabe316038f0f3b399391,Anon,4nes3mql,True,9,3,3,Numerical reasoning,hard,hard_2,5,0,Positive,2,12,Easiest part,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,0,0,0
+sxpc3vw2,6790064dfc4bf982263b29ac,Anthony,4nes3mql,True,1,1,1,Numerical reasoning,easy,easy_1,4,0,Positive,4,20,about what I thought,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+sxpc3vw2,6790064dfc4bf982263b29ac,Anthony,4nes3mql,True,2,1,2,Numerical reasoning,medium,medium_1,5,1,Positive,1,5,Great,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,1
+sxpc3vw2,6790064dfc4bf982263b29ac,Anthony,4nes3mql,True,3,1,3,Numerical reasoning,hard,hard_2,3,1,Neutral,2,13,Lucky guesses,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+sxpc3vw2,6790064dfc4bf982263b29ac,Anthony,4nes3mql,True,7,3,1,Working memory,easy,easy_1,5,1,Positive,3,11,Easy so far,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,2,0,0,0,1,0,1,0,1,0,1
+sxpc3vw2,6790064dfc4bf982263b29ac,Anthony,4nes3mql,True,8,3,2,Working memory,medium,medium_2,1,1,Negative,4,17,Just as I thought,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+sxpc3vw2,6790064dfc4bf982263b29ac,Anthony,4nes3mql,True,9,3,3,Working memory,hard,hard_2,3,1,Neutral,1,6,Better,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,1,0,1
+tprfapfj,699534e45cec93cb12001fca,lee,4nes3mql,True,1,1,1,Spatial reasoning,easy,easy_1,2,1,Negative,3,11,2/5 So sad!,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,1,-1
+tprfapfj,699534e45cec93cb12001fca,lee,4nes3mql,True,2,1,2,Spatial reasoning,medium,medium_2,4,1,Positive,6,34,4/5 did better this time around...,1,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,3,0,0,0,0,1,1,0,1,0,1
+tprfapfj,699534e45cec93cb12001fca,lee,4nes3mql,True,3,1,3,Spatial reasoning,hard,hard_2,2,1,Negative,4,23,"2/5 again, sad again...",1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,3,0,0,0,1,0,1,0,0,1,-1
+tprfapfj,699534e45cec93cb12001fca,lee,4nes3mql,True,7,3,1,Working memory,easy,easy_2,3,1,Neutral,4,15,"3/5, I did okay",1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0
+tprfapfj,699534e45cec93cb12001fca,lee,4nes3mql,True,8,3,2,Working memory,medium,medium_2,2,1,Negative,4,20,2/5 did poorly again,1,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,3,0,0,0,1,0,1,0,0,1,-1
+tprfapfj,699534e45cec93cb12001fca,lee,4nes3mql,True,9,3,3,Working memory,hard,hard_1,2,1,Negative,9,35,2/5 looks like I am on a 2/5 steak!,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,2,0,0,0,1,0,1,0,0,0,0
+uexog033,6a1b21ad162348890ae2af23,Jam,4nes3mql,True,1,1,1,Numerical reasoning,easy,easy_2,4,1,Positive,3,12,I feel happy,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+uexog033,6a1b21ad162348890ae2af23,Jam,4nes3mql,True,2,1,2,Numerical reasoning,medium,medium_1,0,1,Negative,3,10,I feel sad,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+uexog033,6a1b21ad162348890ae2af23,Jam,4nes3mql,True,3,1,3,Numerical reasoning,hard,hard_1,1,1,Negative,3,10,I feel sad,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+uexog033,6a1b21ad162348890ae2af23,Jam,4nes3mql,True,4,2,1,Working memory,easy,easy_1,4,1,Positive,2,9,Feel good,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+uexog033,6a1b21ad162348890ae2af23,Jam,4nes3mql,True,5,2,2,Working memory,medium,medium_2,0,1,Negative,3,11,I feel sad.,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+uexog033,6a1b21ad162348890ae2af23,Jam,4nes3mql,True,6,2,3,Working memory,hard,hard_2,0,1,Negative,3,10,i feel sad,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+uuimtxw4,69fd392301d0d6d6dd78fb3f,funnie,4nes3mql,True,4,2,1,Numerical reasoning,easy,easy_2,4,1,Neutral,18,95,"Interesting test, not sure what's it all about. I realized I am not good at looking at patterns",0,0,1,0,1,0,0,0,0,0,1,0,0,0,0,1,3,0,1,1,0,0,0,0,1,0,1
+uuimtxw4,69fd392301d0d6d6dd78fb3f,funnie,4nes3mql,True,5,2,2,Numerical reasoning,medium,medium_1,2,1,Negative,3,19,scores are dropping,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,0,0,0
+uuimtxw4,69fd392301d0d6d6dd78fb3f,funnie,4nes3mql,True,6,2,3,Numerical reasoning,hard,hard_1,0,1,Negative,3,21,"opps, falling deeply",0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,0,0,0
+uuimtxw4,69fd392301d0d6d6dd78fb3f,funnie,4nes3mql,True,7,3,1,Working memory,easy,easy_1,5,1,Neutral,7,37,it's getting harder soon. Can feel it,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,2,0,0,0,1,1,1,0,0,0,0
+uuimtxw4,69fd392301d0d6d6dd78fb3f,funnie,4nes3mql,True,8,3,2,Working memory,medium,medium_2,1,1,Positive,1,11,predictable,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+uuimtxw4,69fd392301d0d6d6dd78fb3f,funnie,4nes3mql,True,9,3,3,Working memory,hard,hard_1,2,1,Positive,1,6,better,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,1,0,1
+v0v6e0a0,699a0b860cbf75a7d143d576,chess-matcha-17,4nes3mql,True,1,1,1,Spatial reasoning,easy,easy_1,5,1,Positive,11,51,How are we doing? I thought the first set was okay!,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,1,0,1,0,0,0,0
+v0v6e0a0,699a0b860cbf75a7d143d576,chess-matcha-17,4nes3mql,True,2,1,2,Spatial reasoning,medium,medium_2,4,1,Neutral,5,34,Seems like they're getting harder!,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,2,0,0,0,1,1,1,0,0,0,0
+v0v6e0a0,699a0b860cbf75a7d143d576,chess-matcha-17,4nes3mql,True,3,1,3,Spatial reasoning,hard,hard_2,3,1,Negative,7,33,"Wow, the last set was really hard",0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,0,1,-1
+v0v6e0a0,699a0b860cbf75a7d143d576,chess-matcha-17,4nes3mql,True,7,3,1,Numerical reasoning,easy,easy_1,5,1,Positive,4,15,"So far, so good",0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,2,0,0,0,1,0,1,0,1,0,1
+v0v6e0a0,699a0b860cbf75a7d143d576,chess-matcha-17,4nes3mql,True,8,3,2,Numerical reasoning,medium,medium_1,5,1,Positive,5,29,"Getting harder, but still fun",0,0,0,1,0,0,1,0,1,0,1,0,0,0,0,0,4,0,0,0,1,1,1,0,1,0,1
+v0v6e0a0,699a0b860cbf75a7d143d576,chess-matcha-17,4nes3mql,True,9,3,3,Numerical reasoning,hard,hard_2,5,1,Positive,9,43,"Got lucky, had to guess for the last couple",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+w0k0tzds,6a01d3ed00be661b3bc69d82,ssf26,4nes3mql,True,4,2,1,Spatial reasoning,easy,easy_1,1,0,Neutral,4,15,i didnt do well,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+w0k0tzds,6a01d3ed00be661b3bc69d82,ssf26,4nes3mql,True,5,2,2,Spatial reasoning,medium,medium_1,1,0,Neutral,5,17,i did not do well,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,1
+w0k0tzds,6a01d3ed00be661b3bc69d82,ssf26,4nes3mql,True,6,2,3,Spatial reasoning,hard,hard_2,1,0,Neutral,5,17,i did not do well,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,1
+w0k0tzds,6a01d3ed00be661b3bc69d82,ssf26,4nes3mql,True,7,3,1,Working memory,easy,easy_2,5,0,Positive,3,12,yay nice job,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,2,0,0,0,0,0,0,0,2,0,2
+w0k0tzds,6a01d3ed00be661b3bc69d82,ssf26,4nes3mql,True,8,3,2,Working memory,medium,medium_1,4,0,Positive,2,8,nice job,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+w0k0tzds,6a01d3ed00be661b3bc69d82,ssf26,4nes3mql,True,9,3,3,Working memory,hard,hard_2,0,0,Negative,2,5,oh no,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+w5m2iyak,6a23572b5e63504d6df99475,lemonjello,4nes3mql,True,1,1,1,Spatial reasoning,easy,easy_2,5,0,Positive,4,32,Spatial awareness is interesting,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,1,0,1,0,0,0,0,0,0,0,0
+w5m2iyak,6a23572b5e63504d6df99475,lemonjello,4nes3mql,True,2,1,2,Spatial reasoning,medium,medium_1,1,0,Neutral,1,5,yikes,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+w5m2iyak,6a23572b5e63504d6df99475,lemonjello,4nes3mql,True,3,1,3,Spatial reasoning,hard,hard_1,2,0,Neutral,1,5,hmmmm,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+w5m2iyak,6a23572b5e63504d6df99475,lemonjello,4nes3mql,True,4,2,1,Numerical reasoning,easy,easy_2,3,0,Neutral,1,6,hmmmmm,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+w5m2iyak,6a23572b5e63504d6df99475,lemonjello,4nes3mql,True,5,2,2,Numerical reasoning,medium,medium_2,0,0,Negative,1,5,yikes,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+w5m2iyak,6a23572b5e63504d6df99475,lemonjello,4nes3mql,True,6,2,3,Numerical reasoning,hard,hard_2,1,0,Neutral,1,5,wowwy,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+x9ls088v,676f0d51832c4a60f2d8cb96,Rsmith2030,4nes3mql,True,1,1,1,Numerical reasoning,easy,easy_2,4,1,Positive,2,10,Going well,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+x9ls088v,676f0d51832c4a60f2d8cb96,Rsmith2030,4nes3mql,True,2,1,2,Numerical reasoning,medium,medium_2,2,1,Neutral,3,13,A lot harder,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,0,0,0
+x9ls088v,676f0d51832c4a60f2d8cb96,Rsmith2030,4nes3mql,True,3,1,3,Numerical reasoning,hard,hard_1,1,1,Negative,3,13,A lot harder,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,0,0,0
+x9ls088v,676f0d51832c4a60f2d8cb96,Rsmith2030,4nes3mql,True,4,2,1,Abstract reasoning,easy,easy_2,0,1,Negative,2,11,Really hard,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+x9ls088v,676f0d51832c4a60f2d8cb96,Rsmith2030,4nes3mql,True,5,2,2,Abstract reasoning,medium,medium_2,1,1,Neutral,2,11,Really hard,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+x9ls088v,676f0d51832c4a60f2d8cb96,Rsmith2030,4nes3mql,True,6,2,3,Abstract reasoning,hard,hard_1,0,1,Negative,2,11,Really hard,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+xlwoyniu,62c4dbae8fb1ff9cd93a3150,cm,4nes3mql,True,1,1,1,Abstract reasoning,easy,easy_1,3,0,Neutral,2,7,not bad,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+xlwoyniu,62c4dbae8fb1ff9cd93a3150,cm,4nes3mql,True,2,1,2,Abstract reasoning,medium,medium_1,2,0,Negative,3,12,sad about it,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+xlwoyniu,62c4dbae8fb1ff9cd93a3150,cm,4nes3mql,True,3,1,3,Abstract reasoning,hard,hard_2,2,0,Negative,2,17,very disappointed,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+xlwoyniu,62c4dbae8fb1ff9cd93a3150,cm,4nes3mql,True,4,2,1,Numerical reasoning,easy,easy_2,4,0,Positive,2,10,did better,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,2,0,0,0,0,1,1,0,1,0,1
+xlwoyniu,62c4dbae8fb1ff9cd93a3150,cm,4nes3mql,True,5,2,2,Numerical reasoning,medium,medium_2,2,0,Negative,2,6,so sad,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+xlwoyniu,62c4dbae8fb1ff9cd93a3150,cm,4nes3mql,True,6,2,3,Numerical reasoning,hard,hard_2,3,0,Neutral,2,7,not bad,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+xs7semts,69417b22e57b2188a215d5bf,Maestro1701,4nes3mql,True,1,1,1,Working memory,easy,easy_1,5,1,Positive,11,44,I feel like I did a good job in this section,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+xs7semts,69417b22e57b2188a215d5bf,Maestro1701,4nes3mql,True,2,1,2,Working memory,medium,medium_2,2,1,Neutral,5,35,That section was more challenging.,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,0,0,0
+xs7semts,69417b22e57b2188a215d5bf,Maestro1701,4nes3mql,True,3,1,3,Working memory,hard,hard_1,1,1,Neutral,7,44,The last section was also very challenging.,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,0,0,0
+xs7semts,69417b22e57b2188a215d5bf,Maestro1701,4nes3mql,True,4,2,1,Numerical reasoning,easy,easy_2,4,1,Positive,2,11,Pretty good,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+xs7semts,69417b22e57b2188a215d5bf,Maestro1701,4nes3mql,True,5,2,2,Numerical reasoning,medium,medium_1,4,1,Positive,2,17,Stayed consistent,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,0,0,0
+xs7semts,69417b22e57b2188a215d5bf,Maestro1701,4nes3mql,True,6,2,3,Numerical reasoning,hard,hard_2,2,1,Neutral,4,22,that got harder fast.,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,1,1,0,0,0,0
+xtt8khs3,69fccfd99b3ffb345e2f49c6,Joe,4nes3mql,True,4,2,1,Spatial reasoning,easy,easy_1,5,0,Neutral,4,15,Hi. I did well.,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,1,0,1
+xtt8khs3,69fccfd99b3ffb345e2f49c6,Joe,4nes3mql,True,5,2,2,Spatial reasoning,medium,medium_2,3,0,Neutral,5,20,Hi. I did less well.,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,2,0,0,0,0,1,1,0,1,0,1
+xtt8khs3,69fccfd99b3ffb345e2f49c6,Joe,4nes3mql,True,6,2,3,Spatial reasoning,hard,hard_1,3,0,Neutral,5,19,Hi. I did the same.,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,0,0,0
+xtt8khs3,69fccfd99b3ffb345e2f49c6,Joe,4nes3mql,True,7,3,1,Numerical reasoning,easy,easy_1,5,0,Neutral,3,11,I did well.,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,1,0,1
+xtt8khs3,69fccfd99b3ffb345e2f49c6,Joe,4nes3mql,True,8,3,2,Numerical reasoning,medium,medium_2,0,0,Neutral,4,17,I didn't do well.,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+xtt8khs3,69fccfd99b3ffb345e2f49c6,Joe,4nes3mql,True,9,3,3,Numerical reasoning,hard,hard_1,1,0,Neutral,5,19,I did a bit better.,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,1,0,1
+xuu4w20a,6a09c236ca3585be0bd720ff,nootnoot,4nes3mql,True,1,1,1,Working memory,easy,easy_2,3,1,Neutral,4,20,"Meh, could be better",0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+xuu4w20a,6a09c236ca3585be0bd720ff,nootnoot,4nes3mql,True,2,1,2,Working memory,medium,medium_2,1,0,Negative,4,22,much worse this time,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,2,0,0,0,0,1,1,0,0,1,-1
+xuu4w20a,6a09c236ca3585be0bd720ff,nootnoot,4nes3mql,True,3,1,3,Working memory,hard,hard_1,1,0,Negative,7,31,i thought i figured out a trick,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+xuu4w20a,6a09c236ca3585be0bd720ff,nootnoot,4nes3mql,True,7,3,1,Numerical reasoning,easy,easy_1,4,0,Positive,2,11,much better,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,1,0,1
+xuu4w20a,6a09c236ca3585be0bd720ff,nootnoot,4nes3mql,True,8,3,2,Numerical reasoning,medium,medium_2,1,0,Neutral,3,12,not too good,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+xuu4w20a,6a09c236ca3585be0bd720ff,nootnoot,4nes3mql,True,9,3,3,Numerical reasoning,hard,hard_2,1,0,Neutral,6,26,math is not my strong suit,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,0,0,0,0,0,0,0
+xvk3mzde,6a0cebc8c901222e7c4022e2,VV223,4nes3mql,True,1,1,1,Abstract reasoning,easy,easy_2,3,1,Positive,4,15,It has been fun,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,2,0,0,0,0,0,0,0,1,0,1
+xvk3mzde,6a0cebc8c901222e7c4022e2,VV223,4nes3mql,True,2,1,2,Abstract reasoning,medium,medium_1,3,1,Neutral,2,8,Very fun,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,2,0,0,0,0,0,0,0,1,0,1
+xvk3mzde,6a0cebc8c901222e7c4022e2,VV223,4nes3mql,True,3,1,3,Abstract reasoning,hard,hard_2,1,1,Negative,4,17,Well there it is,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+xvk3mzde,6a0cebc8c901222e7c4022e2,VV223,4nes3mql,True,7,3,1,Working memory,easy,easy_2,5,1,Positive,1,29,Greattttttttttttttttttttttttt,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+xvk3mzde,6a0cebc8c901222e7c4022e2,VV223,4nes3mql,True,8,3,2,Working memory,medium,medium_1,2,1,Positive,1,18,gooddddddddddddddd,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+xvk3mzde,6a0cebc8c901222e7c4022e2,VV223,4nes3mql,True,9,3,3,Working memory,hard,hard_1,3,1,Positive,1,14,okayyyyyyyyyyy,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+y5t69xvp,69cc4d19957a8e5e7554f528,Stickz,4nes3mql,True,1,1,1,Spatial reasoning,easy,easy_1,5,1,Positive,8,49,The exercise while thought provoking is also fun.,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,2,0,0,0,0,0,0,0,1,0,1
+y5t69xvp,69cc4d19957a8e5e7554f528,Stickz,4nes3mql,True,2,1,2,Spatial reasoning,medium,medium_2,3,1,Neutral,11,74,Slighlty more difficult. harder to enterprete with the more complex shapes,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,2,0,1,0,0,1,1,0,0,1,-1
+y5t69xvp,69cc4d19957a8e5e7554f528,Stickz,4nes3mql,True,3,1,3,Spatial reasoning,hard,hard_1,5,1,Positive,10,43,I focused more and was able to get them all,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+y5t69xvp,69cc4d19957a8e5e7554f528,Stickz,4nes3mql,True,7,3,1,Abstract reasoning,easy,easy_2,3,1,Neutral,13,55,i didnt understand it at first but I think I got it now,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+y5t69xvp,69cc4d19957a8e5e7554f528,Stickz,4nes3mql,True,8,3,2,Abstract reasoning,medium,medium_1,3,1,Negative,3,12,I was wrong.,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+y5t69xvp,69cc4d19957a8e5e7554f528,Stickz,4nes3mql,True,9,3,3,Abstract reasoning,hard,hard_2,3,1,Negative,6,25,Yeah idk im lost on these,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,-1
+ze5gx2ni,67c9e7f9b20b33ec743ad8a9,Kasper,4nes3mql,True,4,2,1,Working memory,easy,easy_2,5,1,Positive,7,27,I am fired up at the moment,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+ze5gx2ni,67c9e7f9b20b33ec743ad8a9,Kasper,4nes3mql,True,5,2,2,Working memory,medium,medium_1,0,0,Negative,3,17,I was overwhelmed,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+ze5gx2ni,67c9e7f9b20b33ec743ad8a9,Kasper,4nes3mql,True,6,2,3,Working memory,hard,hard_2,0,1,Negative,5,27,I am disappointed in myself,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+ze5gx2ni,67c9e7f9b20b33ec743ad8a9,Kasper,4nes3mql,True,7,3,1,Numerical reasoning,easy,easy_1,3,1,Neutral,7,28,I can't believe I got only 3,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+ze5gx2ni,67c9e7f9b20b33ec743ad8a9,Kasper,4nes3mql,True,8,3,2,Numerical reasoning,medium,medium_2,3,1,Negative,6,23,Why am I getting only 3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0
+ze5gx2ni,67c9e7f9b20b33ec743ad8a9,Kasper,4nes3mql,True,9,3,3,Numerical reasoning,hard,hard_1,1,0,Negative,3,8,I am sad,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+zupaaktr,6a0d1f29937a492e8dcafcf4,drendell,4nes3mql,True,1,1,1,Numerical reasoning,easy,easy_2,4,1,Neutral,8,35,I am surprised that I got one wrong,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+zupaaktr,6a0d1f29937a492e8dcafcf4,drendell,4nes3mql,True,2,1,2,Numerical reasoning,medium,medium_2,2,0,Negative,4,16,Im not too smart,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+zupaaktr,6a0d1f29937a492e8dcafcf4,drendell,4nes3mql,True,3,1,3,Numerical reasoning,hard,hard_1,1,0,Negative,3,15,These were hard,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1
+zupaaktr,6a0d1f29937a492e8dcafcf4,drendell,4nes3mql,True,4,2,1,Spatial reasoning,easy,easy_2,4,1,Positive,1,5,Happy,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+zupaaktr,6a0d1f29937a492e8dcafcf4,drendell,4nes3mql,True,5,2,2,Spatial reasoning,medium,medium_1,1,0,Negative,2,8,Not good,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1
+zupaaktr,6a0d1f29937a492e8dcafcf4,drendell,4nes3mql,True,6,2,3,Spatial reasoning,hard,hard_2,0,0,Negative,1,5,awful,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,-1

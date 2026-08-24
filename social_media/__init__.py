@@ -6,6 +6,7 @@ from pathlib import Path
 from statistics import NormalDist
 
 from . import questions_data as QD
+from .message_vocab import is_task_specific
 
 
 doc = """
@@ -63,7 +64,7 @@ QUESTION_TIMEOUT_SECONDS = 60  # 60 seconds per question
 WM_STIMULUS_SECONDS = 1.7
 
 # Flat (participation) payment shown on the instructions page.
-FLAT_PAYMENT_DISPLAY = "$8"
+FLAT_PAYMENT_DISPLAY = "$5.5"
 
 # IQ reference-point page "sense of the scale" bullets. The numbers are the
 # x-axis band edges shown on static/images/iq_distribution.png (the ±1 / ±2 SD
@@ -86,12 +87,12 @@ if PILOT not in ("initial", "iq", "main"):
     PILOT = "initial"
 
 PILOT_CONFIG = {
-    # Initial pilot: sequences (always) + 2 random of the three non-sequence
-    # tasks; number-correct feedback only (no IQ); send messages but receive
-    # none; all three blocks mandatory (no WTA).
+    # Initial pilot: sequences (always) + working memory + Raven's; number-correct
+    # feedback only (no IQ); send messages but receive none; all three blocks
+    # mandatory (no WTA). Spatial (shape_rotation) is retired.
     "initial": dict(
         fixed_tasks=["sequences"],
-        random_pool=["shape_rotation", "working_memory", "ravens"],
+        random_pool=["working_memory", "ravens"],
         random_count=2,
         show_iq=False,
         received_message_source=None,
@@ -99,11 +100,11 @@ PILOT_CONFIG = {
         use_wta=False,
         period3_mandatory=True,
     ),
-    # IQ pilot: all three non-sequence tasks; number-correct per 5 + IQ after
-    # 15 (normed against the Initial pilot); receive Initial-pilot messages;
-    # 3rd block optional via WTA.
+    # IQ pilot: numerical + working memory + Raven's; number-correct per 5 + IQ
+    # after 15 (normed against the Initial pilot); receive Initial-pilot messages
+    # on mid-period blocks only; 3rd period optional via WTA.
     "iq": dict(
-        fixed_tasks=["shape_rotation", "working_memory", "ravens"],
+        fixed_tasks=["sequences", "working_memory", "ravens"],
         random_pool=[],
         random_count=0,
         show_iq=True,
@@ -114,7 +115,7 @@ PILOT_CONFIG = {
     ),
     # Main pilot: like IQ, but normed against / receiving messages from the IQ pilot.
     "main": dict(
-        fixed_tasks=["shape_rotation", "working_memory", "ravens"],
+        fixed_tasks=["sequences", "working_memory", "ravens"],
         random_pool=[],
         random_count=0,
         show_iq=True,
@@ -289,13 +290,43 @@ _MESSAGE_CACHE = {}
 _IQ_DIST_CACHE = {}
 
 
+def _flatten_message_pool(pool: dict) -> dict:
+    """Flatten [task][set_id][kind] into {kind: [entries]} for a portable draw.
+
+    Messages are served at random from the whole pool rather than matched to the
+    participant's own (task, set_id), so qualitative entries naming task content
+    are dropped: they cannot truthfully travel to someone on a different task.
+    Each surviving entry keeps its origin so we can record what was shown.
+    Non-dict values (e.g. the ``_README`` key in the data files) are skipped.
+    """
+    flat = {'quantitative': [], 'qualitative': []}
+    for task, sets in (pool or {}).items():
+        if not isinstance(sets, dict):
+            continue
+        for set_id, pools in sets.items():
+            if not isinstance(pools, dict):
+                continue
+            for e in pools.get('quantitative') or []:
+                flat['quantitative'].append(
+                    dict(e, source_task=task, source_set_id=set_id)
+                )
+            for e in pools.get('qualitative') or []:
+                if is_task_specific(e.get('sentence') or ''):
+                    continue
+                flat['qualitative'].append(
+                    dict(e, source_task=task, source_set_id=set_id)
+                )
+    return flat
+
+
 def received_message_pool():
-    """Messages from the previous pilot, keyed [task][set_id][quant|qual]."""
+    """Portable messages from the previous pilot, keyed [quant|qual]."""
     src = CFG["received_message_source"]
     if not src:
         return None
     if src not in _MESSAGE_CACHE:
-        _MESSAGE_CACHE[src] = _load_json(f"messages_{src}.json") or {}
+        raw = _load_json(f"messages_{src}.json") or {}
+        _MESSAGE_CACHE[src] = _flatten_message_pool(raw)
     return _MESSAGE_CACHE[src]
 
 
@@ -549,7 +580,16 @@ class Player(BasePlayer):
     # report_number stores the number-correct (0-5) the participant chooses to report.
     report_number = models.IntegerField(min=0, max=5, blank=True)
     # report_iq stores the reported IQ score (quantitative_social IQ feedback).
-    report_iq = models.IntegerField(min=40, max=160, blank=True, label="")
+    # Bounds match the reference-point slider (60-140).
+    report_iq = models.IntegerField(min=60, max=140, blank=True, label="")
+    # Overall (cross-component) IQ readout + optional message after all periods.
+    global_iq_estimate = models.IntegerField(blank=True)
+    global_report_iq = models.IntegerField(min=60, max=140, blank=True, label="")
+    global_report_emoji = models.StringField(blank=True)
+    global_report_message = models.StringField(blank=True, max_length=140)
+    global_report_shared = models.BooleanField(blank=True)
+    global_report_edit_back_count = models.IntegerField(initial=0, blank=True)
+    global_report_compose_history = models.LongStringField(blank=True)
     report_emoji = models.StringField(blank=True)
     report_message = models.StringField(blank=True, max_length=140)
     report_shared = models.BooleanField(blank=True)
@@ -562,6 +602,11 @@ class Player(BasePlayer):
     display_name = models.StringField(blank=True, max_length=60, label="")
     received_signal_name = models.StringField(blank=True)
     received_signal_value = models.StringField(blank=True)
+    # Exact text shown to the participant, plus where the message came from
+    # (messages are drawn at random from the whole portable pool, so the origin
+    # task/set is not the participant's own). 'simulated' when the pool was empty.
+    received_signal_text = models.StringField(blank=True, max_length=200)
+    received_signal_source = models.StringField(blank=True, max_length=60)
 
     # ---- Bot check (Cloudflare Turnstile + honeypot) ----
     turnstile_token = models.StringField(blank=True)
@@ -618,6 +663,17 @@ class Player(BasePlayer):
         [0, "Leadership is a quality that takes a long time to develop."],
     ], widget=widgets.RadioSelect, blank=True, label="")
     competitiveness = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True, label="")
+    # Extra preference / social-comparison items on the BFI page.
+    pref_risk = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True, label="")
+    pref_patience = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True, label="")
+    pref_trust = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True, label="")
+    pref_altruism = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True, label="")
+    pref_reciprocity = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True, label="")
+    pref_punish = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True, label="")
+    pref_share_success = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True, label="")
+    pref_share_fail = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True, label="")
+    pref_compare = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True, label="")
+    pref_dislike_brag = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True, label="")
 
     # ---- Rosenberg Self-Esteem Scale (RSES, 10 items, 4-point) ----
     rses_1 = models.IntegerField(choices=RSES_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True, label="")
@@ -696,6 +752,9 @@ class Player(BasePlayer):
     # ---- Confidence in percentile estimate (0-100 slider) ----
     perceived_percentile_confidence = models.IntegerField(min=0, max=100, blank=True, label="")
 
+    # ---- Overall task effort (0-100 slider), after optional/mandatory period 3 ----
+    task_effort = models.IntegerField(min=0, max=100, blank=True, label="")
+
     # ---- Overall self-reported reliability (Dohmen & Jagelka): end-of-survey 0–10 ----
     survey_reliability = models.IntegerField(
         choices=OVERALL_RELIABILITY_CHOICES,
@@ -710,6 +769,12 @@ class Player(BasePlayer):
                                 label="What is your gender?")
     education = models.StringField(choices=EDUCATION_CHOICES, widget=widgets.RadioSelect, blank=True,
                                    label="What is your highest level of education?")
+    taken_iq_test_before = models.StringField(
+        choices=[["Yes", "Yes"], ["No", "No"]],
+        widget=widgets.RadioSelect,
+        blank=True,
+        label="Have you taken an IQ test before?",
+    )
 
     # ---- Two simultaneous WTAs (treatment vs control) ----
     wta_t_1 = models.StringField(choices=["Yes", "No"], widget=widgets.RadioSelectHorizontal, blank=True, label="")
@@ -756,6 +821,46 @@ class Player(BasePlayer):
         label="",
         blank=True,
     )
+    # Writing motives (click-all-that-apply), after the open-ended experience page.
+    write_well_show = models.BooleanField(blank=True, initial=False)
+    write_well_downplay = models.BooleanField(blank=True, initial=False)
+    write_poor_honest = models.BooleanField(blank=True, initial=False)
+    write_poor_exaggerate = models.BooleanField(blank=True, initial=False)
+    write_peer_well_up = models.BooleanField(blank=True, initial=False)
+    write_peer_well_down = models.BooleanField(blank=True, initial=False)
+    write_peer_poor_up = models.BooleanField(blank=True, initial=False)
+    write_peer_poor_down = models.BooleanField(blank=True, initial=False)
+    write_match_tone = models.BooleanField(blank=True, initial=False)
+    write_none = models.BooleanField(blank=True, initial=False)
+    # Sharing motives (click-all-that-apply), after the writing-motives page.
+    share_well_positive = models.BooleanField(blank=True, initial=False)
+    share_well_withhold = models.BooleanField(blank=True, initial=False)
+    share_poor_positive = models.BooleanField(blank=True, initial=False)
+    share_poor_withhold = models.BooleanField(blank=True, initial=False)
+    share_peer_well_up = models.BooleanField(blank=True, initial=False)
+    share_peer_well_down = models.BooleanField(blank=True, initial=False)
+    share_peer_poor_up = models.BooleanField(blank=True, initial=False)
+    share_peer_poor_down = models.BooleanField(blank=True, initial=False)
+    share_helpful = models.BooleanField(blank=True, initial=False)
+    share_none = models.BooleanField(blank=True, initial=False)
+    # Message impacts (click-all-that-apply), after the sharing-motives page.
+    impact_recv_mood = models.BooleanField(blank=True, initial=False)
+    impact_recv_sat = models.BooleanField(blank=True, initial=False)
+    impact_recv_effort = models.BooleanField(blank=True, initial=False)
+    impact_send_mood = models.BooleanField(blank=True, initial=False)
+    impact_send_sat = models.BooleanField(blank=True, initial=False)
+    impact_send_effort = models.BooleanField(blank=True, initial=False)
+    impact_none = models.BooleanField(blank=True, initial=False)
+
+    # Tools used on the cognitive questions (unpaid; does not affect approval).
+    tool_pen_paper = models.BooleanField(blank=True, initial=False)
+    tool_calculator = models.BooleanField(blank=True, initial=False)
+    tool_ai = models.BooleanField(blank=True, initial=False)
+    tool_cellphone_camera = models.BooleanField(blank=True, initial=False)
+    tool_search_engine = models.BooleanField(blank=True, initial=False)
+    tool_ask_someone_else = models.BooleanField(blank=True, initial=False)
+    tool_none = models.BooleanField(blank=True, initial=False)
+
     realism_feedback = models.LongStringField(
         label="",
         blank=True,
@@ -1017,9 +1122,10 @@ def _peer_message_time(rng: random.Random) -> str:
 def pilot_feedback_signals(player: Player):
     """One peer report shown on the feedback sidebar for the current block.
 
-    Initial pilot: no received message (send-only). IQ/Main: draw a real message
-    from the previous pilot for this (task, set_id); fall back to a simulated one.
-    Messages are number-correct based (0-5) in all pilots.
+    Initial pilot: no received message (send-only). IQ/Main: draw a message
+    uniformly at random from the previous pilot's portable pool, independent of
+    the participant's own task and set; fall back to a simulated one only when
+    the pool is empty. Messages are number-correct based (0-5) in all pilots.
     """
     cond = get_condition(player)
     if cond not in ('quantitative_social', 'qualitative_social'):
@@ -1028,28 +1134,31 @@ def pilot_feedback_signals(player: Player):
     if CFG['received_message_source'] is None:
         return dict(type='none', name=None)
 
-    spec = round_spec(player)
     pool = received_message_pool() or {}
-    set_pool = pool.get(spec['task'], {}).get(spec['set_id'], {})
     rng = random.Random(f"{player.session.code}-{player.participant.code}-{player.round_number}-recv")
     name = rng.choice(PILOT_NAMES)
 
     if cond == 'quantitative_social':
-        entries = set_pool.get('quantitative') or []
+        entries = pool.get('quantitative') or []
         if entries:
             e = rng.choice(entries)
             return dict(type='quantitative', name=e.get('name') or name,
                         number=int(e.get('number', 0)),
+                        source_task=e.get('source_task'),
+                        source_set_id=e.get('source_set_id'),
                         time=e.get('time') or _peer_message_time(rng))
         return dict(type='quantitative', name=name, number=rng.randint(0, 5),
+                    simulated=True,
                     time=_peer_message_time(rng))
 
-    entries = set_pool.get('qualitative') or []
+    entries = pool.get('qualitative') or []
     if entries:
         e = rng.choice(entries)
         return dict(type='qualitative', name=e.get('name') or name,
                     emoji=e.get('emoji') or QUAL_EMOJI_NEUTRAL,
                     sentence=e.get('sentence') or '',
+                    source_task=e.get('source_task'),
+                    source_set_id=e.get('source_set_id'),
                     time=e.get('time') or _peer_message_time(rng))
     # Simulated fallback.
     emoji = rng.choice(QUAL_EMOJIS)
@@ -1064,40 +1173,56 @@ def pilot_feedback_signals(player: Player):
     else:
         sentence = rng.choice(PILOT_QUAL_TEXT_BY_EMOJI[emoji])
     return dict(type='qualitative', name=name, emoji=emoji, sentence=sentence,
-                time=_peer_message_time(rng))
+                simulated=True, time=_peer_message_time(rng))
 
 
 def pilot_iq_feedback_signal(player: Player):
-    """One simulated peer IQ message for the end-of-period IQ feedback sidebar.
+    """Peer IQ message for end-of-period IQ feedback.
 
-    Real period-level peer IQ data does not exist in the message pools, so we
-    generate a stable (seeded by session + participant + round) simulated peer
-    message per social condition.
+    We do not show a received peer IQ message here: there is no real period-level
+    peer IQ pool, and simulated messages looked fake. Compose/send still proceeds.
     """
     cond = get_condition(player)
     if cond not in ('quantitative_social', 'qualitative_social'):
         return dict(type='control', name=None)
     if CFG['received_message_source'] is None:
         return dict(type='none', name=None)
+    return dict(type='none', name=None)
 
-    component = component_for_player(player)
-    label = iq_component_label(component)
-    rng = random.Random(
-        f"{player.session.code}-{player.participant.code}-{player.round_number}-recviq"
-    )
-    name = rng.choice(PILOT_NAMES)
 
-    if cond == 'quantitative_social':
-        peer_score = rng.randint(0, C.PERIOD_LENGTH)
-        peer_iq = estimate_iq(component, peer_score, C.PERIOD_LENGTH)
-        peer_iq = max(55, min(145, peer_iq))
-        return dict(type='quantitative', name=name, iq=peer_iq, label=label,
-                    time=_peer_message_time(rng))
+def global_iq_for_player(player: Player) -> int:
+    """Average of period IQ estimates across completed task periods.
 
-    emoji = rng.choice(QUAL_EMOJIS)
-    sentence = rng.choice(PILOT_QUAL_TEXT_BY_EMOJI[emoji])
-    return dict(type='qualitative', name=name, emoji=emoji, sentence=sentence,
-                time=_peer_message_time(rng))
+    Before the WTA (period 3 not yet decided), only periods 1 and 2 contribute.
+    """
+    iqs = []
+    for r in C.END_OF_PERIOD_ROUNDS:
+        if r > player.round_number:
+            break
+        p = player.in_round(r)
+        iq = p.field_maybe_none('iq_estimate')
+        if iq is not None:
+            iqs.append(int(iq))
+    if third_period_played(player) and player.round_number >= C.NUM_ROUNDS:
+        p = player.in_round(C.NUM_ROUNDS)
+        iq = p.field_maybe_none('iq_estimate')
+        if iq is not None:
+            iqs.append(int(iq))
+    if not iqs:
+        # Fallback: map total correct on completed questions via overall table.
+        n = 0
+        max_q = 0
+        for start, end, needed in (
+            (1, C.PERIOD_LENGTH, True),
+            (C.PERIOD_LENGTH + 1, 2 * C.PERIOD_LENGTH, True),
+            (C.THIRD_PERIOD_START, C.NUM_ROUNDS, third_period_played(player)),
+        ):
+            if not needed:
+                continue
+            max_q += C.PERIOD_LENGTH
+            n += sum(1 for p in player.in_rounds(start, end) if p.field_maybe_none('q_correct'))
+        return estimate_iq('overall', n, max_q or C.PERIOD_LENGTH)
+    return int(round(sum(iqs) / len(iqs)))
 
 
 def experienced_conditions(player: Player):
@@ -1184,8 +1309,253 @@ BFI_PROMPTS = {
     'big5_10': "\u2026has an active imagination.",
     'self_knowledge': "\u2026knows himself/herself well.",
     'competitiveness': "\u2026enjoys competing with others.",
+    'pref_risk': "\u2026is generally willing to take risks.",
+    'pref_patience': (
+        "\u2026is generally willing to give up something today in order to "
+        "benefit from that in the future."
+    ),
+    'pref_trust': (
+        "\u2026assumes that people have only the best intentions, as long as "
+        "I am not convinced otherwise."
+    ),
+    'pref_altruism': (
+        "\u2026is generally willing to share with others without expecting "
+        "anything in return when it comes to charity."
+    ),
+    'pref_reciprocity': (
+        "\u2026is generally willing to return a favor that someone does for me."
+    ),
+    'pref_punish': (
+        "\u2026is generally willing to punish unfair behavior even if this is costly."
+    ),
+    'pref_share_success': "\u2026likes to share my successes with others.",
+    'pref_share_fail': "\u2026likes to share my failures with others.",
+    'pref_compare': "\u2026often compares myself with others.",
+    'pref_dislike_brag': "\u2026dislikes when others talk about their successes.",
     'big5_accuracy': "\u2026is sure that my answers to these questions describe me accurately.",
 }
+
+BFI_CORE_FIELDS = [
+    'big5_1', 'big5_2', 'big5_3', 'big5_4', 'big5_5',
+    'big5_6', 'big5_7', 'big5_8', 'big5_9', 'big5_10',
+    'self_knowledge', 'competitiveness',
+    'pref_risk', 'pref_patience', 'pref_trust', 'pref_altruism',
+    'pref_reciprocity', 'pref_punish', 'pref_share_success',
+    'pref_share_fail', 'pref_compare', 'pref_dislike_brag',
+]
+
+# Parallel click-all-that-apply lists (9 substantive + none) for the experience pages.
+# Slots 1-4: own performance (well/poor × positive/withhold); 5-6: peer performance;
+# 7: social consideration; 8: low effort; 9: not affected; 10: none.
+WRITING_MOTIVES = [
+    dict(
+        field='write_well_show',
+        text=(
+            "When I did well, I tended to write positively about my performance because I "
+            "wanted other participants to see that I had done well."
+        ),
+        is_none=False,
+    ),
+    dict(
+        field='write_well_downplay',
+        text=(
+            "When I did well, I tended to downplay my performance because I did not want to "
+            "seem like I was bragging."
+        ),
+        is_none=False,
+    ),
+    dict(
+        field='write_poor_honest',
+        text="When I did poorly, I tended to be honest about struggling.",
+        is_none=False,
+    ),
+    dict(
+        field='write_poor_exaggerate',
+        text="When I did poorly, I tended to exaggerate how well I did.",
+        is_none=False,
+    ),
+    dict(
+        field='write_peer_well_up',
+        text=(
+            "When another participant said they did well, I was more likely to write "
+            "positively about my own performance."
+        ),
+        is_none=False,
+    ),
+    dict(
+        field='write_peer_well_down',
+        text=(
+            "When another participant said they did well, I was less likely to write "
+            "positively about my own performance."
+        ),
+        is_none=False,
+    ),
+    dict(
+        field='write_peer_poor_up',
+        text=(
+            "When another participant said they did poorly, I was more likely to write "
+            "positively about my own performance."
+        ),
+        is_none=False,
+    ),
+    dict(
+        field='write_peer_poor_down',
+        text=(
+            "When another participant said they did poorly, I was less likely to write "
+            "positively about my own performance."
+        ),
+        is_none=False,
+    ),
+    dict(
+        field='write_match_tone',
+        text=(
+            "I tried to match the tone or style of messages I had received from other "
+            "participants."
+        ),
+        is_none=False,
+    ),
+    dict(
+        field='write_none',
+        text="None of these apply to me.",
+        is_none=True,
+    ),
+]
+
+SHARING_MOTIVES = [
+    dict(
+        field='share_well_positive',
+        text=(
+            "When I did well, I tended to share because I wanted other participants to see "
+            "that I had done well."
+        ),
+        is_none=False,
+    ),
+    dict(
+        field='share_well_withhold',
+        text=(
+            "When I did well, I tended to hold back because I did not want to seem like I "
+            "was bragging."
+        ),
+        is_none=False,
+    ),
+    dict(
+        field='share_poor_positive',
+        text=(
+            "When I did poorly, I tended to share because I wanted to reassure other "
+            "participants."
+        ),
+        is_none=False,
+    ),
+    dict(
+        field='share_poor_withhold',
+        text=(
+            "When I did poorly, I tended to hold back because I did not want other "
+            "participants to see that I had done poorly."
+        ),
+        is_none=False,
+    ),
+    dict(
+        field='share_peer_well_up',
+        text=(
+            "When another participant said they did well, I was more likely to share my own "
+            "performance."
+        ),
+        is_none=False,
+    ),
+    dict(
+        field='share_peer_well_down',
+        text=(
+            "When another participant said they did well, I was less likely to share my own "
+            "performance."
+        ),
+        is_none=False,
+    ),
+    dict(
+        field='share_peer_poor_up',
+        text=(
+            "When another participant said they did poorly, I was more likely to share my "
+            "own performance."
+        ),
+        is_none=False,
+    ),
+    dict(
+        field='share_peer_poor_down',
+        text=(
+            "When another participant said they did poorly, I was less likely to share my "
+            "own performance."
+        ),
+        is_none=False,
+    ),
+    dict(
+        field='share_helpful',
+        text=(
+            "I tended to share when I thought my message would be helpful or relatable to "
+            "other participants."
+        ),
+        is_none=False,
+    ),
+    dict(
+        field='share_none',
+        text="None of these apply to me.",
+        is_none=True,
+    ),
+]
+
+# Receiving / sending × mood / satisfaction / effort (6 + none).
+# The two activity blocks are shuffled per participant on the impacts page.
+_MESSAGE_IMPACT_OUTCOMES = (
+    ('mood', 'my mood'),
+    ('sat', 'how satisfied I was with my performance'),
+    ('effort', 'how hard I tried on subsequent blocks'),
+)
+
+
+def _message_impact_block(key: str, heading: str, prefix: str) -> dict:
+    return dict(
+        key=key,
+        heading=heading,
+        items=[
+            dict(field=f'{prefix}_{suffix}', text=text, is_none=False)
+            for suffix, text in _MESSAGE_IMPACT_OUTCOMES
+        ],
+    )
+
+
+MESSAGE_IMPACT_RECV_BLOCK = _message_impact_block(
+    'recv',
+    'Receiving messages from other participants affected',
+    'impact_recv',
+)
+MESSAGE_IMPACT_SEND_BLOCK = _message_impact_block(
+    'send',
+    'Sending messages affected',
+    'impact_send',
+)
+MESSAGE_IMPACT_BLOCKS = (
+    MESSAGE_IMPACT_RECV_BLOCK,
+    MESSAGE_IMPACT_SEND_BLOCK,
+)
+MESSAGE_IMPACT_NONE = dict(
+    field='impact_none',
+    text="None of these apply to me.",
+    is_none=True,
+)
+MESSAGE_IMPACTS = (
+    MESSAGE_IMPACT_RECV_BLOCK['items']
+    + MESSAGE_IMPACT_SEND_BLOCK['items']
+    + [MESSAGE_IMPACT_NONE]
+)
+
+EXPERIENCE_PAGE_KEYS = ('writing', 'sharing', 'impacts')
+EXPERIENCE_PAGE_META = {
+    'writing': dict(motives=WRITING_MOTIVES),
+    'sharing': dict(motives=SHARING_MOTIVES),
+    'impacts': dict(motives=MESSAGE_IMPACTS),
+}
+
+IQ_REPORT_MIN = 60
+IQ_REPORT_MAX = 140
+
 
 RSES_PROMPTS = {
     'rses_1': "On the whole, I am satisfied with myself.",
@@ -1210,13 +1580,7 @@ def _stable_shuffled(player: Player, suffix: str, items: list) -> list:
 
 class BigFiveSurvey(Page):
     form_model = 'player'
-    form_fields = [
-        'big5_1', 'big5_2', 'big5_3', 'big5_4', 'big5_5',
-        'big5_6', 'big5_7', 'big5_8', 'big5_9', 'big5_10',
-        'self_knowledge',
-        'big5_accuracy',
-        'competitiveness',
-    ]
+    form_fields = BFI_CORE_FIELDS + ['big5_accuracy']
 
     @staticmethod
     def is_displayed(player: Player):
@@ -1224,10 +1588,7 @@ class BigFiveSurvey(Page):
 
     @staticmethod
     def vars_for_template(player: Player):
-        shuffled_fields = _stable_shuffled(
-            player, 'bfi',
-            [k for k in BFI_PROMPTS.keys() if k != 'big5_accuracy'],
-        )
+        shuffled_fields = _stable_shuffled(player, 'bfi', list(BFI_CORE_FIELDS))
         rows = [
             dict(field=name, prompt=BFI_PROMPTS[name])
             for name in shuffled_fields
@@ -1237,13 +1598,7 @@ class BigFiveSurvey(Page):
 
     @staticmethod
     def error_message(player: Player, values):
-        fields = [
-            'big5_1', 'big5_2', 'big5_3', 'big5_4', 'big5_5',
-            'big5_6', 'big5_7', 'big5_8', 'big5_9', 'big5_10',
-            'self_knowledge',
-            'big5_accuracy',
-            'competitiveness',
-        ]
+        fields = BFI_CORE_FIELDS + ['big5_accuracy']
         if any(values.get(f) is None for f in fields):
             return "Please answer all questions before continuing."
 
@@ -1303,7 +1658,7 @@ class NarcissismSurvey(Page):
 
 class Demographics(Page):
     form_model = 'player'
-    form_fields = ['age', 'gender', 'education']
+    form_fields = ['age', 'gender', 'education', 'taken_iq_test_before']
 
     @staticmethod
     def is_displayed(player: Player):
@@ -1317,6 +1672,8 @@ class Demographics(Page):
             return "Please indicate your gender."
         if not values.get('education'):
             return "Please indicate your highest level of education."
+        if not values.get('taken_iq_test_before'):
+            return "Please indicate whether you have taken an IQ test before."
 
 
 class BotCheck(Page):
@@ -1497,6 +1854,16 @@ class TaskIntro(Page):
         if not static_exists(example_image):
             # Real example not dropped in yet: the template shows a placeholder.
             example_image = None
+        # Working memory stimuli are only shown for ~1.7 s, so any first-load
+        # delay is very visible. Preload every image in the task's pool while
+        # the participant reads the example page.
+        preload_images = []
+        if task == 'working_memory':
+            preload_images = [
+                item['image']
+                for item in QD.QUESTIONS.get('working_memory', {}).values()
+                if item.get('image') and not item.get('is_placeholder')
+            ]
         # Fresh gate each time this page is shown.
         player.participant.vars['task_intro_checked'] = False
         return dict(
@@ -1514,6 +1881,7 @@ class TaskIntro(Page):
             big_image=task in ('ravens', 'sequences'),
             requires_example_check=bool(intro.get('example_response_type')),
             requires_example_check_js='true' if intro.get('example_response_type') else 'false',
+            preload_images=preload_images,
         )
 
     @staticmethod
@@ -1790,12 +2158,22 @@ class BlockFeedback(Page):
             edit_back_count=player.field_maybe_none('report_edit_back_count') or 0,
             compose_history=player.field_maybe_none('report_compose_history') or '',
         ))
-        if signal.get('type') == 'quantitative':
+        if signal.get('type') in ('quantitative', 'qualitative'):
             player.received_signal_name = signal.get('name') or ''
-            player.received_signal_value = str(signal.get('number'))
-        elif signal.get('type') == 'qualitative':
-            player.received_signal_name = signal.get('name') or ''
-            player.received_signal_value = signal.get('emoji') or ''
+            if signal.get('type') == 'quantitative':
+                n = signal.get('number')
+                player.received_signal_value = str(n)
+                player.received_signal_text = f"I got {n} out of 5 correct."
+            else:
+                player.received_signal_value = signal.get('emoji') or ''
+                player.received_signal_text = (signal.get('sentence') or '')[:200]
+            if signal.get('simulated'):
+                player.received_signal_source = 'simulated'
+            else:
+                player.received_signal_source = (
+                    f"{signal.get('source_task') or '?'}/"
+                    f"{signal.get('source_set_id') or '?'}"
+                )[:60]
 
 
 class IQFeedback(Page):
@@ -1881,8 +2259,8 @@ class IQFeedback(Page):
             v = values.get('report_iq')
             if v is None or v == '':
                 return "Please enter your IQ score."
-            if v < 40 or v > 160:
-                return "Please enter an IQ score between 40 and 160."
+            if v < IQ_REPORT_MIN or v > IQ_REPORT_MAX:
+                return f"Please enter an IQ score between {IQ_REPORT_MIN} and {IQ_REPORT_MAX}."
         else:
             msg = (values.get('report_message') or '').strip()
             if not msg:
@@ -1946,6 +2324,113 @@ class IQFeedback(Page):
         elif signal.get('type') == 'qualitative':
             player.received_signal_name = signal.get('name') or ''
             player.received_signal_value = signal.get('emoji') or ''
+
+
+class GlobalIQFeedback(Page):
+    """After periods 1–2: overall IQ readout + optional send (mirrors IQFeedback).
+
+    Shown before the WTA elicitation so participants know their combined score
+    before deciding whether to take the optional third period.
+    """
+    form_model = 'player'
+    form_fields = [
+        'global_report_iq',
+        'global_report_emoji',
+        'global_report_message',
+        'global_report_shared',
+        'global_report_edit_back_count',
+        'global_report_compose_history',
+    ]
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return (
+            CFG['show_iq']
+            and CFG['use_wta']
+            and player.round_number == 2 * C.PERIOD_LENGTH
+        )
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        iq = global_iq_for_player(player)
+        player.global_iq_estimate = iq
+        treatment, _ = experienced_conditions(player)
+        cond = treatment
+        signal = dict(type='none', name=None)
+        return dict(
+            condition=cond,
+            component='overall',
+            label='overall',
+            n_correct=None,
+            iq=iq,
+            display_name=player.participant.vars.get('display_name', ''),
+            signal=signal,
+            signal_initial='?',
+            qual_emojis=QUAL_EMOJIS,
+            in_treatment=cond in ('quantitative_social', 'qualitative_social'),
+            is_quantitative=cond == 'quantitative_social',
+            is_qualitative=cond == 'qualitative_social',
+            has_received_message=False,
+            task_construct='IQ',
+            iq_component_title='Overall IQ',
+            # Backdrop fields unused when we hide the question card; keep keys.
+            period=None,
+            question_in_period=None,
+            task=None,
+            response_type=None,
+            question_prompt='',
+            big_image=False,
+            item={},
+            image=None,
+            is_placeholder=True,
+            prior_answer='',
+            option_rows=[],
+        )
+
+    @staticmethod
+    def error_message(player: Player, values):
+        treatment, _ = experienced_conditions(player)
+        cond = treatment
+        if cond not in ('quantitative_social', 'qualitative_social'):
+            return
+        if cond == 'quantitative_social':
+            v = values.get('global_report_iq')
+            if v is None or v == '':
+                return "Please enter your IQ score."
+            if v < IQ_REPORT_MIN or v > IQ_REPORT_MAX:
+                return f"Please enter an IQ score between {IQ_REPORT_MIN} and {IQ_REPORT_MAX}."
+        else:
+            msg = (values.get('global_report_message') or '').strip()
+            if not msg:
+                return "Please add a short note before continuing."
+            if len(msg) < 5:
+                return "Please write at least 5 characters in your note."
+            if not values.get('global_report_emoji'):
+                return "Please indicate how you feel."
+        if values.get('global_report_shared') is None:
+            return "Please choose whether to share your message."
+
+    @staticmethod
+    def before_next_page(player: Player, timeout_happened):
+        iq = player.field_maybe_none('global_iq_estimate')
+        if iq is None:
+            iq = global_iq_for_player(player)
+            player.global_iq_estimate = iq
+        treatment, _ = experienced_conditions(player)
+        cond = treatment
+        username = (player.participant.vars.get('display_name') or '').strip()
+        if cond in ('quantitative_social', 'qualitative_social'):
+            if cond == 'quantitative_social':
+                n = player.field_maybe_none('global_report_iq')
+                if n is not None:
+                    player.global_report_message = f"My overall IQ score is {n}."
+        else:
+            player.global_report_iq = None
+            player.global_report_emoji = None
+            player.global_report_message = None
+            player.global_report_shared = None
+            player.global_report_edit_back_count = 0
+            player.global_report_compose_history = ''
 
 
 class PerceivedPercentile(Page):
@@ -2216,6 +2701,24 @@ class EndOfPeriodSurvey(Page):
             return "Please answer all questions before continuing."
 
 
+class TaskEffort(Page):
+    """0-100 slider for overall effort on main cognitive tasks.
+
+    Shown once at the end of the study for everyone, after demographics.
+    """
+    form_model = 'player'
+    form_fields = ['task_effort']
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return player.round_number == C.NUM_ROUNDS
+
+    @staticmethod
+    def error_message(player: Player, values):
+        if values.get('task_effort') is None or values.get('task_effort') == '':
+            return "Please move the slider to indicate your effort before continuing."
+
+
 class WTACompare(Page):
     """Two simultaneous WTA price lists (treatment vs control), end of period 2.
 
@@ -2275,9 +2778,14 @@ class WTACompare(Page):
         else:
             blocks = [with_msg_block, without_msg_block]
 
+        period_tasks = player.participant.vars.get('period_tasks', [])
+        third_task = period_tasks[2] if len(period_tasks) >= 3 else None
+        period_3_component = TASK_CONSTRUCT.get(third_task, third_task or 'third')
+
         return dict(
             treatment_condition=treatment,
             blocks=blocks,
+            period_3_component=period_3_component,
         )
 
     @staticmethod
@@ -2328,26 +2836,168 @@ class RealismQuestion(Page):
         return player.round_number == C.NUM_ROUNDS
 
     @staticmethod
-    def vars_for_template(player: Player):
-        return dict(is_initial_pilot=(PILOT == "initial"))
-
-    @staticmethod
     def error_message(player: Player, values):
         text = (values.get('realism_feedback') or '').strip()
         if not text:
             return "Please share your thoughts before continuing."
         if len(text) < 50:
-            if PILOT == "initial":
-                return (
-                    "Please write at least 50 characters about your experience "
-                    "during the study (currently "
-                    f"{len(text)} characters)."
-                )
             return (
-                "Please write at least 50 characters about how the social "
-                "feedback felt during the study (currently "
+                "Please write at least 50 characters about your experience "
+                "during the study (currently "
                 f"{len(text)} characters)."
             )
+
+
+def _checklist_vars(player: Player, motives: list, shuffle_key: str | None) -> list:
+    items = [dict(m) for m in motives if not m['is_none']]
+    if shuffle_key:
+        items = _stable_shuffled(player, shuffle_key, items)
+    none_item = next(m for m in motives if m['is_none'])
+    ordered = items + [dict(none_item)]
+    for m in ordered:
+        m['checked'] = bool(player.field_maybe_none(m['field']))
+        m['data_none'] = '1' if m['is_none'] else '0'
+    return ordered
+
+
+def _checklist_error(values: dict, motives: list):
+    none_field = next(m['field'] for m in motives if m['is_none'])
+    none = bool(values.get(none_field))
+    others = [bool(values.get(m['field'])) for m in motives if not m['is_none']]
+    if none and any(others):
+        return "If you select 'None of these', please leave the other options unchecked."
+    if not none and not any(others):
+        return "Please select at least one option (or 'None of these')."
+
+
+def experience_page_order(participant) -> list[str]:
+    key = 'experience_page_order'
+    if key not in participant.vars:
+        rng = random.Random(f"{participant.code}-exp-pages")
+        order = list(EXPERIENCE_PAGE_KEYS)
+        rng.shuffle(order)
+        participant.vars[key] = order
+    return participant.vars[key]
+
+
+def _impact_item_order(player: Player) -> list[str]:
+    """Shared suffix order (mood/sat/effort) applied identically to both blocks."""
+    suffixes = [suffix for suffix, _ in _MESSAGE_IMPACT_OUTCOMES]
+    return _stable_shuffled(player, 'impact-items', list(suffixes))
+
+
+def _impact_motives_for_player(player: Player) -> list:
+    blocks = _stable_shuffled(player, 'impact-activities', list(MESSAGE_IMPACT_BLOCKS))
+    suffix_order = _impact_item_order(player)
+    items = []
+    for block in blocks:
+        by_suffix = {m['field'].rsplit('_', 1)[-1]: m for m in block['items']}
+        for suffix in suffix_order:
+            items.append(dict(by_suffix[suffix]))
+    return items + [dict(MESSAGE_IMPACT_NONE)]
+
+
+def _impact_blocks_for_player(player: Player) -> list:
+    blocks = _stable_shuffled(player, 'impact-activities', list(MESSAGE_IMPACT_BLOCKS))
+    suffix_order = _impact_item_order(player)
+    out = []
+    for block in blocks:
+        by_suffix = {m['field'].rsplit('_', 1)[-1]: m for m in block['items']}
+        items = []
+        for suffix in suffix_order:
+            item = dict(by_suffix[suffix])
+            item['checked'] = bool(player.field_maybe_none(item['field']))
+            item['data_none'] = '0'
+            items.append(item)
+        out.append(dict(heading=block['heading'], choices=items))
+    return out
+
+
+def _motives_for_experience_page(player: Player, page_key: str) -> list:
+    if page_key == 'impacts':
+        return _impact_motives_for_player(player)
+    return EXPERIENCE_PAGE_META[page_key]['motives']
+
+
+def _experience_form_fields(player: Player, slot: int) -> list[str]:
+    page_key = experience_page_order(player.participant)[slot]
+    return [m['field'] for m in _motives_for_experience_page(player, page_key)]
+
+
+def _make_experience_slot(slot: int):
+    class ExperienceChecklist(Page):
+        """One slot in the randomized writing / sharing / impacts checklist sequence."""
+        form_model = 'player'
+        template_name = 'social_media/MotiveChecklist.html'
+
+        @staticmethod
+        def is_displayed(player: Player):
+            return player.round_number == C.NUM_ROUNDS
+
+        @staticmethod
+        def get_form_fields(player: Player):
+            return _experience_form_fields(player, slot)
+
+        @staticmethod
+        def vars_for_template(player: Player):
+            page_key = experience_page_order(player.participant)[slot]
+            meta = EXPERIENCE_PAGE_META[page_key]
+            if page_key == 'impacts':
+                none_item = dict(MESSAGE_IMPACT_NONE)
+                none_item['checked'] = bool(player.field_maybe_none(none_item['field']))
+                none_item['data_none'] = '1'
+                return dict(
+                    motive_blocks=_impact_blocks_for_player(player),
+                    none_motive=none_item,
+                    motives=[],
+                )
+            return dict(
+                motives=_checklist_vars(player, meta['motives'], f'experience-{page_key}'),
+                motive_blocks=[],
+            )
+
+        @staticmethod
+        def error_message(player: Player, values):
+            page_key = experience_page_order(player.participant)[slot]
+            return _checklist_error(values, _motives_for_experience_page(player, page_key))
+
+    ExperienceChecklist.__name__ = f'ExperienceChecklist{slot + 1}'
+    ExperienceChecklist.__qualname__ = ExperienceChecklist.__name__
+    return ExperienceChecklist
+
+
+ExperienceChecklist1 = _make_experience_slot(0)
+ExperienceChecklist2 = _make_experience_slot(1)
+ExperienceChecklist3 = _make_experience_slot(2)
+
+
+TOOL_FIELDS = [
+    'tool_pen_paper',
+    'tool_ai',
+    'tool_cellphone_camera',
+    'tool_search_engine',
+    'tool_ask_someone_else',
+    'tool_calculator',
+]
+
+
+class ToolsUsed(Page):
+    """Unpaid tools checklist; does not affect Prolific approval or bonus."""
+    form_model = 'player'
+    form_fields = TOOL_FIELDS + ['tool_none']
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return player.round_number == C.NUM_ROUNDS
+
+    @staticmethod
+    def error_message(player: Player, values):
+        none = bool(values.get('tool_none'))
+        others = [bool(values.get(f)) for f in TOOL_FIELDS]
+        if none and any(others):
+            return "If you select 'None of the above', please leave the other options unchecked."
+        if not none and not any(others):
+            return "Please select at least one option (or 'None of the above')."
 
 
 class SurveyReliabilityOverall(Page):
@@ -2377,14 +3027,8 @@ class Results(Page):
     def vars_for_template(player: Player):
         raven_total = total_correct(player)
 
-        stroop_total = 0
-        for r in C.END_OF_PERIOD_ROUNDS:
-            p = player.in_round(r)
-            stroop_total += stroop_correct_count(p)
-
         payoff = cu(0)
         payoff += raven_total * C.PAY_PER_CORRECT
-        payoff += stroop_total * C.PAY_PER_STROOP
 
         treatment, _ = experienced_conditions(player)
         n = len(WTA_AMOUNTS)
@@ -2416,7 +3060,6 @@ class Results(Page):
             period_2_condition=player.participant.period_2_condition,
             third_period_condition=p3_condition,
             raven_total=raven_total,
-            stroop_total=stroop_total,
             selected_wta_amount=selected_amount,
             selected_wta_column=selected_col,
             selected_for_retake=selected_for_retake,
@@ -2424,22 +3067,19 @@ class Results(Page):
         )
 
         selected_accept_decline = 'Accept' if selected_choice == 'Yes' else 'Decline'
-        selected_feedback_label = (
-            'Number correct + message from participant'
-            if selected_col == 't'
-            else 'Only number correct'
+        selected_messages_label = (
+            'with messages' if selected_col == 't' else 'without messages'
         )
 
         return dict(
             raven_total=raven_total,
-            stroop_total=stroop_total,
             selected_for_retake=selected_for_retake,
             selected_amount=f"${selected_amount:.2f}",
             selected_column='treatment' if selected_col == 't' else 'control',
             p3_feedback_desc=p3_feedback_desc,
             payoff=payoff,
             selected_accept_decline=selected_accept_decline,
-            selected_feedback_label=selected_feedback_label,
+            selected_messages_label=selected_messages_label,
         )
 
 
@@ -2497,15 +3137,7 @@ class FinalResults(Page):
                 amount=f"{amount:.2f}",
             ))
 
-        # Stroop ("color task") bonus, summed over the periods it was shown.
-        stroop_rounds = list(C.END_OF_PERIOD_ROUNDS)
-        if accepted:
-            stroop_rounds.append(C.NUM_ROUNDS)
-        stroop_total = sum(stroop_correct_count(player.in_round(r)) for r in stroop_rounds)
-        stroop_amount = stroop_total * float(C.PAY_PER_STROOP)
-
-        total = question_payoff + stroop_amount
-        total_payoff = cu(total)
+        total_payoff = cu(question_payoff)
         player.payoff = total_payoff
 
         # Bonus stripped by tab switching (correct answers that switched tabs).
@@ -2526,9 +3158,6 @@ class FinalResults(Page):
             total_payoff=total_payoff,
             task_rows=task_rows,
             question_subtotal=f"{question_payoff:.2f}",
-            stroop_total=stroop_total,
-            stroop_rate=f"{float(C.PAY_PER_STROOP):.2f}",
-            stroop_amount=f"{stroop_amount:.2f}",
             switched_subtracted=f"{subtracted:.2f}",
             had_switch_deduction=subtracted > 0,
             guess_bonus_max_display=f"{float(guess_bonus_max):.2f}",
@@ -2561,21 +3190,20 @@ page_sequence = [
     PerceivedPercentile,
     PerceivedPercentileConfidence,
     EndOfPeriodSurvey,
-    ColorTaskIntro,
-    ColorTask1,
-    ColorTask2,
-    ColorTask3,
-    ColorTask4,
-    ColorTask5,
-    ColorTask6,
+    GlobalIQFeedback,
     WTACompare,
     Results,
     BigFiveSurvey,
     SelfEsteemSurvey,
     NarcissismSurvey,
     Demographics,
+    TaskEffort,
     PlatformUsage,
     RealismQuestion,
+    ExperienceChecklist1,
+    ExperienceChecklist2,
+    ExperienceChecklist3,
+    ToolsUsed,
     SurveyReliabilityOverall,
     Comments,
     FinalResults,

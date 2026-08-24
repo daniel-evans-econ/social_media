@@ -1,0 +1,138 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block content %}
+<style>
+    .tool-note {
+        background: #fff8e1;
+        border: 1px solid #e0d9b8;
+        border-radius: 8px;
+        padding: 12px 14px;
+        margin: 0 0 18px 0;
+        line-height: 1.5;
+    }
+    .tool-list { list-style: none; padding: 0; margin: 12px 0; }
+    .tool-list li {
+        margin: 0 0 10px 0;
+        padding: 12px 14px;
+        border: 1px solid #d0d0d0;
+        border-radius: 8px;
+        background: #fff;
+    }
+    .tool-list li.disabled {
+        opacity: 0.45;
+        background: #f3f3f3;
+        pointer-events: none;
+    }
+    .tool-list label {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        cursor: pointer;
+        margin: 0;
+        font-weight: 400;
+    }
+    .tool-list input[type="checkbox"] {
+        width: 1.15em;
+        height: 1.15em;
+        flex-shrink: 0;
+    }
+</style>
+
+<h3 style="color:darkred; font-weight:bold;">Tools used during the study</h3>
+<br>
+
+<div class="tool-note">
+    The following question
+    <strong style="color:darkred;">does not affect your payment or your approval on Prolific</strong>.
+    It is only for improving our analysis. Please answer honestly.
+</div>
+
+<p>
+    Please check <strong style="color:darkred;">all of the tools</strong> that you used
+    to help solve the questions in today's survey.
+</p>
+
+<ul class="tool-list" id="tool-list">
+    <li data-none="0">
+        <label>
+            <input type="checkbox" name="tool_pen_paper" value="True" {% if player.tool_pen_paper %}checked{% endif %}>
+            <span>Pen and paper</span>
+        </label>
+    </li>
+    <li data-none="0">
+        <label>
+            <input type="checkbox" name="tool_ai" value="True" {% if player.tool_ai %}checked{% endif %}>
+            <span>AI tools</span>
+        </label>
+    </li>
+    <li data-none="0">
+        <label>
+            <input type="checkbox" name="tool_cellphone_camera" value="True" {% if player.tool_cellphone_camera %}checked{% endif %}>
+            <span>Cell phone camera</span>
+        </label>
+    </li>
+    <li data-none="0">
+        <label>
+            <input type="checkbox" name="tool_search_engine" value="True" {% if player.tool_search_engine %}checked{% endif %}>
+            <span>Search engine</span>
+        </label>
+    </li>
+    <li data-none="0">
+        <label>
+            <input type="checkbox" name="tool_ask_someone_else" value="True" {% if player.tool_ask_someone_else %}checked{% endif %}>
+            <span>Asking someone else for help</span>
+        </label>
+    </li>
+    <li data-none="0">
+        <label>
+            <input type="checkbox" name="tool_calculator" value="True" {% if player.tool_calculator %}checked{% endif %}>
+            <span>Calculator</span>
+        </label>
+    </li>
+    <li data-none="1">
+        <label>
+            <input type="checkbox" name="tool_none" value="True" {% if player.tool_none %}checked{% endif %}>
+            <span>None of the above</span>
+        </label>
+    </li>
+</ul>
+
+{{ next_button }}
+
+<script>
+(function () {
+    var root = document.getElementById('tool-list');
+    if (!root) return;
+    var noneLi = root.querySelector('li[data-none="1"]');
+    var noneBox = noneLi ? noneLi.querySelector('input[type="checkbox"]') : null;
+    var others = Array.prototype.slice.call(
+        root.querySelectorAll('li[data-none="0"]')
+    );
+
+    function sync() {
+        var noneOn = !!(noneBox && noneBox.checked);
+        others.forEach(function (li) {
+            var box = li.querySelector('input[type="checkbox"]');
+            if (noneOn) {
+                if (box) box.checked = false;
+                li.classList.add('disabled');
+            } else {
+                li.classList.remove('disabled');
+            }
+        });
+    }
+
+    if (noneBox) noneBox.addEventListener('change', sync);
+    others.forEach(function (li) {
+        var box = li.querySelector('input[type="checkbox"]');
+        if (!box) return;
+        box.addEventListener('change', function () {
+            if (box.checked && noneBox) noneBox.checked = false;
+            sync();
+        });
+    });
+    sync();
+})();
+</script>
+{% endblock %}
