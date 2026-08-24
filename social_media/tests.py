@@ -145,35 +145,32 @@ class PlayerBot(Bot):
             _exp_write = dict(
                 write_well_show=True,
                 write_well_downplay=False,
-                write_poor_honest=False,
+                write_poor_honest=True,
                 write_poor_exaggerate=False,
-                write_peer_well_up=False,
+                write_peer_well_up=True,
                 write_peer_well_down=False,
                 write_peer_poor_up=False,
-                write_peer_poor_down=False,
+                write_peer_poor_down=True,
                 write_match_tone=False,
-                write_none=False,
             )
             _exp_share = dict(
                 share_well_positive=True,
                 share_well_withhold=False,
                 share_poor_positive=False,
                 share_poor_withhold=True,
-                share_peer_well_up=False,
+                share_peer_well_up=True,
                 share_peer_well_down=False,
                 share_peer_poor_up=False,
-                share_peer_poor_down=False,
-                share_helpful=False,
-                share_none=False,
+                share_peer_poor_down=True,
+                share_helpful=True,
             )
             _exp_impact = dict(
                 impact_recv_mood=True,
                 impact_recv_sat=False,
-                impact_recv_effort=False,
+                impact_recv_effort=True,
                 impact_send_mood=False,
                 impact_send_sat=True,
                 impact_send_effort=False,
-                impact_none=False,
             )
             _exp_by_key = dict(writing=_exp_write, sharing=_exp_share, impacts=_exp_impact)
             for slot, page_cls in enumerate((

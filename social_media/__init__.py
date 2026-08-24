@@ -821,36 +821,33 @@ class Player(BasePlayer):
         label="",
         blank=True,
     )
-    # Writing motives (click-all-that-apply), after the open-ended experience page.
-    write_well_show = models.BooleanField(blank=True, initial=False)
-    write_well_downplay = models.BooleanField(blank=True, initial=False)
-    write_poor_honest = models.BooleanField(blank=True, initial=False)
-    write_poor_exaggerate = models.BooleanField(blank=True, initial=False)
-    write_peer_well_up = models.BooleanField(blank=True, initial=False)
-    write_peer_well_down = models.BooleanField(blank=True, initial=False)
-    write_peer_poor_up = models.BooleanField(blank=True, initial=False)
-    write_peer_poor_down = models.BooleanField(blank=True, initial=False)
-    write_match_tone = models.BooleanField(blank=True, initial=False)
-    write_none = models.BooleanField(blank=True, initial=False)
-    # Sharing motives (click-all-that-apply), after the writing-motives page.
-    share_well_positive = models.BooleanField(blank=True, initial=False)
-    share_well_withhold = models.BooleanField(blank=True, initial=False)
-    share_poor_positive = models.BooleanField(blank=True, initial=False)
-    share_poor_withhold = models.BooleanField(blank=True, initial=False)
-    share_peer_well_up = models.BooleanField(blank=True, initial=False)
-    share_peer_well_down = models.BooleanField(blank=True, initial=False)
-    share_peer_poor_up = models.BooleanField(blank=True, initial=False)
-    share_peer_poor_down = models.BooleanField(blank=True, initial=False)
-    share_helpful = models.BooleanField(blank=True, initial=False)
-    share_none = models.BooleanField(blank=True, initial=False)
-    # Message impacts (click-all-that-apply), after the sharing-motives page.
-    impact_recv_mood = models.BooleanField(blank=True, initial=False)
-    impact_recv_sat = models.BooleanField(blank=True, initial=False)
-    impact_recv_effort = models.BooleanField(blank=True, initial=False)
-    impact_send_mood = models.BooleanField(blank=True, initial=False)
-    impact_send_sat = models.BooleanField(blank=True, initial=False)
-    impact_send_effort = models.BooleanField(blank=True, initial=False)
-    impact_none = models.BooleanField(blank=True, initial=False)
+    # Writing / sharing / impacts experience items: binary Agree/Disagree radios.
+    # Every item is required (no blank / initial), so participants cannot proceed
+    # without answering each. Rendered as radio pairs by MotiveChecklist.html.
+    write_well_show = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
+    write_well_downplay = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
+    write_poor_honest = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
+    write_poor_exaggerate = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
+    write_peer_well_up = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
+    write_peer_well_down = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
+    write_peer_poor_up = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
+    write_peer_poor_down = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
+    write_match_tone = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
+    share_well_positive = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
+    share_well_withhold = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
+    share_poor_positive = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
+    share_poor_withhold = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
+    share_peer_well_up = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
+    share_peer_well_down = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
+    share_peer_poor_up = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
+    share_peer_poor_down = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
+    share_helpful = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
+    impact_recv_mood = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
+    impact_recv_sat = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
+    impact_recv_effort = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
+    impact_send_mood = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
+    impact_send_sat = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
+    impact_send_effort = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
 
     # Tools used on the cognitive questions (unpaid; does not affect approval).
     tool_pen_paper = models.BooleanField(blank=True, initial=False)
@@ -1354,7 +1351,6 @@ WRITING_MOTIVES = [
             "When I did well, I tended to write positively about my performance because I "
             "wanted other participants to see that I had done well."
         ),
-        is_none=False,
     ),
     dict(
         field='write_well_downplay',
@@ -1362,17 +1358,14 @@ WRITING_MOTIVES = [
             "When I did well, I tended to downplay my performance because I did not want to "
             "seem like I was bragging."
         ),
-        is_none=False,
     ),
     dict(
         field='write_poor_honest',
         text="When I did poorly, I tended to be honest about struggling.",
-        is_none=False,
     ),
     dict(
         field='write_poor_exaggerate',
         text="When I did poorly, I tended to exaggerate how well I did.",
-        is_none=False,
     ),
     dict(
         field='write_peer_well_up',
@@ -1380,7 +1373,6 @@ WRITING_MOTIVES = [
             "When another participant said they did well, I was more likely to write "
             "positively about my own performance."
         ),
-        is_none=False,
     ),
     dict(
         field='write_peer_well_down',
@@ -1388,7 +1380,6 @@ WRITING_MOTIVES = [
             "When another participant said they did well, I was less likely to write "
             "positively about my own performance."
         ),
-        is_none=False,
     ),
     dict(
         field='write_peer_poor_up',
@@ -1396,7 +1387,6 @@ WRITING_MOTIVES = [
             "When another participant said they did poorly, I was more likely to write "
             "positively about my own performance."
         ),
-        is_none=False,
     ),
     dict(
         field='write_peer_poor_down',
@@ -1404,7 +1394,6 @@ WRITING_MOTIVES = [
             "When another participant said they did poorly, I was less likely to write "
             "positively about my own performance."
         ),
-        is_none=False,
     ),
     dict(
         field='write_match_tone',
@@ -1412,12 +1401,6 @@ WRITING_MOTIVES = [
             "I tried to match the tone or style of messages I had received from other "
             "participants."
         ),
-        is_none=False,
-    ),
-    dict(
-        field='write_none',
-        text="None of these apply to me.",
-        is_none=True,
     ),
 ]
 
@@ -1428,7 +1411,6 @@ SHARING_MOTIVES = [
             "When I did well, I tended to share because I wanted other participants to see "
             "that I had done well."
         ),
-        is_none=False,
     ),
     dict(
         field='share_well_withhold',
@@ -1436,7 +1418,6 @@ SHARING_MOTIVES = [
             "When I did well, I tended to hold back because I did not want to seem like I "
             "was bragging."
         ),
-        is_none=False,
     ),
     dict(
         field='share_poor_positive',
@@ -1444,7 +1425,6 @@ SHARING_MOTIVES = [
             "When I did poorly, I tended to share because I wanted to reassure other "
             "participants."
         ),
-        is_none=False,
     ),
     dict(
         field='share_poor_withhold',
@@ -1452,7 +1432,6 @@ SHARING_MOTIVES = [
             "When I did poorly, I tended to hold back because I did not want other "
             "participants to see that I had done poorly."
         ),
-        is_none=False,
     ),
     dict(
         field='share_peer_well_up',
@@ -1460,7 +1439,6 @@ SHARING_MOTIVES = [
             "When another participant said they did well, I was more likely to share my own "
             "performance."
         ),
-        is_none=False,
     ),
     dict(
         field='share_peer_well_down',
@@ -1468,7 +1446,6 @@ SHARING_MOTIVES = [
             "When another participant said they did well, I was less likely to share my own "
             "performance."
         ),
-        is_none=False,
     ),
     dict(
         field='share_peer_poor_up',
@@ -1476,7 +1453,6 @@ SHARING_MOTIVES = [
             "When another participant said they did poorly, I was more likely to share my "
             "own performance."
         ),
-        is_none=False,
     ),
     dict(
         field='share_peer_poor_down',
@@ -1484,7 +1460,6 @@ SHARING_MOTIVES = [
             "When another participant said they did poorly, I was less likely to share my "
             "own performance."
         ),
-        is_none=False,
     ),
     dict(
         field='share_helpful',
@@ -1492,16 +1467,10 @@ SHARING_MOTIVES = [
             "I tended to share when I thought my message would be helpful or relatable to "
             "other participants."
         ),
-        is_none=False,
-    ),
-    dict(
-        field='share_none',
-        text="None of these apply to me.",
-        is_none=True,
     ),
 ]
 
-# Receiving / sending × mood / satisfaction / effort (6 + none).
+# Receiving / sending x mood / satisfaction / effort (6 items).
 # The two activity blocks are shuffled per participant on the impacts page.
 _MESSAGE_IMPACT_OUTCOMES = (
     ('mood', 'my mood'),
@@ -1515,7 +1484,7 @@ def _message_impact_block(key: str, heading: str, prefix: str) -> dict:
         key=key,
         heading=heading,
         items=[
-            dict(field=f'{prefix}_{suffix}', text=text, is_none=False)
+            dict(field=f'{prefix}_{suffix}', text=text)
             for suffix, text in _MESSAGE_IMPACT_OUTCOMES
         ],
     )
@@ -1535,15 +1504,9 @@ MESSAGE_IMPACT_BLOCKS = (
     MESSAGE_IMPACT_RECV_BLOCK,
     MESSAGE_IMPACT_SEND_BLOCK,
 )
-MESSAGE_IMPACT_NONE = dict(
-    field='impact_none',
-    text="None of these apply to me.",
-    is_none=True,
-)
 MESSAGE_IMPACTS = (
     MESSAGE_IMPACT_RECV_BLOCK['items']
     + MESSAGE_IMPACT_SEND_BLOCK['items']
-    + [MESSAGE_IMPACT_NONE]
 )
 
 EXPERIENCE_PAGE_KEYS = ('writing', 'sharing', 'impacts')
@@ -2849,25 +2812,19 @@ class RealismQuestion(Page):
 
 
 def _checklist_vars(player: Player, motives: list, shuffle_key: str | None) -> list:
-    items = [dict(m) for m in motives if not m['is_none']]
+    items = [dict(m) for m in motives]
     if shuffle_key:
         items = _stable_shuffled(player, shuffle_key, items)
-    none_item = next(m for m in motives if m['is_none'])
-    ordered = items + [dict(none_item)]
-    for m in ordered:
-        m['checked'] = bool(player.field_maybe_none(m['field']))
-        m['data_none'] = '1' if m['is_none'] else '0'
-    return ordered
+    for m in items:
+        _annotate_agree_state(player, m)
+    return items
 
 
-def _checklist_error(values: dict, motives: list):
-    none_field = next(m['field'] for m in motives if m['is_none'])
-    none = bool(values.get(none_field))
-    others = [bool(values.get(m['field'])) for m in motives if not m['is_none']]
-    if none and any(others):
-        return "If you select 'None of these', please leave the other options unchecked."
-    if not none and not any(others):
-        return "Please select at least one option (or 'None of these')."
+def _annotate_agree_state(player: Player, item: dict) -> None:
+    """Attach current Agree/Disagree state for a stored BooleanField, if any."""
+    value = player.field_maybe_none(item['field'])
+    item['agree_checked'] = (value is True)
+    item['disagree_checked'] = (value is False)
 
 
 def experience_page_order(participant) -> list[str]:
@@ -2894,7 +2851,7 @@ def _impact_motives_for_player(player: Player) -> list:
         by_suffix = {m['field'].rsplit('_', 1)[-1]: m for m in block['items']}
         for suffix in suffix_order:
             items.append(dict(by_suffix[suffix]))
-    return items + [dict(MESSAGE_IMPACT_NONE)]
+    return items
 
 
 def _impact_blocks_for_player(player: Player) -> list:
@@ -2906,8 +2863,7 @@ def _impact_blocks_for_player(player: Player) -> list:
         items = []
         for suffix in suffix_order:
             item = dict(by_suffix[suffix])
-            item['checked'] = bool(player.field_maybe_none(item['field']))
-            item['data_none'] = '0'
+            _annotate_agree_state(player, item)
             items.append(item)
         out.append(dict(heading=block['heading'], choices=items))
     return out
@@ -2943,23 +2899,14 @@ def _make_experience_slot(slot: int):
             page_key = experience_page_order(player.participant)[slot]
             meta = EXPERIENCE_PAGE_META[page_key]
             if page_key == 'impacts':
-                none_item = dict(MESSAGE_IMPACT_NONE)
-                none_item['checked'] = bool(player.field_maybe_none(none_item['field']))
-                none_item['data_none'] = '1'
                 return dict(
                     motive_blocks=_impact_blocks_for_player(player),
-                    none_motive=none_item,
                     motives=[],
                 )
             return dict(
                 motives=_checklist_vars(player, meta['motives'], f'experience-{page_key}'),
                 motive_blocks=[],
             )
-
-        @staticmethod
-        def error_message(player: Player, values):
-            page_key = experience_page_order(player.participant)[slot]
-            return _checklist_error(values, _motives_for_experience_page(player, page_key))
 
     ExperienceChecklist.__name__ = f'ExperienceChecklist{slot + 1}'
     ExperienceChecklist.__qualname__ = ExperienceChecklist.__name__
