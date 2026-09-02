@@ -459,13 +459,14 @@ MOOD_CHOICES = [
     [5, "Very good"],
 ]
 
-# Yes/no-flavoured five-point scale, for questions where "how much" reads oddly.
+# Signed five-point scale: negative on the left, positive on the right, matching
+# the direction of the other end-of-period items.
 IQ_PERCEPTION_CHOICES = [
-    [5, "Yes, very much"],
-    [4, "Yes, somewhat"],
-    [3, "Yes, a little"],
-    [2, "No, not really"],
-    [1, "No, not at all"],
+    [1, "Strongly negatively"],
+    [2, "Negatively"],
+    [3, "Neutral/not much effect"],
+    [4, "Positively"],
+    [5, "Strongly positively"],
 ]
 
 # Overall self-reported survey reliability (Dohmen & Jagelka): 11-point scale 0–10.
@@ -1178,44 +1179,61 @@ def _peer_message_time(rng: random.Random) -> str:
     return f"{h12}:{minute:02d} {suffix}"
 
 
-def _draw_peer_message(player: Player, kind: str, entries: list, rng: random.Random):
-    """Pick one pool entry for the current feedback round.
+def _peer_message_plan(participant_code: str, kind: str) -> list:
+    """Ordered peer messages of one kind for one participant, one per username.
 
-    Draws are without replacement within a participant, so nobody sees the same
-    peer message twice. The choice is remembered per round, so refreshing the
-    feedback page shows the same message. If a participant exhausts the pool the
-    used set is cleared and drawing continues.
+    The pool holds up to six messages per sender (one per block they played), so
+    drawing freely produces repeat senders. This keeps a single message per
+    username and shuffles the usernames deterministically from the participant
+    code, so indexing the result by block position gives a different message
+    from a different peer every time. Being seeded rather than stored, it
+    survives page refreshes and does not depend on participant.vars.
     """
+    pool = received_message_pool() or {}
+    entries = pool.get(kind) or []
     if not entries:
+        return []
+
+    by_name = {}
+    for e in entries:
+        by_name.setdefault((e.get('name') or '').strip(), []).append(e)
+    by_name.pop('', None)
+    if kind == 'qualitative':
+        # Keep usernames disjoint across the two kinds, so a participant who
+        # sees a quantitative report from a sender never sees their note too.
+        taken = {
+            (e.get('name') or '').strip()
+            for e in (pool.get('quantitative') or [])
+        }
+        for name in taken:
+            by_name.pop(name, None)
+
+    rng = random.Random(f"{participant_code}-recv-plan-{kind}")
+    names = sorted(by_name)
+    rng.shuffle(names)
+    return [rng.choice(by_name[name]) for name in names]
+
+
+def _peer_message_for_round(player: Player, kind: str):
+    """The peer message this participant receives on the current block."""
+    plan = _peer_message_plan(player.participant.code, kind)
+    if not plan:
         return None
-    pv = player.participant.vars
-    assigned = pv.get('recv_msg_assigned') or {}
-    key = f"{kind}-{player.round_number}"
-    if key in assigned:
-        idx = assigned[key]
-        if 0 <= idx < len(entries):
-            return entries[idx]
-    used = {
-        idx for k, idx in assigned.items()
-        if k.rsplit('-', 1)[0] == kind
-    }
-    available = [i for i in range(len(entries)) if i not in used]
-    if not available:
-        available = list(range(len(entries)))
-    idx = rng.choice(available)
-    assigned[key] = idx
-    pv['recv_msg_assigned'] = assigned
-    return entries[idx]
+    if player.round_number in C.FEEDBACK_ROUNDS:
+        idx = C.FEEDBACK_ROUNDS.index(player.round_number)
+    else:
+        idx = (player.round_number - 1) // 5
+    return plan[idx % len(plan)]
 
 
 def pilot_feedback_signals(player: Player):
     """One peer report shown on the feedback sidebar for the current block.
 
-    Initial pilot: no received message (send-only). IQ/Main: draw a message at
-    random from the previous pilot's portable pool, independent of the
-    participant's own task and set and without replacement across the
-    participant's feedback rounds; fall back to a simulated one only when the
-    pool is empty. Messages are number-correct based (0-5) in all pilots.
+    Initial pilot: no received message (send-only). IQ/Main: draw a message from
+    the previous pilot's portable pool, independent of the participant's own task
+    and set, without repeating a message or a sender within a participant; fall
+    back to a simulated one only when the pool is empty. Messages are
+    number-correct based (0-5) in all pilots.
     """
     cond = get_condition(player)
     if cond not in ('quantitative_social', 'qualitative_social'):
@@ -1224,13 +1242,11 @@ def pilot_feedback_signals(player: Player):
     if CFG['received_message_source'] is None:
         return dict(type='none', name=None)
 
-    pool = received_message_pool() or {}
     rng = random.Random(f"{player.session.code}-{player.participant.code}-{player.round_number}-recv")
     name = rng.choice(PILOT_NAMES)
 
     if cond == 'quantitative_social':
-        entries = pool.get('quantitative') or []
-        e = _draw_peer_message(player, 'quantitative', entries, rng)
+        e = _peer_message_for_round(player, 'quantitative')
         if e:
             return dict(type='quantitative', name=e.get('name') or name,
                         number=int(e.get('number', 0)),
@@ -1241,8 +1257,7 @@ def pilot_feedback_signals(player: Player):
                     simulated=True,
                     time=_peer_message_time(rng))
 
-    entries = pool.get('qualitative') or []
-    e = _draw_peer_message(player, 'qualitative', entries, rng)
+    e = _peer_message_for_round(player, 'qualitative')
     if e:
         return dict(type='qualitative', name=e.get('name') or name,
                     emoji=e.get('emoji') or QUAL_EMOJI_NEUTRAL,
@@ -1422,7 +1437,7 @@ BFI_PROMPTS = {
     'pref_share_fail': "\u2026likes to share my failures with others.",
     'pref_compare': "\u2026often compares myself with others.",
     'pref_dislike_brag': "\u2026dislikes when others talk about their successes.",
-    'pref_dislike_whine': "\u2026dislikes when others whine about their difficulties.",
+    'pref_dislike_whine': "\u2026dislikes when others whine about their struggles.",
     'big5_accuracy': "\u2026is sure that my answers to these questions describe me accurately.",
 }
 
@@ -2780,15 +2795,11 @@ class EndOfPeriodSurvey(Page):
 
         task = round_spec(player)['task']
 
-        question_keys = _stable_shuffled(
-            player,
-            f'eop-survey-{period}',
-            ['mood', 'performance_satisfaction', 'payment_satisfaction', 'task_enjoyment'],
-        )
-        # The IQ-perception item refers back to the estimate just shown, so it
-        # always closes the page rather than joining the shuffle.
+        eop_keys = ['mood', 'performance_satisfaction', 'payment_satisfaction',
+                    'task_enjoyment']
         if CFG['show_iq']:
-            question_keys = list(question_keys) + ['iq_perception_change']
+            eop_keys.append('iq_perception_change')
+        question_keys = _stable_shuffled(player, f'eop-survey-{period}', eop_keys)
 
         return dict(
             period=period,
