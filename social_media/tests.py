@@ -19,8 +19,9 @@ from . import (
     BotCheck, Consent, ProlificID, IQReferencePoint, Intro, TaskIntro, QuestionPage, BlockFeedback, IQFeedback,
     EndOfPeriodSurvey, TaskEffort, WTACompare, Results, GlobalIQFeedback,
     PerceivedPercentile, PerceivedPercentileConfidence,
-    BigFiveSurvey, SelfEsteemSurvey, NarcissismSurvey, Demographics,
-    PlatformUsage, RealismQuestion,
+    BigFiveSurvey1, BigFiveSurvey2, _bfi_page_fields,
+    SelfEsteemSurvey, NarcissismSurvey, Demographics,
+    OutcomeConcern, PlatformUsage, RealismQuestion,
     ExperienceChecklist1, ExperienceChecklist2, ExperienceChecklist3,
     experience_page_order, ToolsUsed,
     SurveyReliabilityOverall, Comments, FinalResults,
@@ -71,32 +72,27 @@ class PlayerBot(Bot):
                     check_html=False,
                 )
             if is_feedback_round(p):
-                # BlockFeedback (number-correct sidebar) shows at all feedback
-                # rounds in the initial pilot, but only at MID-PERIOD feedback
-                # rounds in show_iq pilots (15/30/45 are handled by IQFeedback).
-                block_fb_shown = (
-                    not CFG['show_iq']
-                    or (p.round_number not in C.END_OF_PERIOD_ROUNDS
-                        and p.round_number != C.NUM_ROUNDS)
-                )
-                if block_fb_shown:
-                    cond = get_condition(p)
-                    fb = {}
-                    if cond == 'quantitative_social':
-                        fb.update(report_number=5, report_shared=True)
-                    elif cond == 'qualitative_social':
-                        fb.update(report_emoji=QUAL_EMOJIS[0],
-                                  report_message='Felt good about that one.', report_shared=True)
-                    yield Submission(BlockFeedback, fb, check_html=False)
+                # The number-correct sidebar now shows after every block,
+                # including the third; on end-of-period rounds the IQ sidebar
+                # follows it in the same round.
+                cond = get_condition(p)
+                fb = {}
+                if cond == 'quantitative_social':
+                    fb.update(report_number=5, report_shared=True)
+                elif cond == 'qualitative_social':
+                    fb.update(report_emoji=QUAL_EMOJIS[0],
+                              report_message='Felt good about that one.', report_shared=True)
+                yield Submission(BlockFeedback, fb, check_html=False)
 
         if CFG['show_iq'] and is_end_of_period_with_p3(p):
             cond = get_condition(p)
             iqfb = {}
             if cond == 'quantitative_social':
-                iqfb.update(report_iq=100, report_shared=True)
+                iqfb.update(report_iq=100, iq_report_shared=True)
             elif cond == 'qualitative_social':
-                iqfb.update(report_emoji=QUAL_EMOJIS[0],
-                            report_message='Felt good about that one.', report_shared=True)
+                iqfb.update(iq_report_emoji=QUAL_EMOJIS[0],
+                            iq_report_message='Felt good about that one.',
+                            iq_report_shared=True)
             yield Submission(IQFeedback, iqfb, check_html=False)
 
         if is_end_of_period_with_p3(p):
@@ -104,9 +100,12 @@ class PlayerBot(Bot):
             yield Submission(PerceivedPercentileConfidence, dict(perceived_percentile_confidence=50), check_html=False)
 
         if is_end_of_period_with_p3(p):
-            yield Submission(EndOfPeriodSurvey, dict(
+            eop = dict(
                 mood=3, performance_satisfaction=3, task_enjoyment=3, payment_satisfaction=3,
-            ), check_html=False)
+            )
+            if CFG['show_iq']:
+                eop['iq_perception_change'] = 3
+            yield Submission(EndOfPeriodSurvey, eop, check_html=False)
 
         if CFG['use_wta'] and self.round_number == 2 * C.PERIOD_LENGTH:
             if CFG['show_iq']:
@@ -129,48 +128,58 @@ class PlayerBot(Bot):
             yield Submission(Results, dict(), check_html=False)
 
         if self.round_number == C.NUM_ROUNDS:
-            bfi = {f: 3 for f in BFI_CORE_FIELDS}
-            bfi['big5_accuracy'] = 3
-            yield Submission(BigFiveSurvey, bfi, check_html=False)
+            for page_cls, page_no in ((BigFiveSurvey1, 1), (BigFiveSurvey2, 2)):
+                fields = _bfi_page_fields(p, page_no)
+                yield Submission(page_cls, {f: 3 for f in fields}, check_html=False)
             yield Submission(SelfEsteemSurvey, {f'rses_{i}': 2 for i in range(1, 11)}, check_html=False)
             yield Submission(NarcissismSurvey, {f'npi_{i}': 1 for i in range(1, 9)}, check_html=False)
-            yield Submission(Demographics, dict(
+            demo = dict(
                 age=30, gender='woman', education='bachelor', taken_iq_test_before='Yes',
-            ), check_html=False)
+                trust_iq_tests=3,
+            )
+            if CFG['show_iq']:
+                demo['trust_own_iq_estimate'] = 3
+            yield Submission(Demographics, demo, check_html=False)
             yield Submission(TaskEffort, dict(task_effort=75), check_html=False)
+            concern = dict(care_about_ranking=4)
+            if CFG['show_iq']:
+                concern['care_about_iq_score'] = 2
+            yield Submission(OutcomeConcern, concern, check_html=False)
             yield Submission(PlatformUsage, dict(sm_instagram=True, social_media_hours=2.0), check_html=False)
             yield Submission(RealismQuestion, dict(
-                realism_feedback='The social feedback felt fairly realistic to me overall, thanks.'
+                realism_feedback='The social feedback felt fairly realistic to me overall, thanks.',
+                realism_behavior='I pushed a bit harder after reading how the others had done here.',
             ), check_html=False)
+            # 5-point agreement scale, same as the BFI items.
             _exp_write = dict(
-                write_well_show=True,
-                write_well_downplay=False,
-                write_poor_honest=True,
-                write_poor_exaggerate=False,
-                write_peer_well_up=True,
-                write_peer_well_down=False,
-                write_peer_poor_up=False,
-                write_peer_poor_down=True,
-                write_match_tone=False,
+                write_well_show=5,
+                write_well_downplay=1,
+                write_poor_honest=4,
+                write_poor_exaggerate=2,
+                write_peer_well_up=4,
+                write_peer_well_down=2,
+                write_peer_poor_up=3,
+                write_peer_poor_down=5,
+                write_match_tone=1,
             )
             _exp_share = dict(
-                share_well_positive=True,
-                share_well_withhold=False,
-                share_poor_positive=False,
-                share_poor_withhold=True,
-                share_peer_well_up=True,
-                share_peer_well_down=False,
-                share_peer_poor_up=False,
-                share_peer_poor_down=True,
-                share_helpful=True,
+                share_well_positive=5,
+                share_well_withhold=1,
+                share_poor_positive=2,
+                share_poor_withhold=4,
+                share_peer_well_up=4,
+                share_peer_well_down=2,
+                share_peer_poor_up=3,
+                share_peer_poor_down=5,
+                share_helpful=4,
             )
             _exp_impact = dict(
-                impact_recv_mood=True,
-                impact_recv_sat=False,
-                impact_recv_effort=True,
-                impact_send_mood=False,
-                impact_send_sat=True,
-                impact_send_effort=False,
+                impact_recv_mood=5,
+                impact_recv_sat=2,
+                impact_recv_effort=4,
+                impact_send_mood=1,
+                impact_send_sat=5,
+                impact_send_effort=3,
             )
             _exp_by_key = dict(writing=_exp_write, sharing=_exp_share, impacts=_exp_impact)
             for slot, page_cls in enumerate((

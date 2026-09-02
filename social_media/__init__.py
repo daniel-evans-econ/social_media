@@ -426,6 +426,16 @@ BFI_CHOICES = [
     [5, ""],
 ]
 
+# Header row for BFI_CHOICES tables. BigFiveSurvey.html spells these out inline;
+# MotiveChecklist.html builds its header from this list so the two pages stay in step.
+LIKERT_AGREE_LABELS = [
+    "Strongly disagree",
+    "Disagree",
+    "Neither agree nor disagree",
+    "Agree",
+    "Strongly agree",
+]
+
 RSES_CHOICES = [
     [0, ""],
     [1, ""],
@@ -447,6 +457,15 @@ MOOD_CHOICES = [
     [3, "Neutral"],
     [4, "Somewhat good"],
     [5, "Very good"],
+]
+
+# Yes/no-flavoured five-point scale, for questions where "how much" reads oddly.
+IQ_PERCEPTION_CHOICES = [
+    [5, "Yes, very much"],
+    [4, "Yes, somewhat"],
+    [3, "Yes, a little"],
+    [2, "No, not really"],
+    [1, "No, not at all"],
 ]
 
 # Overall self-reported survey reliability (Dohmen & Jagelka): 11-point scale 0–10.
@@ -572,6 +591,9 @@ class Player(BasePlayer):
     # Seconds from page load to clicking Next (form submit).
     q_response_time = models.FloatField(blank=True)
     feedback_snapshot = models.LongStringField(blank=True)
+    # Separate snapshot for the end-of-period IQ sidebar, which shares a round
+    # with the third block's number-correct sidebar.
+    iq_feedback_snapshot = models.LongStringField(blank=True)
 
     # ---- Per-period IQ readout (IQ / Main pilots only) ----
     iq_estimate = models.IntegerField(blank=True)
@@ -597,6 +619,14 @@ class Player(BasePlayer):
     # Compose-step audit trail (social feedback sidebars): prior drafts, edit-back clicks.
     report_edit_back_count = models.IntegerField(initial=0, blank=True)
     report_compose_history = models.LongStringField(blank=True)
+    # End-of-period IQ message. Kept separate from the report_* fields because on
+    # rounds 15/30/45 the block sidebar and the IQ sidebar both run in one round.
+    iq_report_emoji = models.StringField(blank=True)
+    iq_report_message = models.StringField(blank=True, max_length=140)
+    iq_report_shared = models.BooleanField(blank=True)
+    iq_report_display_name = models.StringField(blank=True, max_length=60)
+    iq_report_edit_back_count = models.IntegerField(initial=0, blank=True)
+    iq_report_compose_history = models.LongStringField(blank=True)
     # Username chosen once on the Further-instructions page (round 1) and reused
     # for every message the participant composes in the feedback sidebars.
     display_name = models.StringField(blank=True, max_length=60, label="")
@@ -674,6 +704,7 @@ class Player(BasePlayer):
     pref_share_fail = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True, label="")
     pref_compare = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True, label="")
     pref_dislike_brag = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True, label="")
+    pref_dislike_whine = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True, label="")
 
     # ---- Rosenberg Self-Esteem Scale (RSES, 10 items, 4-point) ----
     rses_1 = models.IntegerField(choices=RSES_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True, label="")
@@ -748,6 +779,20 @@ class Player(BasePlayer):
         choices=MOOD_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True,
         label="",
     )
+    iq_perception_change = models.IntegerField(
+        choices=IQ_PERCEPTION_CHOICES, widget=widgets.RadioSelectHorizontal,
+        blank=True, label="",
+    )
+
+    # ---- How much the study's outcomes matter to them (end of study) ----
+    care_about_ranking = models.IntegerField(
+        choices=LIKERT_CHOICES, widget=widgets.RadioSelectHorizontal,
+        blank=True, label="",
+    )
+    care_about_iq_score = models.IntegerField(
+        choices=LIKERT_CHOICES, widget=widgets.RadioSelectHorizontal,
+        blank=True, label="",
+    )
 
     # ---- Confidence in percentile estimate (0-100 slider) ----
     perceived_percentile_confidence = models.IntegerField(min=0, max=100, blank=True, label="")
@@ -774,6 +819,18 @@ class Player(BasePlayer):
         widget=widgets.RadioSelect,
         blank=True,
         label="Have you taken an IQ test before?",
+    )
+    trust_iq_tests = models.IntegerField(
+        choices=LIKERT_CHOICES,
+        widget=widgets.RadioSelectHorizontal,
+        blank=True,
+        label="How much do you trust IQ tests in general?",
+    )
+    trust_own_iq_estimate = models.IntegerField(
+        choices=LIKERT_CHOICES,
+        widget=widgets.RadioSelectHorizontal,
+        blank=True,
+        label="How much do you trust the IQ estimates you received in this study?",
     )
 
     # ---- Two simultaneous WTAs (treatment vs control) ----
@@ -821,33 +878,34 @@ class Player(BasePlayer):
         label="",
         blank=True,
     )
-    # Writing / sharing / impacts experience items: binary Agree/Disagree radios.
-    # Every item is required (no blank / initial), so participants cannot proceed
-    # without answering each. Rendered as radio pairs by MotiveChecklist.html.
-    write_well_show = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
-    write_well_downplay = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
-    write_poor_honest = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
-    write_poor_exaggerate = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
-    write_peer_well_up = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
-    write_peer_well_down = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
-    write_peer_poor_up = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
-    write_peer_poor_down = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
-    write_match_tone = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
-    share_well_positive = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
-    share_well_withhold = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
-    share_poor_positive = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
-    share_poor_withhold = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
-    share_peer_well_up = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
-    share_peer_well_down = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
-    share_peer_poor_up = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
-    share_peer_poor_down = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
-    share_helpful = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
-    impact_recv_mood = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
-    impact_recv_sat = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
-    impact_recv_effort = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
-    impact_send_mood = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
-    impact_send_sat = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
-    impact_send_effort = models.BooleanField(choices=[[True, 'Agree'], [False, 'Disagree']])
+    # Writing / sharing / impacts experience items: 5-point agreement Likert, same
+    # scale as the BFI / preference items. Every item is required (no blank), so
+    # participants cannot proceed without answering each. MotiveChecklist.html
+    # renders them as a radio table.
+    write_well_show = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    write_well_downplay = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    write_poor_honest = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    write_poor_exaggerate = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    write_peer_well_up = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    write_peer_well_down = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    write_peer_poor_up = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    write_peer_poor_down = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    write_match_tone = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    share_well_positive = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    share_well_withhold = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    share_poor_positive = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    share_poor_withhold = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    share_peer_well_up = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    share_peer_well_down = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    share_peer_poor_up = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    share_peer_poor_down = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    share_helpful = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    impact_recv_mood = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    impact_recv_sat = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    impact_recv_effort = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    impact_send_mood = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    impact_send_sat = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    impact_send_effort = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
 
     # Tools used on the cognitive questions (unpaid; does not affect approval).
     tool_pen_paper = models.BooleanField(blank=True, initial=False)
@@ -859,6 +917,10 @@ class Player(BasePlayer):
     tool_none = models.BooleanField(blank=True, initial=False)
 
     realism_feedback = models.LongStringField(
+        label="",
+        blank=True,
+    )
+    realism_behavior = models.LongStringField(
         label="",
         blank=True,
     )
@@ -1116,13 +1178,44 @@ def _peer_message_time(rng: random.Random) -> str:
     return f"{h12}:{minute:02d} {suffix}"
 
 
+def _draw_peer_message(player: Player, kind: str, entries: list, rng: random.Random):
+    """Pick one pool entry for the current feedback round.
+
+    Draws are without replacement within a participant, so nobody sees the same
+    peer message twice. The choice is remembered per round, so refreshing the
+    feedback page shows the same message. If a participant exhausts the pool the
+    used set is cleared and drawing continues.
+    """
+    if not entries:
+        return None
+    pv = player.participant.vars
+    assigned = pv.get('recv_msg_assigned') or {}
+    key = f"{kind}-{player.round_number}"
+    if key in assigned:
+        idx = assigned[key]
+        if 0 <= idx < len(entries):
+            return entries[idx]
+    used = {
+        idx for k, idx in assigned.items()
+        if k.rsplit('-', 1)[0] == kind
+    }
+    available = [i for i in range(len(entries)) if i not in used]
+    if not available:
+        available = list(range(len(entries)))
+    idx = rng.choice(available)
+    assigned[key] = idx
+    pv['recv_msg_assigned'] = assigned
+    return entries[idx]
+
+
 def pilot_feedback_signals(player: Player):
     """One peer report shown on the feedback sidebar for the current block.
 
-    Initial pilot: no received message (send-only). IQ/Main: draw a message
-    uniformly at random from the previous pilot's portable pool, independent of
-    the participant's own task and set; fall back to a simulated one only when
-    the pool is empty. Messages are number-correct based (0-5) in all pilots.
+    Initial pilot: no received message (send-only). IQ/Main: draw a message at
+    random from the previous pilot's portable pool, independent of the
+    participant's own task and set and without replacement across the
+    participant's feedback rounds; fall back to a simulated one only when the
+    pool is empty. Messages are number-correct based (0-5) in all pilots.
     """
     cond = get_condition(player)
     if cond not in ('quantitative_social', 'qualitative_social'):
@@ -1137,8 +1230,8 @@ def pilot_feedback_signals(player: Player):
 
     if cond == 'quantitative_social':
         entries = pool.get('quantitative') or []
-        if entries:
-            e = rng.choice(entries)
+        e = _draw_peer_message(player, 'quantitative', entries, rng)
+        if e:
             return dict(type='quantitative', name=e.get('name') or name,
                         number=int(e.get('number', 0)),
                         source_task=e.get('source_task'),
@@ -1149,8 +1242,8 @@ def pilot_feedback_signals(player: Player):
                     time=_peer_message_time(rng))
 
     entries = pool.get('qualitative') or []
-    if entries:
-        e = rng.choice(entries)
+    e = _draw_peer_message(player, 'qualitative', entries, rng)
+    if e:
         return dict(type='qualitative', name=e.get('name') or name,
                     emoji=e.get('emoji') or QUAL_EMOJI_NEUTRAL,
                     sentence=e.get('sentence') or '',
@@ -1329,6 +1422,7 @@ BFI_PROMPTS = {
     'pref_share_fail': "\u2026likes to share my failures with others.",
     'pref_compare': "\u2026often compares myself with others.",
     'pref_dislike_brag': "\u2026dislikes when others talk about their successes.",
+    'pref_dislike_whine': "\u2026dislikes when others whine about their difficulties.",
     'big5_accuracy': "\u2026is sure that my answers to these questions describe me accurately.",
 }
 
@@ -1339,6 +1433,7 @@ BFI_CORE_FIELDS = [
     'pref_risk', 'pref_patience', 'pref_trust', 'pref_altruism',
     'pref_reciprocity', 'pref_punish', 'pref_share_success',
     'pref_share_fail', 'pref_compare', 'pref_dislike_brag',
+    'pref_dislike_whine',
 ]
 
 # Parallel click-all-that-apply lists (9 substantive + none) for the experience pages.
@@ -1541,29 +1636,58 @@ def _stable_shuffled(player: Player, suffix: str, items: list) -> list:
     return out
 
 
-class BigFiveSurvey(Page):
-    form_model = 'player'
-    form_fields = BFI_CORE_FIELDS + ['big5_accuracy']
+def _bfi_page_fields(player: Player, page: int) -> list[str]:
+    """Fields shown on page 1 or 2 of the split BFI / preference battery.
 
-    @staticmethod
-    def is_displayed(player: Player):
-        return player.round_number == C.NUM_ROUNDS
+    The whole battery is shuffled per participant and then cut in half, so a
+    given item lands on page 1 for some participants and page 2 for others.
+    The self-reported accuracy item is always the last row of page 2.
+    """
+    shuffled = _stable_shuffled(player, 'bfi', list(BFI_CORE_FIELDS))
+    half = (len(shuffled) + 1) // 2
+    if page == 1:
+        return shuffled[:half]
+    return shuffled[half:] + ['big5_accuracy']
 
-    @staticmethod
-    def vars_for_template(player: Player):
-        shuffled_fields = _stable_shuffled(player, 'bfi', list(BFI_CORE_FIELDS))
-        rows = [
-            dict(field=name, prompt=BFI_PROMPTS[name])
-            for name in shuffled_fields
-        ]
-        rows.append(dict(field='big5_accuracy', prompt=BFI_PROMPTS['big5_accuracy']))
-        return dict(rows=rows)
 
-    @staticmethod
-    def error_message(player: Player, values):
-        fields = BFI_CORE_FIELDS + ['big5_accuracy']
-        if any(values.get(f) is None for f in fields):
-            return "Please answer all questions before continuing."
+def _make_bfi_page(page: int):
+    class BigFiveSurveyPage(Page):
+        form_model = 'player'
+        template_name = 'social_media/BigFiveSurvey.html'
+
+        @staticmethod
+        def is_displayed(player: Player):
+            return player.round_number == C.NUM_ROUNDS
+
+        @staticmethod
+        def get_form_fields(player: Player):
+            return _bfi_page_fields(player, page)
+
+        @staticmethod
+        def vars_for_template(player: Player):
+            fields = _bfi_page_fields(player, page)
+            return dict(
+                rows=[
+                    dict(field=name, prompt=BFI_PROMPTS[name])
+                    for name in fields
+                ],
+                field_names=fields,
+                is_first_page=(page == 1),
+            )
+
+        @staticmethod
+        def error_message(player: Player, values):
+            fields = _bfi_page_fields(player, page)
+            if any(values.get(f) is None for f in fields):
+                return "Please answer all questions before continuing."
+
+    BigFiveSurveyPage.__name__ = f'BigFiveSurvey{page}'
+    BigFiveSurveyPage.__qualname__ = BigFiveSurveyPage.__name__
+    return BigFiveSurveyPage
+
+
+BigFiveSurvey1 = _make_bfi_page(1)
+BigFiveSurvey2 = _make_bfi_page(2)
 
 
 class SelfEsteemSurvey(Page):
@@ -1621,11 +1745,23 @@ class NarcissismSurvey(Page):
 
 class Demographics(Page):
     form_model = 'player'
-    form_fields = ['age', 'gender', 'education', 'taken_iq_test_before']
 
     @staticmethod
     def is_displayed(player: Player):
         return player.round_number == C.NUM_ROUNDS
+
+    @staticmethod
+    def get_form_fields(player: Player):
+        fields = ['age', 'gender', 'education', 'taken_iq_test_before',
+                  'trust_iq_tests']
+        # Nothing to trust in the Initial pilot, where no IQ score is reported.
+        if CFG['show_iq']:
+            fields.append('trust_own_iq_estimate')
+        return fields
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        return dict(show_iq=CFG['show_iq'])
 
     @staticmethod
     def error_message(player: Player, values):
@@ -1637,6 +1773,10 @@ class Demographics(Page):
             return "Please indicate your highest level of education."
         if not values.get('taken_iq_test_before'):
             return "Please indicate whether you have taken an IQ test before."
+        if values.get('trust_iq_tests') is None:
+            return "Please indicate how much you trust IQ tests in general."
+        if CFG['show_iq'] and values.get('trust_own_iq_estimate') is None:
+            return "Please indicate how much you trust the IQ estimates you received."
 
 
 class BotCheck(Page):
@@ -2004,15 +2144,8 @@ class BlockFeedback(Page):
     def is_displayed(player: Player):
         if is_third_period(player) and not third_period_played(player):
             return False
-        if CFG['show_iq']:
-            # In IQ/Main pilots, end-of-period feedback rounds (15/30/45) show
-            # only the IQ sidebar (IQFeedback); BlockFeedback covers mid-period
-            # feedback rounds only.
-            return (
-                is_feedback_round(player)
-                and player.round_number not in C.END_OF_PERIOD_ROUNDS
-                and player.round_number != C.NUM_ROUNDS
-            )
+        # Every block, including the third, gets its number-correct sidebar. On
+        # end-of-period rounds the IQ sidebar (IQFeedback) then follows it.
         return is_feedback_round(player)
 
     @staticmethod
@@ -2150,11 +2283,11 @@ class IQFeedback(Page):
     form_model = 'player'
     form_fields = [
         'report_iq',
-        'report_emoji',
-        'report_message',
-        'report_shared',
-        'report_edit_back_count',
-        'report_compose_history',
+        'iq_report_emoji',
+        'iq_report_message',
+        'iq_report_shared',
+        'iq_report_edit_back_count',
+        'iq_report_compose_history',
     ]
 
     @staticmethod
@@ -2225,14 +2358,14 @@ class IQFeedback(Page):
             if v < IQ_REPORT_MIN or v > IQ_REPORT_MAX:
                 return f"Please enter an IQ score between {IQ_REPORT_MIN} and {IQ_REPORT_MAX}."
         else:
-            msg = (values.get('report_message') or '').strip()
+            msg = (values.get('iq_report_message') or '').strip()
             if not msg:
                 return "Please add a short note before continuing."
             if len(msg) < 5:
                 return "Please write at least 5 characters in your note."
-            if not values.get('report_emoji'):
+            if not values.get('iq_report_emoji'):
                 return "Please indicate how you feel."
-        if values.get('report_shared') is None:
+        if values.get('iq_report_shared') is None:
             return "Please choose whether to share your message."
 
     @staticmethod
@@ -2251,20 +2384,20 @@ class IQFeedback(Page):
         username = (player.participant.vars.get('display_name') or '').strip()
         if cond in ('quantitative_social', 'qualitative_social'):
             # Name comes from the username chosen on the Further-instructions page.
-            player.report_display_name = username
+            player.iq_report_display_name = username
             if cond == 'quantitative_social':
                 n = player.field_maybe_none('report_iq')
                 if n is not None:
-                    player.report_message = f"My {label} IQ score is {n}."
+                    player.iq_report_message = f"My {label} IQ score is {n}."
         else:
             # Control: no message composed; keep report fields blank.
             player.report_iq = None
-            player.report_emoji = None
-            player.report_message = None
-            player.report_display_name = None
-            player.report_edit_back_count = 0
-            player.report_compose_history = ''
-        player.feedback_snapshot = json.dumps(dict(
+            player.iq_report_emoji = None
+            player.iq_report_message = None
+            player.iq_report_display_name = None
+            player.iq_report_edit_back_count = 0
+            player.iq_report_compose_history = ''
+        player.iq_feedback_snapshot = json.dumps(dict(
             round=player.round_number,
             condition=cond,
             task=spec['task'],
@@ -2274,12 +2407,12 @@ class IQFeedback(Page):
             n_correct=n_correct,
             signal=signal,
             sent_iq=player.field_maybe_none('report_iq'),
-            sent_emoji=player.field_maybe_none('report_emoji'),
-            sent_message=player.field_maybe_none('report_message'),
-            shared=player.field_maybe_none('report_shared'),
-            sent_display_name=player.field_maybe_none('report_display_name'),
-            edit_back_count=player.field_maybe_none('report_edit_back_count') or 0,
-            compose_history=player.field_maybe_none('report_compose_history') or '',
+            sent_emoji=player.field_maybe_none('iq_report_emoji'),
+            sent_message=player.field_maybe_none('iq_report_message'),
+            shared=player.field_maybe_none('iq_report_shared'),
+            sent_display_name=player.field_maybe_none('iq_report_display_name'),
+            edit_back_count=player.field_maybe_none('iq_report_edit_back_count') or 0,
+            compose_history=player.field_maybe_none('iq_report_compose_history') or '',
         ))
         if signal.get('type') == 'quantitative':
             player.received_signal_name = signal.get('name') or ''
@@ -2612,11 +2745,18 @@ class ColorTask6(Page):
 
 class EndOfPeriodSurvey(Page):
     form_model = 'player'
-    form_fields = ['mood', 'performance_satisfaction', 'payment_satisfaction', 'task_enjoyment']
 
     @staticmethod
     def is_displayed(player: Player):
         return is_end_of_period_with_p3(player)
+
+    @staticmethod
+    def get_form_fields(player: Player):
+        fields = ['mood', 'performance_satisfaction', 'payment_satisfaction',
+                  'task_enjoyment']
+        if CFG['show_iq']:
+            fields.append('iq_perception_change')
+        return fields
 
     @staticmethod
     def vars_for_template(player: Player):
@@ -2645,6 +2785,10 @@ class EndOfPeriodSurvey(Page):
             f'eop-survey-{period}',
             ['mood', 'performance_satisfaction', 'payment_satisfaction', 'task_enjoyment'],
         )
+        # The IQ-perception item refers back to the estimate just shown, so it
+        # always closes the page rather than joining the shuffle.
+        if CFG['show_iq']:
+            question_keys = list(question_keys) + ['iq_perception_change']
 
         return dict(
             period=period,
@@ -2661,6 +2805,8 @@ class EndOfPeriodSurvey(Page):
                 or values.get('performance_satisfaction') is None
                 or values.get('task_enjoyment') is None
                 or values.get('payment_satisfaction') is None):
+            return "Please answer all questions before continuing."
+        if CFG['show_iq'] and values.get('iq_perception_change') is None:
             return "Please answer all questions before continuing."
 
 
@@ -2680,6 +2826,41 @@ class TaskEffort(Page):
     def error_message(player: Player, values):
         if values.get('task_effort') is None or values.get('task_effort') == '':
             return "Please move the slider to indicate your effort before continuing."
+
+
+class OutcomeConcern(Page):
+    """How much participants care about their rank vs. their IQ score.
+
+    Asked once at the end of the study; the two items are presented in a
+    participant-specific random order.
+    """
+    form_model = 'player'
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return player.round_number == C.NUM_ROUNDS
+
+    @staticmethod
+    def get_form_fields(player: Player):
+        fields = ['care_about_ranking']
+        # No IQ score is ever reported in the Initial pilot.
+        if CFG['show_iq']:
+            fields.append('care_about_iq_score')
+        return fields
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        keys = ['care_about_ranking']
+        if CFG['show_iq']:
+            keys.append('care_about_iq_score')
+        return dict(question_order=_stable_shuffled(player, 'outcome-concern', keys))
+
+    @staticmethod
+    def error_message(player: Player, values):
+        if values.get('care_about_ranking') is None:
+            return "Please answer all questions before continuing."
+        if CFG['show_iq'] and values.get('care_about_iq_score') is None:
+            return "Please answer all questions before continuing."
 
 
 class WTACompare(Page):
@@ -2792,7 +2973,7 @@ class PlatformUsage(Page):
 
 class RealismQuestion(Page):
     form_model = 'player'
-    form_fields = ['realism_feedback']
+    form_fields = ['realism_feedback', 'realism_behavior']
 
     @staticmethod
     def is_displayed(player: Player):
@@ -2800,15 +2981,20 @@ class RealismQuestion(Page):
 
     @staticmethod
     def error_message(player: Player, values):
-        text = (values.get('realism_feedback') or '').strip()
-        if not text:
-            return "Please share your thoughts before continuing."
-        if len(text) < 50:
-            return (
-                "Please write at least 50 characters about your experience "
-                "during the study (currently "
-                f"{len(text)} characters)."
-            )
+        # Two boxes on one page: how social-media-like the study felt, and how the
+        # participant's own behaviour was affected. Each needs 50 characters.
+        for field, topic in (
+            ('realism_feedback', 'how social media-like the study felt'),
+            ('realism_behavior', 'your own behaviour during the study'),
+        ):
+            text = (values.get(field) or '').strip()
+            if not text:
+                return "Please answer both questions before continuing."
+            if len(text) < 50:
+                return (
+                    f"Please write at least 50 characters about {topic} "
+                    f"(currently {len(text)} characters)."
+                )
 
 
 def _checklist_vars(player: Player, motives: list, shuffle_key: str | None) -> list:
@@ -2816,15 +3002,17 @@ def _checklist_vars(player: Player, motives: list, shuffle_key: str | None) -> l
     if shuffle_key:
         items = _stable_shuffled(player, shuffle_key, items)
     for m in items:
-        _annotate_agree_state(player, m)
+        _annotate_scale_state(player, m)
     return items
 
 
-def _annotate_agree_state(player: Player, item: dict) -> None:
-    """Attach current Agree/Disagree state for a stored BooleanField, if any."""
+def _annotate_scale_state(player: Player, item: dict) -> None:
+    """Attach the five scale points, flagging the stored one so it re-displays."""
     value = player.field_maybe_none(item['field'])
-    item['agree_checked'] = (value is True)
-    item['disagree_checked'] = (value is False)
+    item['points'] = [
+        dict(value=point, checked=(point == value))
+        for point, _ in BFI_CHOICES
+    ]
 
 
 def experience_page_order(participant) -> list[str]:
@@ -2863,7 +3051,7 @@ def _impact_blocks_for_player(player: Player) -> list:
         items = []
         for suffix in suffix_order:
             item = dict(by_suffix[suffix])
-            _annotate_agree_state(player, item)
+            _annotate_scale_state(player, item)
             items.append(item)
         out.append(dict(heading=block['heading'], choices=items))
     return out
@@ -2898,14 +3086,21 @@ def _make_experience_slot(slot: int):
         def vars_for_template(player: Player):
             page_key = experience_page_order(player.participant)[slot]
             meta = EXPERIENCE_PAGE_META[page_key]
+            common = dict(
+                scale_labels=LIKERT_AGREE_LABELS,
+                field_names=_experience_form_fields(player, slot),
+                storage_key=f'experience_{page_key}',
+            )
             if page_key == 'impacts':
                 return dict(
                     motive_blocks=_impact_blocks_for_player(player),
                     motives=[],
+                    **common,
                 )
             return dict(
                 motives=_checklist_vars(player, meta['motives'], f'experience-{page_key}'),
                 motive_blocks=[],
+                **common,
             )
 
     ExperienceChecklist.__name__ = f'ExperienceChecklist{slot + 1}'
@@ -3140,11 +3335,13 @@ page_sequence = [
     GlobalIQFeedback,
     WTACompare,
     Results,
-    BigFiveSurvey,
+    BigFiveSurvey1,
+    BigFiveSurvey2,
     SelfEsteemSurvey,
     NarcissismSurvey,
     Demographics,
     TaskEffort,
+    OutcomeConcern,
     PlatformUsage,
     RealismQuestion,
     ExperienceChecklist1,

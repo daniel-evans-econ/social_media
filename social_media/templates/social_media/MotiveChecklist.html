@@ -3,64 +3,26 @@
 
 {% block content %}
 <style>
-    .motive-list { list-style: none; padding: 0; margin: 0 0 8px 0; }
-    .motive-list li {
-        margin: 0 0 10px 0;
-        padding: 12px 14px;
-        border: 1px solid #d0d0d0;
-        border-radius: 8px;
-        background: #fff;
-        display: flex;
-        gap: 16px;
-        align-items: center;
-        justify-content: space-between;
-    }
-    .motive-text {
-        flex: 1 1 auto;
-        line-height: 1.45;
-    }
-    .motive-radios {
-        flex: 0 0 auto;
-        display: flex;
-        gap: 14px;
-        align-items: center;
-        white-space: nowrap;
-    }
-    .motive-radios label {
-        display: inline-flex;
-        gap: 6px;
-        align-items: center;
-        cursor: pointer;
-        margin: 0;
-        font-weight: 400;
-    }
-    .motive-radios input[type="radio"] {
+    .motive-table { margin-bottom: 8px; }
+    .motive-table th { text-align: center; vertical-align: middle; font-weight: 600; }
+    .motive-table td { vertical-align: middle; }
+    .motive-table td.motive-point { text-align: center; }
+    .motive-table td.motive-point input[type="radio"] {
         width: 1.05em;
         height: 1.05em;
         margin: 0;
+        cursor: pointer;
     }
-    .motive-block {
-        margin: 20px 0 4px 0;
-        padding: 14px 16px;
-        border: 1px solid #e0e0e0;
-        border-radius: 10px;
-        background: #fafafa;
-    }
-    .motive-block-heading {
-        margin: 0 0 12px 0;
-        line-height: 1.45;
-    }
-    @media (max-width: 640px) {
-        .motive-list li { flex-direction: column; align-items: stretch; }
-        .motive-radios { justify-content: flex-end; }
-    }
+    .motive-text { line-height: 1.45; }
+    .motive-block { margin: 22px 0 4px 0; }
+    .motive-block-heading { margin: 0 0 8px 0; line-height: 1.45; }
 </style>
 
 <h3 style="color:darkred; font-weight:bold;">Your experience</h3>
 <br>
 
 <p>
-    Thinking specifically about your experience during this study, please indicate whether
+    Thinking specifically about your experience during this study, please indicate how much
     you <strong style="color:darkred;">agree or disagree</strong> with each statement below.
 </p>
 
@@ -70,48 +32,102 @@
         <p class="motive-block-heading">
             <strong style="color:darkred;">{{ block.heading }}&hellip;</strong>
         </p>
-        <ul class="motive-list">
-            {% for m in block.choices %}
-            <li>
-                <span class="motive-text">{{ m.text }}</span>
-                <span class="motive-radios">
-                    <label>
-                        <input type="radio" name="{{ m.field }}" value="True"
-                               {% if m.agree_checked %}checked{% endif %} required>
-                        Agree
-                    </label>
-                    <label>
-                        <input type="radio" name="{{ m.field }}" value="False"
-                               {% if m.disagree_checked %}checked{% endif %} required>
-                        Disagree
-                    </label>
-                </span>
-            </li>
-            {% endfor %}
-        </ul>
+        <table class="table table-bordered motive-table">
+            <colgroup>
+                <col style="width: 40%;">
+                {% for label in scale_labels %}<col style="width: 12%;">{% endfor %}
+            </colgroup>
+            <thead>
+                <tr>
+                    <th></th>
+                    {% for label in scale_labels %}<th>{{ label }}</th>{% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in block.choices %}
+                <tr>
+                    <td class="motive-text">{{ m.text }}</td>
+                    {% for point in m.points %}
+                    <td class="motive-point">
+                        <input type="radio" name="{{ m.field }}" value="{{ point.value }}"
+                               {% if point.checked %}checked{% endif %} required>
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
     {% endfor %}
 {% else %}
-    <ul class="motive-list">
-        {% for m in motives %}
-        <li>
-            <span class="motive-text">{{ m.text }}</span>
-            <span class="motive-radios">
-                <label>
-                    <input type="radio" name="{{ m.field }}" value="True"
-                           {% if m.agree_checked %}checked{% endif %} required>
-                    Agree
-                </label>
-                <label>
-                    <input type="radio" name="{{ m.field }}" value="False"
-                           {% if m.disagree_checked %}checked{% endif %} required>
-                    Disagree
-                </label>
-            </span>
-        </li>
-        {% endfor %}
-    </ul>
+    <table class="table table-bordered motive-table">
+        <colgroup>
+            <col style="width: 40%;">
+            {% for label in scale_labels %}<col style="width: 12%;">{% endfor %}
+        </colgroup>
+        <thead>
+            <tr>
+                <th></th>
+                {% for label in scale_labels %}<th>{{ label }}</th>{% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in motives %}
+            <tr>
+                <td class="motive-text">{{ m.text }}</td>
+                {% for point in m.points %}
+                <td class="motive-point">
+                    <input type="radio" name="{{ m.field }}" value="{{ point.value }}"
+                           {% if point.checked %}checked{% endif %} required>
+                </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 {% endif %}
 
+<br>
 {{ next_button }}
+
+<script>
+(function () {
+    // Persist picks across refreshes and validation re-renders, the same way we do
+    // on the BFI, RSES, and NPI pages.
+    var STORAGE_KEY = '{{ storage_key }}_picks_{{ player.participant.code }}';
+    var FIELD_NAMES = [{% for name in field_names %}'{{ name }}', {% endfor %}];
+
+    function loadStored() {
+        try {
+            var raw = sessionStorage.getItem(STORAGE_KEY);
+            return raw ? JSON.parse(raw) : {};
+        } catch (_) { return {}; }
+    }
+    function saveStored(d) {
+        try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }
+        catch (_) {}
+    }
+
+    var stored = loadStored();
+    Object.keys(stored).forEach(function (name) {
+        var v = stored[name];
+        document.querySelectorAll(
+            'input[type="radio"][name="' + name + '"]'
+        ).forEach(function (r) { if (r.value === String(v)) r.checked = true; });
+    });
+
+    FIELD_NAMES.forEach(function (name) {
+        document.querySelectorAll(
+            'input[type="radio"][name="' + name + '"]'
+        ).forEach(function (r) {
+            r.addEventListener('change', function () {
+                if (!r.checked) return;
+                var d = loadStored();
+                d[r.name] = r.value;
+                saveStored(d);
+            });
+        });
+    });
+})();
+</script>
 {% endblock %}

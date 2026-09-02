@@ -87,6 +87,18 @@
     .fb-preview .fb-preview-time,
     .fb-received .fb-received-time { color: #8a8a8a; font-weight: 400; font-size: 0.9em; }
     .fb-preview .fb-preview-body { font-style: italic; color: #555; }
+    /* "Message incoming" indicator, shown until the peer message is revealed. */
+    .fb-typing { display: inline-flex; align-items: center; gap: 5px; height: 1.3em; }
+    .fb-typing span {
+        width: 7px; height: 7px; border-radius: 50%; background: #9aa4b0;
+        animation: fb-typing-bounce 1.2s infinite ease-in-out;
+    }
+    .fb-typing span:nth-child(2) { animation-delay: 0.15s; }
+    .fb-typing span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes fb-typing-bounce {
+        0%, 60%, 100% { transform: translateY(0); opacity: 0.45; }
+        30% { transform: translateY(-5px); opacity: 1; }
+    }
 </style>
 
 <!-- ================= Read-only backdrop (the question just completed) ================= -->
@@ -160,8 +172,8 @@
             <div id="fb-compose-step" style="display:none;">
                 {% if has_received_message %}
                 <p style="font-size:0.92em; color:#444; margin: 0 0 12px 0;">
-                    Here is a message from
-                    <strong style="color:darkred;">another participant in this study</strong>.
+                    Here is an incoming message from
+                    <strong style="color:darkred;">{{ signal.name }}</strong>.
                 </p>
                 <div class="fb-post fb-received">
                     <div class="fb-post-head">
@@ -169,24 +181,29 @@
                         <div>
                             <div class="fb-post-name">
                                 {{ signal.name }}
-                                {% if signal.time %}<span class="fb-received-time">&middot; {{ signal.time }}</span>{% endif %}
+                                <span class="fb-received-time" id="fb-received-time"></span>
                             </div>
                         </div>
                     </div>
                     <div class="fb-post-body">
-                        {% if is_quantitative %}
-                            I got {{ signal.number }} out of 5 correct.
-                        {% else %}
-                            <div class="fb-post-quote">{{ signal.sentence }} <span style="font-size:1.4em;">{{ signal.emoji }}</span></div>
-                        {% endif %}
+                        <div class="fb-typing" id="fb-typing" aria-label="Message incoming">
+                            <span></span><span></span><span></span>
+                        </div>
+                        <div id="fb-received-content" style="display:none;">
+                            {% if is_quantitative %}
+                                I got {{ signal.number }} out of 5 correct.
+                            {% else %}
+                                <div class="fb-post-quote">{{ signal.sentence }} <span style="font-size:1.4em;">{{ signal.emoji }}</span></div>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
                 {% endif %}
 
-                <div class="fb-compose">
+                <div class="fb-compose" id="fb-compose-panel"{% if has_received_message %} style="display:none;"{% endif %}>
                     <div id="fb-compose-inputs">
                         <p class="fb-compose-prompt">
-                            Please write a message to other participants in this study about how you did.
+                            Please write a message about how you did on this task.
                         </p>
 
                         {% if is_quantitative %}
@@ -509,6 +526,46 @@
     var form = document.querySelector('form');
     if (form) form.addEventListener('submit', syncHistoryFields, true);
 
+    // An incoming peer message arrives like a chat message: jumping dots first,
+    // then the message itself, and only then the compose panel.
+    var HAS_RECEIVED = {% if has_received_message %}true{% else %}false{% endif %};
+    var MESSAGE_REVEAL_MS = 3000;
+    var COMPOSE_REVEAL_MS = 3000;
+    var composePanel = document.getElementById('fb-compose-panel');
+    var typingEl = document.getElementById('fb-typing');
+    var receivedContent = document.getElementById('fb-received-content');
+    var receivedTimeEl = document.getElementById('fb-received-time');
+    var composeRevealed = !HAS_RECEIVED;
+    var incomingStarted = false;
+
+    function nowTimeStrTz() {
+        var d = new Date();
+        try {
+            return d.toLocaleTimeString([], {
+                hour: 'numeric', minute: '2-digit', timeZoneName: 'short',
+            });
+        } catch (e) {
+            return nowTimeStr();
+        }
+    }
+
+    function startIncomingMessage() {
+        if (!HAS_RECEIVED || incomingStarted) return;
+        incomingStarted = true;
+        window.setTimeout(function () {
+            if (typingEl) typingEl.style.display = 'none';
+            if (receivedContent) receivedContent.style.display = 'block';
+            if (receivedTimeEl) receivedTimeEl.textContent = '\u00B7 ' + nowTimeStrTz();
+            window.setTimeout(function () {
+                composeRevealed = true;
+                if (composePanel) composePanel.style.display = 'block';
+                if (actionsCompose && currentPhase === 'compose') {
+                    actionsCompose.style.display = 'flex';
+                }
+            }, COMPOSE_REVEAL_MS);
+        }, MESSAGE_REVEAL_MS);
+    }
+
     // Four separate pages within the sidebar:
     //   score (performance feedback) -> compose (write message)
     //   -> confirm ("Is this the message...") -> share (send?).
@@ -519,7 +576,10 @@
         if (composeStep) composeStep.style.display = (phase === 'compose') ? 'block' : 'none';
         if (confirmStep) confirmStep.style.display = (phase === 'confirm') ? 'block' : 'none';
         if (shareStep) shareStep.style.display = (phase === 'share') ? 'block' : 'none';
-        if (actionsCompose) actionsCompose.style.display = (phase === 'compose') ? 'flex' : 'none';
+        if (actionsCompose) {
+            actionsCompose.style.display =
+                (phase === 'compose' && composeRevealed) ? 'flex' : 'none';
+        }
         if (actionsConfirm) actionsConfirm.style.display = (phase === 'confirm') ? 'flex' : 'none';
         if (actionsFinal) actionsFinal.style.display = (phase === 'share') ? 'flex' : 'none';
     }
@@ -531,6 +591,7 @@
         window.setTimeout(function () {
             if (currentPhase !== 'score') return;
             showPhase('compose');
+            startIncomingMessage();
             try { composeStep.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {}
         }, AUTO_ADVANCE_MS);
 

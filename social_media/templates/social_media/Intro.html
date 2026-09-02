@@ -9,14 +9,18 @@
 <h2 style="color:darkred; font-weight:bold;">Further instructions</h2>
 <br>
 <p>
-    {% if receives_messages %}In some periods, you will have the opportunity to
-    <strong style="color:darkred;">send messages to other participants</strong> about how you did on the main task.
-    We will <strong style="color:darkred;">not verify the truthfulness</strong> of the messages you write to other participants.
-    You will also
-    <strong style="color:darkred;">receive messages from other participants</strong>.
-    Not all other participants chose to send a message.{% else %}In some periods, you will have the opportunity to
-    <strong style="color:darkred;">send messages to other participants</strong> about how you did on the main task.
-    We will <strong style="color:darkred;">not verify the truthfulness</strong> of the messages you write to other participants.{% endif %}
+    {% if receives_messages %}In some periods, you will
+    <strong style="color:darkred;">receive messages from other participants</strong>
+    about how they did on the main task.
+    You will also have the opportunity to
+    <strong style="color:darkred;">send messages to other participants</strong>.
+    We <strong style="color:darkred;">do not verify the truthfulness</strong> of the messages
+    you receive or send. Not all other participants chose to send a message.{% else %}In some
+    periods, you will have the opportunity to
+    <strong style="color:darkred;">send messages to other participants</strong>
+    about how you did on the main task.
+    We <strong style="color:darkred;">do not verify the truthfulness</strong> of the messages
+    you send.{% endif %}
 </p>
 <p style="margin-top:1em;">
     What <strong style="color:darkred;">username</strong> do you want to use when sending messages to others?
@@ -25,9 +29,12 @@
        style="width:100%; max-width:420px; padding:10px; font-size:1em;
               border:1px solid #b9d4ff; border-radius:6px; box-sizing:border-box;">
 <p>
-    After answering all of the questions in a given period,
-    you will complete a handful of short tasks and make some choices that affect your earnings.
-    Please answer each question carefully.
+    {% if has_optional_third %}After completing both periods of the IQ task, you will have the
+    opportunity to complete an additional IQ task in a
+    <strong style="color:darkred;">third period</strong>.{% else %}After completing the first two
+    periods of the IQ task, you will complete an additional IQ task in a
+    <strong style="color:darkred;">third period</strong>.{% endif %}
+    We will also ask you some questions about yourself. Please answer all questions carefully.
 </p>
 <p style="background:#fff8e1; border-left:4px solid #d4a017; padding:10px 14px; margin-top:1em;">
     We <strong style="color:darkred;">prohibit the use of AI and search engines</strong>

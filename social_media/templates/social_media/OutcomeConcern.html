@@ -1,0 +1,37 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block content %}
+<style>
+    /* Hide oTree-injected blank labels and tighten table spacing for the cleaner look. */
+    label.col-form-label:empty,
+    .form-group label:empty { display: none !important; }
+    .form-group { margin-bottom: 1.4em; }
+</style>
+
+<h3 style="color:darkred; font-weight:bold;">Your performance in this study</h3>
+<br>
+
+{% for key in question_order %}
+    {% if key == 'care_about_ranking' %}
+        <div class="form-group">
+            <p style="margin-bottom:6px;">
+                How much do you <strong style="color:darkred;">care</strong> about your
+                <strong style="color:darkred;">ranking</strong> relative to other Prolific
+                participants?
+            </p>
+            {{ formfield player.care_about_ranking }}
+        </div>
+    {% elif key == 'care_about_iq_score' %}
+        <div class="form-group">
+            <p style="margin-bottom:6px;">
+                How much do you <strong style="color:darkred;">care</strong> about your
+                <strong style="color:darkred;">IQ score</strong>?
+            </p>
+            {{ formfield player.care_about_iq_score }}
+        </div>
+    {% endif %}
+{% endfor %}
+
+{{ next_button }}
+{% endblock %}

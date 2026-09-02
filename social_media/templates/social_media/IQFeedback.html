@@ -87,6 +87,18 @@
     .fb-preview .fb-preview-time,
     .fb-received .fb-received-time { color: #8a8a8a; font-weight: 400; font-size: 0.9em; }
     .fb-preview .fb-preview-body { font-style: italic; color: #555; }
+    /* "Message incoming" indicator, shown until the peer message is revealed. */
+    .fb-typing { display: inline-flex; align-items: center; gap: 5px; height: 1.3em; }
+    .fb-typing span {
+        width: 7px; height: 7px; border-radius: 50%; background: #9aa4b0;
+        animation: fb-typing-bounce 1.2s infinite ease-in-out;
+    }
+    .fb-typing span:nth-child(2) { animation-delay: 0.15s; }
+    .fb-typing span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes fb-typing-bounce {
+        0%, 60%, 100% { transform: translateY(0); opacity: 0.45; }
+        30% { transform: translateY(-5px); opacity: 1; }
+    }
 </style>
 
 <!-- ================= Read-only backdrop (the question just completed) ================= -->
@@ -135,8 +147,8 @@
     </div>
 
     <div class="fb-body">
-        <input type="hidden" name="report_edit_back_count" id="id_report_edit_back_count" value="0">
-        <input type="hidden" name="report_compose_history" id="id_report_compose_history" value="[]">
+        <input type="hidden" name="iq_report_edit_back_count" id="id_iq_report_edit_back_count" value="0">
+        <input type="hidden" name="iq_report_compose_history" id="id_iq_report_compose_history" value="[]">
         <input type="hidden" id="fb-display-name" value="{{ display_name }}">
 
         <div id="fb-error" role="alert"
@@ -148,7 +160,9 @@
                  returned to (message writing is on a separate page). -->
             <div id="fb-score-step">
                 <div class="fb-score">
-                    Your estimated score on the <strong style="color:darkred;">{{ label }}</strong> component of <strong style="color:darkred;">IQ</strong> is
+                    Based on your performance on all of the blocks in this period, your estimated
+                    <strong style="color:darkred;">IQ score</strong> on the
+                    <strong style="color:darkred;">{{ label }}</strong> component is
                     <strong style="color:darkred;">{{ iq }}</strong>.
                 </div>
                 <p class="fb-autoadvance-hint" id="fb-score-hint">
@@ -160,8 +174,8 @@
             <div id="fb-compose-step" style="display:none;">
                 {% if has_received_message %}
                 <p style="font-size:0.92em; color:#444; margin: 0 0 12px 0;">
-                    Here is a message from a participant who completed the
-                    <strong style="color:darkred;">same {{ task_construct }} IQ task</strong>.
+                    Here is an incoming message from
+                    <strong style="color:darkred;">{{ signal.name }}</strong>.
                 </p>
                 <div class="fb-post fb-received">
                     <div class="fb-post-head">
@@ -169,24 +183,29 @@
                         <div>
                             <div class="fb-post-name">
                                 {{ signal.name }}
-                                {% if signal.time %}<span class="fb-received-time">&middot; {{ signal.time }}</span>{% endif %}
+                                <span class="fb-received-time" id="fb-received-time"></span>
                             </div>
                         </div>
                     </div>
                     <div class="fb-post-body">
-                        {% if is_quantitative %}
-                            My {{ label }} IQ score is {{ signal.iq }}.
-                        {% else %}
-                            <div class="fb-post-quote">{{ signal.sentence }} <span style="font-size:1.4em;">{{ signal.emoji }}</span></div>
-                        {% endif %}
+                        <div class="fb-typing" id="fb-typing" aria-label="Message incoming">
+                            <span></span><span></span><span></span>
+                        </div>
+                        <div id="fb-received-content" style="display:none;">
+                            {% if is_quantitative %}
+                                My {{ label }} IQ score is {{ signal.iq }}.
+                            {% else %}
+                                <div class="fb-post-quote">{{ signal.sentence }} <span style="font-size:1.4em;">{{ signal.emoji }}</span></div>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
                 {% endif %}
 
-                <div class="fb-compose">
+                <div class="fb-compose" id="fb-compose-panel"{% if has_received_message %} style="display:none;"{% endif %}>
                     <div id="fb-compose-inputs">
                         <p class="fb-compose-prompt">
-                            Please write a message to other participants in this study about how you did.
+                            Please write a message about how you did on this task.
                         </p>
 
                         {% if is_quantitative %}
@@ -197,22 +216,22 @@
                                        style="width:74px; padding:6px; text-align:center;
                                               border:1px solid #b9d4ff; border-radius:6px;">.
                             </p>
-                            <input type="hidden" name="report_message" id="id_report_message" value="">
+                            <input type="hidden" name="iq_report_message" id="id_iq_report_message" value="">
                         {% else %}
                             <div style="font-size:0.9em;">How do you feel?</div>
                             <div class="fb-row fb-emoji">
                                 {% for e in qual_emojis %}
                                     <label>
-                                        <input type="radio" name="report_emoji" value="{{ e }}">
+                                        <input type="radio" name="iq_report_emoji" value="{{ e }}">
                                         <span>{{ e }}</span>
                                     </label>
                                 {% endfor %}
                             </div>
                             <div style="margin-top:8px;">
-                                <label for="id_report_message" style="font-size:0.85em;">
+                                <label for="id_iq_report_message" style="font-size:0.85em;">
                                     Add a short note (max 140 characters):
                                 </label>
-                                <textarea name="report_message" id="id_report_message"
+                                <textarea name="iq_report_message" id="id_iq_report_message"
                                           minlength="5" maxlength="140"></textarea>
                             </div>
                         {% endif %}
@@ -288,11 +307,11 @@
 
                     <div class="fb-share-options">
                         <label>
-                            <input type="radio" name="report_shared" value="True">
+                            <input type="radio" name="iq_report_shared" value="True">
                             <span>Yes, I wish to share my message</span>
                         </label>
                         <label>
-                            <input type="radio" name="report_shared" value="False">
+                            <input type="radio" name="iq_report_shared" value="False">
                             <span>No, I do not wish to share my message</span>
                         </label>
                     </div>
@@ -300,7 +319,9 @@
             </div>
         {% else %}
             <div class="fb-score">
-                Your estimated score on the <strong style="color:darkred;">{{ label }}</strong> component of <strong style="color:darkred;">IQ</strong> is
+                Based on your performance on all of the blocks in this period, your estimated
+                    <strong style="color:darkred;">IQ score</strong> on the
+                    <strong style="color:darkred;">{{ label }}</strong> component is
                 <strong style="color:darkred;">{{ iq }}</strong>.
             </div>
             <p class="fb-autoadvance-hint">Continuing in a moment&hellip;</p>
@@ -351,8 +372,8 @@
     var lastLoggedDraftKey = '';
 
     function syncHistoryFields() {
-        var cEl = document.getElementById('id_report_edit_back_count');
-        var hEl = document.getElementById('id_report_compose_history');
+        var cEl = document.getElementById('id_iq_report_edit_back_count');
+        var hEl = document.getElementById('id_iq_report_compose_history');
         if (cEl) cEl.value = String(editBackCount);
         if (hEl) hEl.value = JSON.stringify(composeHistory);
     }
@@ -414,18 +435,18 @@
             if (raw === '') { showError('Please enter your IQ score.'); return false; }
             var n = parseInt(raw, 10);
             if (isNaN(n) || n < 60 || n > 140) { showError('Please enter an IQ score between 60 and 140.'); return false; }
-            var hiddenMsg = document.getElementById('id_report_message');
+            var hiddenMsg = document.getElementById('id_iq_report_message');
             if (hiddenMsg && hiddenMsg.tagName === 'INPUT') {
                 hiddenMsg.value = 'My ' + LABEL + ' IQ score is ' + n + '.';
             }
             return true;
         }
-        var msgEl = document.getElementById('id_report_message');
+        var msgEl = document.getElementById('id_iq_report_message');
         var msg = msgEl ? String(msgEl.value || '').trim() : '';
         if (!msg) { showError('Please add a short note before continuing.'); return false; }
         if (msg.length < 5) { showError('Please write at least 5 characters in your note.'); return false; }
-        var emoChecked = document.querySelector('input[name="report_emoji"]:checked');
-        if (document.querySelectorAll('input[name="report_emoji"]').length && !emoChecked) {
+        var emoChecked = document.querySelector('input[name="iq_report_emoji"]:checked');
+        if (document.querySelectorAll('input[name="iq_report_emoji"]').length && !emoChecked) {
             showError('Please indicate how you feel.'); return false;
         }
         return true;
@@ -445,11 +466,11 @@
             if (raw === '') return '';
             return 'My ' + LABEL + ' IQ score is ' + raw + '.';
         }
-        var msgEl = document.getElementById('id_report_message');
+        var msgEl = document.getElementById('id_iq_report_message');
         return msgEl ? String(msgEl.value || '').trim() : '';
     }
     function currentEmoji() {
-        var e = document.querySelector('input[name="report_emoji"]:checked');
+        var e = document.querySelector('input[name="iq_report_emoji"]:checked');
         return e ? e.value : '';
     }
     function nowTimeStr() {
@@ -485,7 +506,7 @@
     // Message edits (number / free text) stamp the "latest typed" time.
     function onMessageEdit() {
         var iqEl = document.getElementById('id_report_iq');
-        var hiddenMsg = document.getElementById('id_report_message');
+        var hiddenMsg = document.getElementById('id_iq_report_message');
         if (iqEl && hiddenMsg && hiddenMsg.tagName === 'INPUT') {
             var raw = String(iqEl.value).trim();
             hiddenMsg.value = raw === '' ? '' : 'My ' + LABEL + ' IQ score is ' + raw + '.';
@@ -498,15 +519,55 @@
 
     var iqElInit = document.getElementById('id_report_iq');
     if (iqElInit) iqElInit.addEventListener('input', onMessageEdit);
-    var msgElInit = document.getElementById('id_report_message');
+    var msgElInit = document.getElementById('id_iq_report_message');
     if (msgElInit && msgElInit.tagName === 'TEXTAREA') msgElInit.addEventListener('input', onMessageEdit);
-    Array.prototype.forEach.call(document.querySelectorAll('input[name="report_emoji"]'), function (el) {
+    Array.prototype.forEach.call(document.querySelectorAll('input[name="iq_report_emoji"]'), function (el) {
         el.addEventListener('change', function () { logDraftIfChanged(); clearError(); renderPreviews(); });
     });
     renderPreviews();
     syncHistoryFields();
     var form = document.querySelector('form');
     if (form) form.addEventListener('submit', syncHistoryFields, true);
+
+    // An incoming peer message arrives like a chat message: jumping dots first,
+    // then the message itself, and only then the compose panel.
+    var HAS_RECEIVED = {% if has_received_message %}true{% else %}false{% endif %};
+    var MESSAGE_REVEAL_MS = 3000;
+    var COMPOSE_REVEAL_MS = 3000;
+    var composePanel = document.getElementById('fb-compose-panel');
+    var typingEl = document.getElementById('fb-typing');
+    var receivedContent = document.getElementById('fb-received-content');
+    var receivedTimeEl = document.getElementById('fb-received-time');
+    var composeRevealed = !HAS_RECEIVED;
+    var incomingStarted = false;
+
+    function nowTimeStrTz() {
+        var d = new Date();
+        try {
+            return d.toLocaleTimeString([], {
+                hour: 'numeric', minute: '2-digit', timeZoneName: 'short',
+            });
+        } catch (e) {
+            return nowTimeStr();
+        }
+    }
+
+    function startIncomingMessage() {
+        if (!HAS_RECEIVED || incomingStarted) return;
+        incomingStarted = true;
+        window.setTimeout(function () {
+            if (typingEl) typingEl.style.display = 'none';
+            if (receivedContent) receivedContent.style.display = 'block';
+            if (receivedTimeEl) receivedTimeEl.textContent = '\u00B7 ' + nowTimeStrTz();
+            window.setTimeout(function () {
+                composeRevealed = true;
+                if (composePanel) composePanel.style.display = 'block';
+                if (actionsCompose && currentPhase === 'compose') {
+                    actionsCompose.style.display = 'flex';
+                }
+            }, COMPOSE_REVEAL_MS);
+        }, MESSAGE_REVEAL_MS);
+    }
 
     // Four separate pages within the sidebar:
     //   score (IQ estimate) -> compose (write message)
@@ -518,7 +579,10 @@
         if (composeStep) composeStep.style.display = (phase === 'compose') ? 'block' : 'none';
         if (confirmStep) confirmStep.style.display = (phase === 'confirm') ? 'block' : 'none';
         if (shareStep) shareStep.style.display = (phase === 'share') ? 'block' : 'none';
-        if (actionsCompose) actionsCompose.style.display = (phase === 'compose') ? 'flex' : 'none';
+        if (actionsCompose) {
+            actionsCompose.style.display =
+                (phase === 'compose' && composeRevealed) ? 'flex' : 'none';
+        }
         if (actionsConfirm) actionsConfirm.style.display = (phase === 'confirm') ? 'flex' : 'none';
         if (actionsFinal) actionsFinal.style.display = (phase === 'share') ? 'flex' : 'none';
     }
@@ -530,6 +594,7 @@
         window.setTimeout(function () {
             if (currentPhase !== 'score') return;
             showPhase('compose');
+            startIncomingMessage();
             try { composeStep.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {}
         }, AUTO_ADVANCE_MS);
 
@@ -562,7 +627,7 @@
         if (form) {
             form.addEventListener('submit', function (e) {
                 if (currentPhase !== 'share') { e.preventDefault(); return; }
-                if (!document.querySelector('input[name="report_shared"]:checked')) {
+                if (!document.querySelector('input[name="iq_report_shared"]:checked')) {
                     e.preventDefault();
                     showError('Please choose whether you wish to share your message.');
                 }

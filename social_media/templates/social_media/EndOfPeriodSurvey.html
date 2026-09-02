@@ -50,6 +50,14 @@
             </p>
             {{ formfield player.payment_satisfaction }}
         </div>
+    {% elif key == 'iq_perception_change' %}
+        <div class="form-group">
+            <p style="margin-bottom:6px;">
+                Did receiving this estimate of your <strong style="color:darkred;">IQ</strong>
+                change your <strong style="color:darkred;">perception of your intelligence</strong>?
+            </p>
+            {{ formfield player.iq_perception_change }}
+        </div>
     {% endif %}
 {% endfor %}
 

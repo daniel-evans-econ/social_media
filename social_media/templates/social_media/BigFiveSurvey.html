@@ -8,6 +8,7 @@
     }
 </style>
 
+{% if is_first_page %}
 <h2 style="color:darkred; font-weight:bold; font-size:1.8em;">Great job, almost done!</h2>
 <br>
 <p>
@@ -16,6 +17,7 @@
     <span style="color:darkred; font-weight:bold;">Please choose the option that best describes you.</span>
 </p>
 <br>
+{% endif %}
 
 <p><em>I see myself as someone who&hellip;</em></p>
 
@@ -66,6 +68,7 @@
             {% if row.field == 'pref_share_fail' %}{% for choice in form.pref_share_fail %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
             {% if row.field == 'pref_compare' %}{% for choice in form.pref_compare %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
             {% if row.field == 'pref_dislike_brag' %}{% for choice in form.pref_dislike_brag %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
+            {% if row.field == 'pref_dislike_whine' %}{% for choice in form.pref_dislike_whine %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
             {% if row.field == 'big5_accuracy' %}{% for choice in form.big5_accuracy %}<td style="text-align:center; vertical-align:middle;">{{ choice }}</td>{% endfor %}{% endif %}
         </tr>
         {% endfor %}
@@ -81,15 +84,7 @@
     // refreshes and validation re-renders, the same way we do on the WTA, RSES,
     // and NPI pages.
     var STORAGE_KEY = 'bfi_picks_{{ player.participant.code }}';
-    var FIELD_NAMES = [
-        'big5_1', 'big5_2', 'big5_3', 'big5_4', 'big5_5',
-        'big5_6', 'big5_7', 'big5_8', 'big5_9', 'big5_10',
-        'self_knowledge', 'competitiveness',
-        'pref_risk', 'pref_patience', 'pref_trust', 'pref_altruism',
-        'pref_reciprocity', 'pref_punish', 'pref_share_success',
-        'pref_share_fail', 'pref_compare', 'pref_dislike_brag',
-        'big5_accuracy',
-    ];
+    var FIELD_NAMES = [{% for name in field_names %}'{{ name }}', {% endfor %}];
 
     function loadStored() {
         try {
