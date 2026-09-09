@@ -117,7 +117,9 @@
     <p style="margin-top:16px;">
         After the survey, we will calculate your average <strong style="color:darkred;">IQ score</strong>
         across the {% if has_optional_third %}two{% else %}three{% endif %} tested components of <strong style="color:darkred;">IQ</strong>.
-        We will also do this for another <strong style="color:darkred;">100 Prolific respondents</strong>.
+        Your score is compared against a group of
+        <strong style="color:darkred;">{{ comparison_group }} Prolific respondents</strong>
+        who answered the same questions, drawn at random for you.
         {% if iq_reference_asked %}
         What do you think your <strong style="color:darkred;">IQ score</strong> will be?
         Please answer using the slider above.

@@ -76,7 +76,9 @@ class PlayerBot(Bot):
                 # including the third; on end-of-period rounds the IQ sidebar
                 # follows it in the same round.
                 cond = get_condition(p)
-                fb = {}
+                # Half of participants see a like button; submitting the field
+                # unconditionally mirrors the always-present hidden input.
+                fb = dict(received_like=True)
                 if cond == 'quantitative_social':
                     fb.update(report_number=5, report_shared=True)
                 elif cond == 'qualitative_social':
@@ -86,7 +88,7 @@ class PlayerBot(Bot):
 
         if CFG['show_iq'] and is_end_of_period_with_p3(p):
             cond = get_condition(p)
-            iqfb = {}
+            iqfb = dict(received_like=False)
             if cond == 'quantitative_social':
                 iqfb.update(report_iq=100, iq_report_shared=True)
             elif cond == 'qualitative_social':
@@ -161,6 +163,7 @@ class PlayerBot(Bot):
                 write_peer_poor_up=3,
                 write_peer_poor_down=5,
                 write_match_tone=1,
+                write_untruthful=2,
             )
             _exp_share = dict(
                 share_well_positive=5,
@@ -172,6 +175,8 @@ class PlayerBot(Bot):
                 share_peer_poor_up=3,
                 share_peer_poor_down=5,
                 share_helpful=4,
+                share_enjoy=3,
+                share_uncomfortable=2,
             )
             _exp_impact = dict(
                 impact_recv_mood=5,

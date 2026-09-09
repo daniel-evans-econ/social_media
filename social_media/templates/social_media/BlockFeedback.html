@@ -87,6 +87,16 @@
     .fb-preview .fb-preview-time,
     .fb-received .fb-received-time { color: #8a8a8a; font-weight: 400; font-size: 0.9em; }
     .fb-preview .fb-preview-body { font-style: italic; color: #555; }
+    /* Randomized treatment: react to the message you were shown. */
+    .fb-like-row { margin-top: 10px; border-top: 1px solid #e6e9ee; padding-top: 8px; }
+    .fb-like {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: none; border: none; padding: 4px 8px; border-radius: 6px;
+        color: #65686c; font-size: 0.88em; font-weight: 600; cursor: pointer;
+    }
+    .fb-like:hover { background: #f0f2f5; }
+    .fb-like .fb-like-icon { font-size: 1.05em; line-height: 1; }
+    .fb-like.fb-like-on { color: #1877f2; }
     /* "Message incoming" indicator, shown until the peer message is revealed. */
     .fb-typing { display: inline-flex; align-items: center; gap: 5px; height: 1.3em; }
     .fb-typing span {
@@ -149,6 +159,7 @@
     <div class="fb-body">
         <input type="hidden" name="report_edit_back_count" id="id_report_edit_back_count" value="0">
         <input type="hidden" name="report_compose_history" id="id_report_compose_history" value="[]">
+        <input type="hidden" name="received_like" id="id_received_like" value="{% if liked %}1{% else %}0{% endif %}">
         <input type="hidden" id="fb-display-name" value="{{ display_name }}">
 
         <div id="fb-error" role="alert"
@@ -194,6 +205,16 @@
                                 I got {{ signal.number }} out of 5 correct.
                             {% else %}
                                 <div class="fb-post-quote">{{ signal.sentence }} <span style="font-size:1.4em;">{{ signal.emoji }}</span></div>
+                            {% endif %}
+                            {% if show_like_button %}
+                            <div class="fb-like-row">
+                                <button type="button" id="fb-like-btn"
+                                        class="fb-like{% if liked %} fb-like-on{% endif %}"
+                                        aria-pressed="{% if liked %}true{% else %}false{% endif %}">
+                                    <span class="fb-like-icon">&#128077;</span>
+                                    <span class="fb-like-text">{% if liked %}Liked{% else %}Like{% endif %}</span>
+                                </button>
+                            </div>
                             {% endif %}
                         </div>
                     </div>
@@ -545,6 +566,21 @@
         } catch (e) {
             return nowTimeStr();
         }
+    }
+
+    // Randomized treatment: liking a message is a single toggle carried in a
+    // hidden field, so it submits with the rest of the sidebar.
+    var likeBtn = document.getElementById('fb-like-btn');
+    var likeField = document.getElementById('id_received_like');
+    if (likeBtn && likeField) {
+        likeBtn.addEventListener('click', function () {
+            var on = likeField.value !== '1';
+            likeField.value = on ? '1' : '0';
+            likeBtn.classList.toggle('fb-like-on', on);
+            likeBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+            var label = likeBtn.querySelector('.fb-like-text');
+            if (label) label.textContent = on ? 'Liked' : 'Like';
+        });
     }
 
     function startIncomingMessage() {

@@ -92,9 +92,10 @@
 </p>
 
 <p>
-    The possible scenarios are in the two blocks below. The yellow blocks differ only in
+    The possible scenarios are in the two blocks below. The blocks differ only in
     whether you are
-    <strong style="color:darkred;">able to send and receive messages</strong>
+    <strong style="color:darkred;">able to interact with other participants by sending and
+    receiving messages</strong>
     during the task. Within each block, each row offers a different payment
     per correct answer.
 </p>
@@ -105,13 +106,17 @@
     that scenario, or <strong style="color:darkred;">Decline</strong> if you are not.
     We will then <strong style="color:darkred;">randomly select and implement</strong> your
     decision for one of the scenarios listed below.
+    It is thus in your interest to make each choice in line with your
+    <strong style="color:darkred;">true preferences</strong>.
 </p>
 
 <div class="wta-wrap">
     {% for block in blocks %}
     <section class="wta-block">
         <h4>{{ block.heading }}</h4>
-        <p class="wta-block-desc">{{ block.description }}</p>
+        <p class="wta-block-desc">
+            {{ block.description_lead }}<strong style="color:darkred;">{{ block.description_em }}</strong>{{ block.description_tail }}
+        </p>
         <table class="wta-table">
             <thead>
                 <tr>

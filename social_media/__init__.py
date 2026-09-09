@@ -288,6 +288,7 @@ def _load_json(name: str):
 
 _MESSAGE_CACHE = {}
 _IQ_DIST_CACHE = {}
+_IQ_SCORES_CACHE = {}
 
 
 def _flatten_message_pool(pool: dict) -> dict:
@@ -361,6 +362,64 @@ def estimate_iq(component: str, score: int, max_score: int) -> int:
     if max_score <= 0:
         return 100
     return int(round(70 + (s / max_score) * 60))
+
+
+# ---- Exogenous noise in the IQ readout -------------------------------------
+# Each participant's score is normed against a randomly drawn comparison group
+# of IQ_COMPARISON_GROUP people rather than against every previous respondent.
+# Sampling error in that draw is exogenous to their own effort and ability, so
+# it identifies the causal effect of a higher or lower reported IQ.
+#
+# Simulated against the pilot-1 score distributions, a group of 25 gives a noise
+# SD of about 4 IQ points, with 97.5% of draws inside +/- 10; IQ_NOISE_CAP holds
+# the rest to the same bound so nobody sees an implausible number.
+IQ_COMPARISON_GROUP = 25
+IQ_NOISE_CAP = 10
+
+
+def iq_reference_scores():
+    """Raw period scores of the previous pilot, keyed by IQ component."""
+    src = CFG["iq_distribution_source"]
+    if not src:
+        return None
+    if src not in _IQ_SCORES_CACHE:
+        _IQ_SCORES_CACHE[src] = _load_json(f"iq_scores_{src}.json") or {}
+    return _IQ_SCORES_CACHE[src]
+
+
+def _percentile_iq(sample, score) -> float:
+    """Mid-rank percentile of score within sample, on the mean-100 SD-15 scale."""
+    n = len(sample)
+    below = sum(1 for v in sample if v < score)
+    equal = sum(1 for v in sample if v == score)
+    p = (below + 0.5 * equal) / n
+    # A draw can put the participant above or below everyone; keep the
+    # percentile inside the sample's resolution so the IQ stays finite.
+    p = min(max(p, 0.5 / n), 1 - 0.5 / n)
+    return 100.0 + 15.0 * NormalDist().inv_cdf(p)
+
+
+def iq_noise_offset(player, component: str, score: int) -> int:
+    """IQ points this participant gains or loses from their comparison group.
+
+    Deterministic given the participant and component, so refreshing the
+    feedback page cannot re-roll the draw.
+    """
+    ref = iq_reference_scores() or {}
+    sample = ref.get(component) or []
+    if len(sample) < IQ_COMPARISON_GROUP:
+        return 0
+    rng = random.Random(f"{player.participant.code}-iqnoise-{component}")
+    group = [sample[rng.randrange(len(sample))] for _ in range(IQ_COMPARISON_GROUP)]
+    offset = _percentile_iq(group, score) - _percentile_iq(sample, score)
+    return int(round(max(-IQ_NOISE_CAP, min(IQ_NOISE_CAP, offset))))
+
+
+def estimate_iq_for_player(player, component: str, score: int,
+                           max_score: int) -> int:
+    """Period IQ as shown to the participant, including comparison-group noise."""
+    base = estimate_iq(component, score, max_score)
+    return base + iq_noise_offset(player, component, score)
 
 
 # ---------------------------------------------------------------------------
@@ -639,6 +698,13 @@ class Player(BasePlayer):
     received_signal_text = models.StringField(blank=True, max_length=200)
     received_signal_source = models.StringField(blank=True, max_length=60)
 
+    # ---- Randomized "like" button treatment ----
+    # Half of participants can like the messages they are shown. like_treatment
+    # repeats the participant-level assignment on every round for easy export;
+    # received_like records whether this round's message was liked.
+    like_treatment = models.BooleanField(initial=False)
+    received_like = models.BooleanField(blank=True, initial=False)
+
     # ---- Bot check (Cloudflare Turnstile + honeypot) ----
     turnstile_token = models.StringField(blank=True)
     turnstile_bypass_key = models.StringField(blank=True)
@@ -892,6 +958,7 @@ class Player(BasePlayer):
     write_peer_poor_up = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
     write_peer_poor_down = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
     write_match_tone = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    write_untruthful = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
     share_well_positive = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
     share_well_withhold = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
     share_poor_positive = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
@@ -901,6 +968,8 @@ class Player(BasePlayer):
     share_peer_poor_up = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
     share_peer_poor_down = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
     share_helpful = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    share_enjoy = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    share_uncomfortable = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
     impact_recv_mood = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
     impact_recv_sat = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
     impact_recv_effort = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
@@ -937,11 +1006,46 @@ class Player(BasePlayer):
 # Per-subject question/condition plan
 # ---------------------------------------------------------------------------
 
+DIFFICULTY_ORDER = ("easy", "medium", "hard")
+
+# The fixed 15 items per task, in three blocks of five. Selected from the pilot-1
+# item statistics (completers only) to hit roughly 80 / 48 / 20 percent correct
+# on easy / medium / hard, so blocks are comparable across tasks. Items are
+# binned by observed accuracy, so a few sit in a different block than the
+# difficulty label baked into their original id.
+FIXED_BLOCKS = {
+    "sequences": {
+        "easy": ["easy_10", "medium_05", "easy_04", "easy_08", "medium_04"],
+        "medium": ["medium_07", "medium_08", "medium_02", "hard_09", "hard_10"],
+        "hard": ["hard_05", "hard_03", "medium_06", "hard_02", "hard_01"],
+    },
+    "working_memory": {
+        "easy": ["medium_01", "easy_07", "easy_08", "easy_09", "easy_10"],
+        "medium": ["medium_08", "medium_04", "hard_04", "medium_03", "medium_02"],
+        "hard": ["hard_06", "medium_09", "hard_08", "hard_03", "medium_10"],
+    },
+    "ravens": {
+        "easy": ["C11", "C4", "C5", "D5", "C2"],
+        "medium": ["C6", "E2", "E5", "E1", "C10"],
+        "hard": ["E10", "E8", "D10", "C3", "E9"],
+    },
+}
+
+
+def fixed_set_id(difficulty: str) -> str:
+    """Set id recorded for a fixed block, kept distinct from the pilot-1 sets."""
+    return f"fixed_{difficulty}"
+
+
 def _build_plan(participant):
     """Construct a stable 45-round plan for one participant.
 
     Returns (period_tasks, period_sets, round_plan). The plan is deterministic
     given the participant code (so refresh/back-navigation is stable).
+
+    Everyone answers the same 15 items per task, in the same three blocks. Only
+    the order of the items within a block, and which period a task falls in,
+    vary across participants.
     """
     rng = random.Random(f"{participant.code}-plan")
 
@@ -956,24 +1060,21 @@ def _build_plan(participant):
     round_plan = {}
     period_sets = []
     for pi, task in enumerate(period_tasks):
-        task_sets = QD.SETS[task]
-        # One randomly-chosen set per difficulty, presented in a fixed difficulty
-        # order. Every task (including working memory) ramps easy -> medium -> hard.
-        diff_order = ("easy", "medium", "hard")
-        chosen_set_ids = []
-        for diff in diff_order:
-            candidates = [s for s in task_sets if s.startswith(diff + "_")]
-            chosen_set_ids.append(rng.choice(candidates))
+        # Fixed difficulty ramp: easy -> medium -> hard, same items for everyone.
+        blocks = FIXED_BLOCKS[task]
+        chosen_set_ids = [fixed_set_id(d) for d in DIFFICULTY_ORDER]
         period_sets.append(chosen_set_ids)
-        for bi, set_id in enumerate(chosen_set_ids):
-            item_ids = list(task_sets[set_id])
+        for bi, diff in enumerate(DIFFICULTY_ORDER):
+            item_ids = list(blocks[diff])
             rng.shuffle(item_ids)
             base = pi * C.PERIOD_LENGTH + bi * 5
             for k, item_id in enumerate(item_ids):
                 rnd = base + k + 1
-                diff = QD.QUESTIONS[task][item_id]["difficulty"]
+                # The block's difficulty, not the item's original label: items
+                # were re-binned by their observed pilot-1 accuracy.
                 round_plan[str(rnd)] = dict(
-                    task=task, item_id=item_id, set_id=set_id, difficulty=diff,
+                    task=task, item_id=item_id,
+                    set_id=fixed_set_id(diff), difficulty=diff,
                 )
     return period_tasks, period_sets, round_plan
 
@@ -998,6 +1099,12 @@ def creating_session(subsession: Subsession):
             asked = random.Random(f"{part.code}-iqref").random() < 0.5
             part.vars['iq_reference_asked'] = asked
             p.iq_reference_asked = asked
+
+            # Randomized (50/50) "like" button treatment, independent of the
+            # cells above: only this subgroup can react to messages they read.
+            part.vars['like_treatment'] = (
+                random.Random(f"{part.code}-like").random() < 0.5
+            )
 
             # Four balanced cells decorrelate the social type (quantitative vs
             # qualitative) from the block order (control-first vs social-first).
@@ -1056,6 +1163,11 @@ def get_condition(player: Player):
 def round_spec(player: Player):
     """The {task,item_id,set_id,difficulty} planned for this round."""
     return player.participant.vars['round_plan'][str(player.round_number)]
+
+
+def like_button_enabled(player: Player) -> bool:
+    """Whether this participant is in the arm that can 'like' messages it reads."""
+    return bool(player.participant.vars.get('like_treatment', False))
 
 
 def component_for_player(player: Player) -> str:
@@ -1454,131 +1566,165 @@ BFI_CORE_FIELDS = [
 # Parallel click-all-that-apply lists (9 substantive + none) for the experience pages.
 # Slots 1-4: own performance (well/poor × positive/withhold); 5-6: peer performance;
 # 7: social consideration; 8: low effort; 9: not affected; 10: none.
-WRITING_MOTIVES = [
-    dict(
-        field='write_well_show',
-        text=(
-            "When I did well, I tended to write positively about my performance because I "
-            "wanted other participants to see that I had done well."
+# Both motive pages group their statements under four situational headers plus a
+# general block. The header supplies the "When I did well" clause, so the
+# statements themselves start from the participant's own behaviour. Header order
+# and item order within a header are both shuffled per participant.
+MOTIVE_HEADINGS = {
+    'own_well': "When I did well",
+    'own_poor': "When I did poorly",
+    'peer_well': "When another participant said they did well",
+    'peer_poor': "When another participant said they did poorly",
+    'general': "In general",
+}
+
+
+def _motive_block(key: str, items: list) -> dict:
+    return dict(key=key, heading=MOTIVE_HEADINGS[key], items=items)
+
+
+WRITING_MOTIVE_BLOCKS = [
+    _motive_block('own_well', [
+        dict(
+            field='write_well_show',
+            text=(
+                "I tended to write positively about my performance because I wanted other "
+                "participants to see that I had done well."
+            ),
         ),
-    ),
-    dict(
-        field='write_well_downplay',
-        text=(
-            "When I did well, I tended to downplay my performance because I did not want to "
-            "seem like I was bragging."
+        dict(
+            field='write_well_downplay',
+            text=(
+                "I tended to downplay my performance because I did not want to seem like I "
+                "was bragging."
+            ),
         ),
-    ),
-    dict(
-        field='write_poor_honest',
-        text="When I did poorly, I tended to be honest about struggling.",
-    ),
-    dict(
-        field='write_poor_exaggerate',
-        text="When I did poorly, I tended to exaggerate how well I did.",
-    ),
-    dict(
-        field='write_peer_well_up',
-        text=(
-            "When another participant said they did well, I was more likely to write "
-            "positively about my own performance."
+    ]),
+    _motive_block('own_poor', [
+        dict(
+            field='write_poor_honest',
+            text="I tended to be honest about struggling.",
         ),
-    ),
-    dict(
-        field='write_peer_well_down',
-        text=(
-            "When another participant said they did well, I was less likely to write "
-            "positively about my own performance."
+        dict(
+            field='write_poor_exaggerate',
+            text="I tended to exaggerate how well I did.",
         ),
-    ),
-    dict(
-        field='write_peer_poor_up',
-        text=(
-            "When another participant said they did poorly, I was more likely to write "
-            "positively about my own performance."
+    ]),
+    _motive_block('peer_well', [
+        dict(
+            field='write_peer_well_up',
+            text="I was more likely to write positively about my own performance.",
         ),
-    ),
-    dict(
-        field='write_peer_poor_down',
-        text=(
-            "When another participant said they did poorly, I was less likely to write "
-            "positively about my own performance."
+        dict(
+            field='write_peer_well_down',
+            text="I was less likely to write positively about my own performance.",
         ),
-    ),
-    dict(
-        field='write_match_tone',
-        text=(
-            "I tried to match the tone or style of messages I had received from other "
-            "participants."
+    ]),
+    _motive_block('peer_poor', [
+        dict(
+            field='write_peer_poor_up',
+            text="I was more likely to write positively about my own performance.",
         ),
-    ),
+        dict(
+            field='write_peer_poor_down',
+            text="I was less likely to write positively about my own performance.",
+        ),
+    ]),
+    _motive_block('general', [
+        dict(
+            field='write_match_tone',
+            text=(
+                "I tried to match the tone or style of messages I had received from other "
+                "participants."
+            ),
+        ),
+        dict(
+            field='write_untruthful',
+            text="I tended not to describe my performance truthfully.",
+        ),
+    ]),
 ]
 
-SHARING_MOTIVES = [
-    dict(
-        field='share_well_positive',
-        text=(
-            "When I did well, I tended to share because I wanted other participants to see "
-            "that I had done well."
+SHARING_MOTIVE_BLOCKS = [
+    _motive_block('own_well', [
+        dict(
+            field='share_well_positive',
+            text=(
+                "I tended to send my message because I wanted other participants to see "
+                "that I had done well."
+            ),
         ),
-    ),
-    dict(
-        field='share_well_withhold',
-        text=(
-            "When I did well, I tended to hold back because I did not want to seem like I "
-            "was bragging."
+        dict(
+            field='share_well_withhold',
+            text=(
+                "I tended not to send my message because I did not want to seem like I was "
+                "bragging."
+            ),
         ),
-    ),
-    dict(
-        field='share_poor_positive',
-        text=(
-            "When I did poorly, I tended to share because I wanted to reassure other "
-            "participants."
+    ]),
+    _motive_block('own_poor', [
+        dict(
+            field='share_poor_positive',
+            text=(
+                "I tended to send my message because I wanted to reassure other "
+                "participants."
+            ),
         ),
-    ),
-    dict(
-        field='share_poor_withhold',
-        text=(
-            "When I did poorly, I tended to hold back because I did not want other "
-            "participants to see that I had done poorly."
+        dict(
+            field='share_poor_withhold',
+            text=(
+                "I tended not to send my message because I did not want other participants "
+                "to see that I had done poorly."
+            ),
         ),
-    ),
-    dict(
-        field='share_peer_well_up',
-        text=(
-            "When another participant said they did well, I was more likely to share my own "
-            "performance."
+    ]),
+    _motive_block('peer_well', [
+        dict(
+            field='share_peer_well_up',
+            text="I was more likely to send my own message.",
         ),
-    ),
-    dict(
-        field='share_peer_well_down',
-        text=(
-            "When another participant said they did well, I was less likely to share my own "
-            "performance."
+        dict(
+            field='share_peer_well_down',
+            text="I was less likely to send my own message.",
         ),
-    ),
-    dict(
-        field='share_peer_poor_up',
-        text=(
-            "When another participant said they did poorly, I was more likely to share my "
-            "own performance."
+    ]),
+    _motive_block('peer_poor', [
+        dict(
+            field='share_peer_poor_up',
+            text="I was more likely to send my own message.",
         ),
-    ),
-    dict(
-        field='share_peer_poor_down',
-        text=(
-            "When another participant said they did poorly, I was less likely to share my "
-            "own performance."
+        dict(
+            field='share_peer_poor_down',
+            text="I was less likely to send my own message.",
         ),
-    ),
-    dict(
-        field='share_helpful',
-        text=(
-            "I tended to share when I thought my message would be helpful or relatable to "
-            "other participants."
+    ]),
+    _motive_block('general', [
+        dict(
+            field='share_helpful',
+            text=(
+                "I tended to send my message when I thought it would be helpful or "
+                "relatable to other participants."
+            ),
         ),
-    ),
+        dict(
+            field='share_enjoy',
+            text=(
+                "I enjoyed sending my messages for their own sake, whether or not anyone "
+                "responded to them."
+            ),
+        ),
+        dict(
+            field='share_uncomfortable',
+            text=(
+                "I was not comfortable sending other participants messages about my "
+                "performance."
+            ),
+        ),
+    ]),
 ]
+
+WRITING_MOTIVES = [m for b in WRITING_MOTIVE_BLOCKS for m in b['items']]
+SHARING_MOTIVES = [m for b in SHARING_MOTIVE_BLOCKS for m in b['items']]
 
 # Receiving / sending x mood / satisfaction / effort (6 items).
 # The two activity blocks are shuffled per participant on the impacts page.
@@ -1619,11 +1765,21 @@ MESSAGE_IMPACTS = (
     + MESSAGE_IMPACT_SEND_BLOCK['items']
 )
 
+# Fixed page order: what they wrote, then whether they sent it, then how the
+# messages affected them.
 EXPERIENCE_PAGE_KEYS = ('writing', 'sharing', 'impacts')
 EXPERIENCE_PAGE_META = {
-    'writing': dict(motives=WRITING_MOTIVES),
-    'sharing': dict(motives=SHARING_MOTIVES),
-    'impacts': dict(motives=MESSAGE_IMPACTS),
+    'writing': dict(
+        motives=WRITING_MOTIVES,
+        blocks=WRITING_MOTIVE_BLOCKS,
+        intro="Now we\u2019ll ask you about the content of the messages you wrote.",
+    ),
+    'sharing': dict(
+        motives=SHARING_MOTIVES,
+        blocks=SHARING_MOTIVE_BLOCKS,
+        intro="Now we\u2019ll ask you about your decision to send or not send.",
+    ),
+    'impacts': dict(motives=MESSAGE_IMPACTS, blocks=None, intro=None),
 }
 
 IQ_REPORT_MIN = 60
@@ -1901,6 +2057,7 @@ class IQReferencePoint(Page):
             period_components=period_components,
             flat_payment=FLAT_PAYMENT_DISPLAY,
             iq_scale=IQ_SCALE_CUTOFFS,
+            comparison_group=IQ_COMPARISON_GROUP,
         )
 
     @staticmethod
@@ -1928,6 +2085,7 @@ class Intro(Page):
             show_iq=CFG['show_iq'],
             has_optional_third=CFG['use_wta'],
             receives_messages=CFG['received_message_source'] is not None,
+            like_treatment=like_button_enabled(player),
             total_questions=2 * C.PERIOD_LENGTH if CFG['use_wta'] else 3 * C.PERIOD_LENGTH,
             period_components=period_components,
             flat_payment=FLAT_PAYMENT_DISPLAY,
@@ -2153,6 +2311,7 @@ class BlockFeedback(Page):
         'report_shared',
         'report_edit_back_count',
         'report_compose_history',
+        'received_like',
     ]
 
     @staticmethod
@@ -2175,6 +2334,7 @@ class BlockFeedback(Page):
         signal = pilot_feedback_signals(player)
         signal_name = (signal.get('name') or '') if isinstance(signal, dict) else ''
         signal_initial = signal_name[:1].upper() if signal_name else '?'
+        player.like_treatment = like_button_enabled(player)
         return dict(
             condition=cond,
             block_score=block_correct(player),
@@ -2187,6 +2347,12 @@ class BlockFeedback(Page):
             is_quantitative=cond == 'quantitative_social',
             is_qualitative=cond == 'qualitative_social',
             has_received_message=isinstance(signal, dict) and signal.get('type') in ('quantitative', 'qualitative'),
+            show_like_button=(
+                isinstance(signal, dict)
+                and signal.get('type') in ('quantitative', 'qualitative')
+                and like_button_enabled(player)
+            ),
+            liked=bool(player.field_maybe_none('received_like')),
             task_construct=TASK_CONSTRUCT.get(task, "task"),
             iq_component_title=task_iq_title(task),
             # Read-only backdrop: re-render the question they just completed so
@@ -2303,6 +2469,7 @@ class IQFeedback(Page):
         'iq_report_shared',
         'iq_report_edit_back_count',
         'iq_report_compose_history',
+        'received_like',
     ]
 
     @staticmethod
@@ -2322,12 +2489,13 @@ class IQFeedback(Page):
         component = component_for_player(player)
         label = iq_component_label(component)
         n_correct = period_correct(player)
-        iq = estimate_iq(component, n_correct, C.PERIOD_LENGTH)
+        iq = estimate_iq_for_player(player, component, n_correct, C.PERIOD_LENGTH)
         player.iq_estimate = iq
 
         signal = pilot_iq_feedback_signal(player)
         signal_name = (signal.get('name') or '') if isinstance(signal, dict) else ''
         signal_initial = signal_name[:1].upper() if signal_name else '?'
+        player.like_treatment = like_button_enabled(player)
         return dict(
             condition=cond,
             component=component,
@@ -2342,6 +2510,12 @@ class IQFeedback(Page):
             is_quantitative=cond == 'quantitative_social',
             is_qualitative=cond == 'qualitative_social',
             has_received_message=isinstance(signal, dict) and signal.get('type') in ('quantitative', 'qualitative'),
+            show_like_button=(
+                isinstance(signal, dict)
+                and signal.get('type') in ('quantitative', 'qualitative')
+                and like_button_enabled(player)
+            ),
+            liked=bool(player.field_maybe_none('received_like')),
             task_construct=TASK_CONSTRUCT.get(task, "task"),
             iq_component_title=task_iq_title(task),
             # Read-only backdrop: re-render the just-completed question.
@@ -2391,7 +2565,7 @@ class IQFeedback(Page):
         n_correct = period_correct(player)
         iq = player.field_maybe_none('iq_estimate')
         if iq is None:
-            iq = estimate_iq(component, n_correct, C.PERIOD_LENGTH)
+            iq = estimate_iq_for_player(player, component, n_correct, C.PERIOD_LENGTH)
             player.iq_estimate = iq
 
         cond = get_condition(player)
@@ -2482,6 +2656,8 @@ class GlobalIQFeedback(Page):
             is_quantitative=cond == 'quantitative_social',
             is_qualitative=cond == 'qualitative_social',
             has_received_message=False,
+            show_like_button=False,
+            liked=False,
             task_construct='IQ',
             iq_component_title='Overall IQ',
             # Backdrop fields unused when we hide the question card; keep keys.
@@ -2907,23 +3083,25 @@ class WTACompare(Page):
                 ))
             return rs
 
+        # The description is split so the template can highlight the
+        # able-to / not-able-to contrast, which is the only thing that
+        # distinguishes the two blocks.
         with_msg_block = dict(
             kind="with_messages",
             heading="With messages",
-            description=(
-                "In this scenario, you are able to interact with other "
-                "participants. You learn both about your performance and "
-                "about theirs'."
+            description_lead="In this scenario, you are ",
+            description_em="able to interact with other participants",
+            description_tail=(
+                ". You learn both about your performance and about theirs."
             ),
             rows=make_rows("t"),
         )
         without_msg_block = dict(
             kind="without_messages",
             heading="Without messages",
-            description=(
-                "In this scenario, you are not able to interact with other "
-                "participants. You learn only about your own performance."
-            ),
+            description_lead="In this scenario, you are ",
+            description_em="not able to interact with other participants",
+            description_tail=". You learn only about your own performance.",
             rows=make_rows("c"),
         )
 
@@ -3008,15 +3186,6 @@ class RealismQuestion(Page):
                 )
 
 
-def _checklist_vars(player: Player, motives: list, shuffle_key: str | None) -> list:
-    items = [dict(m) for m in motives]
-    if shuffle_key:
-        items = _stable_shuffled(player, shuffle_key, items)
-    for m in items:
-        _annotate_scale_state(player, m)
-    return items
-
-
 def _annotate_scale_state(player: Player, item: dict) -> None:
     """Attach the five scale points, flagging the stored one so it re-displays."""
     value = player.field_maybe_none(item['field'])
@@ -3027,13 +3196,8 @@ def _annotate_scale_state(player: Player, item: dict) -> None:
 
 
 def experience_page_order(participant) -> list[str]:
-    key = 'experience_page_order'
-    if key not in participant.vars:
-        rng = random.Random(f"{participant.code}-exp-pages")
-        order = list(EXPERIENCE_PAGE_KEYS)
-        rng.shuffle(order)
-        participant.vars[key] = order
-    return participant.vars[key]
+    """Fixed: writing, then sending, then how messages affected the participant."""
+    return list(EXPERIENCE_PAGE_KEYS)
 
 
 def _impact_item_order(player: Player) -> list[str]:
@@ -3068,10 +3232,27 @@ def _impact_blocks_for_player(player: Player) -> list:
     return out
 
 
+def _headed_blocks_for_player(player: Player, page_key: str) -> list:
+    """Shuffle the situational headers, and the statements under each header."""
+    blocks = EXPERIENCE_PAGE_META[page_key]['blocks']
+    return _stable_shuffled(player, f'{page_key}-headers', list(blocks))
+
+
+def _headed_items_for_player(player: Player, page_key: str, block: dict) -> list:
+    return _stable_shuffled(
+        player, f"{page_key}-items-{block['key']}", list(block['items'])
+    )
+
+
 def _motives_for_experience_page(player: Player, page_key: str) -> list:
+    """Flat list of the page's motives in the order the participant sees them."""
     if page_key == 'impacts':
         return _impact_motives_for_player(player)
-    return EXPERIENCE_PAGE_META[page_key]['motives']
+    return [
+        dict(m)
+        for block in _headed_blocks_for_player(player, page_key)
+        for m in _headed_items_for_player(player, page_key, block)
+    ]
 
 
 def _experience_form_fields(player: Player, slot: int) -> list[str]:
@@ -3101,18 +3282,23 @@ def _make_experience_slot(slot: int):
                 scale_labels=LIKERT_AGREE_LABELS,
                 field_names=_experience_form_fields(player, slot),
                 storage_key=f'experience_{page_key}',
+                page_intro=meta['intro'],
+                motives=[],
             )
             if page_key == 'impacts':
                 return dict(
                     motive_blocks=_impact_blocks_for_player(player),
-                    motives=[],
                     **common,
                 )
-            return dict(
-                motives=_checklist_vars(player, meta['motives'], f'experience-{page_key}'),
-                motive_blocks=[],
-                **common,
-            )
+            blocks = []
+            for block in _headed_blocks_for_player(player, page_key):
+                items = []
+                for m in _headed_items_for_player(player, page_key, block):
+                    item = dict(m)
+                    _annotate_scale_state(player, item)
+                    items.append(item)
+                blocks.append(dict(heading=block['heading'], choices=items))
+            return dict(motive_blocks=blocks, **common)
 
     ExperienceChecklist.__name__ = f'ExperienceChecklist{slot + 1}'
     ExperienceChecklist.__qualname__ = ExperienceChecklist.__name__
