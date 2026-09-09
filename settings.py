@@ -18,6 +18,15 @@ SESSION_CONFIGS = [
     ),
 ]
 
+# A room gives one durable URL that several people can open at once, each
+# getting their own slot. Used for sharing preview links with co-authors.
+ROOMS = [
+    dict(
+        name='preview',
+        display_name='Preview (co-authors)',
+    ),
+]
+
 SESSION_CONFIG_DEFAULTS = dict(
     real_world_currency_per_point=1.00,
     participation_fee=0.00,
