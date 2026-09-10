@@ -371,10 +371,10 @@ def estimate_iq(component: str, score: int, max_score: int) -> int:
 # it identifies the causal effect of a higher or lower reported IQ.
 #
 # Simulated against the pilot-1 score distributions, a group of 25 gives a noise
-# SD of about 4 IQ points, with 97.5% of draws inside +/- 10; IQ_NOISE_CAP holds
-# the rest to the same bound so nobody sees an implausible number.
+# SD of about 4 IQ points, with 97.5% of draws inside +/- 10. The offset is not
+# capped: the tails are thin enough on their own, and clipping them would pile
+# up mass at the bound.
 IQ_COMPARISON_GROUP = 25
-IQ_NOISE_CAP = 10
 
 
 def iq_reference_scores():
@@ -412,7 +412,7 @@ def iq_noise_offset(player, component: str, score: int) -> int:
     rng = random.Random(f"{player.participant.code}-iqnoise-{component}")
     group = [sample[rng.randrange(len(sample))] for _ in range(IQ_COMPARISON_GROUP)]
     offset = _percentile_iq(group, score) - _percentile_iq(sample, score)
-    return int(round(max(-IQ_NOISE_CAP, min(IQ_NOISE_CAP, offset))))
+    return int(offset + 0.5) if offset >= 0 else -int(-offset + 0.5)
 
 
 def estimate_iq_for_player(player, component: str, score: int,
@@ -1439,7 +1439,9 @@ def global_iq_for_player(player: Player) -> int:
             max_q += C.PERIOD_LENGTH
             n += sum(1 for p in player.in_rounds(start, end) if p.field_maybe_none('q_correct'))
         return estimate_iq('overall', n, max_q or C.PERIOD_LENGTH)
-    return int(round(sum(iqs) / len(iqs)))
+    # Round halves up. Python's round() is half-to-even, which made an average
+    # of e.g. 103 and 110 display as 106 rather than 107.
+    return int(sum(iqs) / len(iqs) + 0.5)
 
 
 def experienced_conditions(player: Player):
@@ -1782,7 +1784,10 @@ EXPERIENCE_PAGE_META = {
     'sharing': dict(
         motives=SHARING_MOTIVES,
         blocks=SHARING_MOTIVE_BLOCKS,
-        intro="Now we\u2019ll ask you about your decision to send or not send.",
+        intro=(
+            "Now we\u2019ll ask you about your decision to send or not to send "
+            "your message."
+        ),
     ),
     'impacts': dict(motives=MESSAGE_IMPACTS, blocks=None, intro=None),
 }
