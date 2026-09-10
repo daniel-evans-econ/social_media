@@ -12,7 +12,7 @@ IQ readout are exercised) and fills in all surveys.
 from otree.api import Bot, Submission
 
 from . import (
-    C, CFG, QD, WTA_AMOUNTS, QUAL_EMOJIS, BFI_CORE_FIELDS, ENABLE_TURNSTILE,
+    C, CFG, QD, WTA_AMOUNTS, QUAL_EMOJIS, BFI_CORE_FIELDS,
     round_spec, get_condition, experienced_conditions,
     is_feedback_round, is_third_period, third_period_played,
     is_end_of_period_with_p3,
@@ -41,11 +41,10 @@ class PlayerBot(Bot):
         p = self.player
 
         if self.round_number == 1:
-            if ENABLE_TURNSTILE:
-                yield Submission(BotCheck, dict(
-                    turnstile_token='', turnstile_bypass_key='',
-                    turnstile_client_host='localhost',
-                ), check_html=False)
+            yield Submission(BotCheck, dict(
+                turnstile_token='', turnstile_bypass_key='',
+                turnstile_client_host='localhost',
+            ), check_html=False)
             yield Submission(Consent, dict(
                 consent=True, llm_rule_confirm=True, honeypot_intro_response='',
             ), check_html=False)

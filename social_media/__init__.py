@@ -1961,11 +1961,10 @@ class Demographics(Page):
 
 
 class BotCheck(Page):
-    """Cloudflare Turnstile bot check (round 1 only).
+    """Welcome screen, carrying the Cloudflare Turnstile widget when it is on.
 
-    Skipped entirely when the gate is off: without the verification widget the
-    page has nothing on it, so participants would just see a bare welcome
-    screen. The honeypot lives on Consent so it survives either way.
+    Always shown: with the gate off it is still the study's welcome page. The
+    honeypot lives on Consent so it runs either way.
     """
     form_model = 'player'
     form_fields = ['turnstile_token', 'turnstile_bypass_key',
@@ -1973,7 +1972,7 @@ class BotCheck(Page):
 
     @staticmethod
     def is_displayed(player: Player):
-        return ENABLE_TURNSTILE and player.round_number == 1
+        return player.round_number == 1
 
     @staticmethod
     def vars_for_template(player: Player):

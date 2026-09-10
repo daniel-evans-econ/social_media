@@ -23,9 +23,11 @@ Thank you for joining.
 <br><br>
 Continue to the next page to give your consent.
 </p>
+{% if enable_turnstile %}
 <p>
     You may have to complete the verification box below before continuing.
 </p>
+{% endif %}
 <br>
 
 {% if enable_turnstile %}
