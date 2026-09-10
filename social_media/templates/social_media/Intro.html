@@ -15,17 +15,24 @@
     You will also have the opportunity to
     <strong style="color:darkred;">send messages to other participants</strong>.
     We <strong style="color:darkred;">do not verify the truthfulness</strong> of the messages
-    you receive or send. Some participants may choose not to send a message.
-    {% if like_treatment %}You can also
-    <strong style="color:darkred;">&#128077; like</strong> any message you receive.{% endif %}{% else %}In some
+    you receive or send. Some participants may choose not to send a message.{% else %}In some
     periods, you will have the opportunity to
     <strong style="color:darkred;">send messages to other participants</strong>
     about how you did on the main task.
     We <strong style="color:darkred;">do not verify the truthfulness</strong> of the messages
     you send.{% endif %}
 </p>
+{% if receives_messages and like_treatment %}
 <p style="margin-top:1em;">
-    What <strong style="color:darkred;">username</strong> do you want to use when sending messages to others?
+    You can also <strong style="color:darkred;">&#128077; like</strong> any message you receive.
+    We will share the messages you send with other participants and
+    <strong style="color:darkred;">follow up with you to tell you how many likes your messages
+    received</strong>.
+</p>
+{% endif %}
+<p style="margin-top:1em;">
+    What <strong style="color:darkred;">username</strong> do you want to use when sending messages
+    to other participants?
 </p>
 <input type="text" name="display_name" id="id_display_name" maxlength="60" autocomplete="nickname"
        style="width:100%; max-width:420px; padding:10px; font-size:1em;

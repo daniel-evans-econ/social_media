@@ -1723,7 +1723,7 @@ SHARING_MOTIVE_BLOCKS = [
         dict(
             field='share_uncomfortable',
             text=(
-                "I was not comfortable sending other participants messages about my "
+                "I was not comfortable sending messages to other participants about my "
                 "performance."
             ),
         ),
