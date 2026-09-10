@@ -587,6 +587,11 @@ class C(BaseConstants):
     # Active pilot mode, exposed for templates (e.g. the diagnostic bar).
     PILOT = PILOT
 
+    # The hidden "automated agents should stop" notice on every page rides on
+    # the same switch as the Turnstile gate: when we deliberately open the study
+    # to LLM testers, the notice would tell them to abort.
+    SHOW_AGENT_WARNING = ENABLE_TURNSTILE
+
     PERIOD_LENGTH = 15
     # Feedback is shown after every 5-question block (3 blocks per 15-question period).
     FEEDBACK_ROUNDS = [5, 10, 15, 20, 25, 30, 35, 40, 45]
@@ -1985,6 +1990,11 @@ class BotCheck(Page):
 
     @staticmethod
     def error_message(player: Player, values):
+        # With the gate off there is no widget and no token to verify, so the
+        # page is just the welcome screen and anything submitted is fine.
+        if not ENABLE_TURNSTILE:
+            return
+
         host = (values.get('turnstile_client_host') or '').strip().lower()
         is_localhost = host in ('localhost', '127.0.0.1', '::1')
         if is_localhost and TURNSTILE_ALLOW_AUTO_BYPASS_ON_LOCALHOST:
