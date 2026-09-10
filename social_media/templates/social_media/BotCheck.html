@@ -23,11 +23,9 @@ Thank you for joining.
 <br><br>
 Continue to the next page to give your consent.
 </p>
-{% if enable_turnstile %}
 <p>
     You may have to complete the verification box below before continuing.
 </p>
-{% endif %}
 <br>
 
 {% if enable_turnstile %}
@@ -136,11 +134,6 @@ Continue to the next page to give your consent.
   <input type="hidden" name="turnstile_bypass_key" value="" />
   <input type="hidden" name="turnstile_client_host" value="" />
 {% endif %}
-
-<div style="position:absolute; left:-10000px; top:auto; width:1px; height:1px; overflow:hidden;" aria-hidden="true">
-  <label for="id_honeypot_intro_response">Please enter your Prolific ID here</label>
-  {{ formfield 'honeypot_intro_response' label="" }}
-</div>
 
 {{ next_button }}
 {% endblock %}

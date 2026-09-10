@@ -1501,7 +1501,10 @@ def _period_index_and_qnum(round_number: int):
 
 class Consent(Page):
     form_model = 'player'
-    form_fields = ['consent', 'llm_rule_confirm']
+    # The invisible honeypot rides along here rather than on BotCheck, so it
+    # still runs on deployments where the Turnstile gate (and with it the
+    # BotCheck page) is switched off.
+    form_fields = ['consent', 'llm_rule_confirm', 'honeypot_intro_response']
 
     @staticmethod
     def is_displayed(player: Player):
@@ -1509,6 +1512,8 @@ class Consent(Page):
 
     @staticmethod
     def error_message(player: Player, values):
+        if str(values.get('honeypot_intro_response') or '').strip():
+            player.honeypot_intro_triggered = True
         if not values.get('consent') or not values.get('llm_rule_confirm'):
             return "You must agree to all conditions and consent to continue."
 
@@ -1951,14 +1956,19 @@ class Demographics(Page):
 
 
 class BotCheck(Page):
-    """Cloudflare Turnstile + invisible honeypot bot check (round 1 only)."""
+    """Cloudflare Turnstile bot check (round 1 only).
+
+    Skipped entirely when the gate is off: without the verification widget the
+    page has nothing on it, so participants would just see a bare welcome
+    screen. The honeypot lives on Consent so it survives either way.
+    """
     form_model = 'player'
     form_fields = ['turnstile_token', 'turnstile_bypass_key',
-                   'turnstile_client_host', 'honeypot_intro_response']
+                   'turnstile_client_host']
 
     @staticmethod
     def is_displayed(player: Player):
-        return player.round_number == 1
+        return ENABLE_TURNSTILE and player.round_number == 1
 
     @staticmethod
     def vars_for_template(player: Player):
@@ -1971,13 +1981,6 @@ class BotCheck(Page):
 
     @staticmethod
     def error_message(player: Player, values):
-        honeypot_raw = values.get('honeypot_intro_response') or ''
-        honeypot_triggered = bool(str(honeypot_raw).strip())
-        player.honeypot_intro_triggered = honeypot_triggered
-
-        if not ENABLE_TURNSTILE:
-            return
-
         host = (values.get('turnstile_client_host') or '').strip().lower()
         is_localhost = host in ('localhost', '127.0.0.1', '::1')
         if is_localhost and TURNSTILE_ALLOW_AUTO_BYPASS_ON_LOCALHOST:

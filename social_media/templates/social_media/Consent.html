@@ -114,6 +114,11 @@
     </label>
 </div>
 
+<div style="position:absolute; left:-10000px; top:auto; width:1px; height:1px; overflow:hidden;" aria-hidden="true">
+  <label for="id_honeypot_intro_response">Please enter your Prolific ID here</label>
+  {{ formfield 'honeypot_intro_response' label="" }}
+</div>
+
 {{ next_button }}
 
 <script>
