@@ -8,6 +8,7 @@ from statistics import NormalDist
 import ast
 import csv
 import hashlib
+import io
 import json
 import math
 import zipfile
@@ -31,6 +32,14 @@ TASKS = [("working_memory", "Working memory", 8),
 MODES = ["with_replacement", "without_replacement"]
 COLORS = ["#2563A6", "#B25F29"]
 NORMAL = NormalDist()
+
+
+def save_png(fig, path, dpi):
+    # Render in memory so Pillow does not reopen an existing previewed PNG in
+    # read/write mode on Windows.
+    buffer = io.BytesIO()
+    fig.savefig(buffer, format='png', dpi=dpi)
+    path.write_bytes(buffer.getvalue())
 
 
 def load_survey_helper():
@@ -84,13 +93,16 @@ def panel(ax, task, n, mode, result, ymax, compact=False):
     ax.grid(axis="y", color="#E2E8F0", linewidth=.7)
     ax.set_axisbelow(True)
     if compact:
-        title = f"n={n}  |  SD {s['sd']:.2f}  |  95%: {s['p025']}–{s['p975']}"
+        actual = min(n, task['pool_n']) if mode == 'without_replacement' else n
+        nlabel = f"n={n}" if actual == n else f"n={n} (use {actual})"
+        title = f"{nlabel} | SD {s['sd']:.2f} | 95%: {s['p025']}–{s['p975']}"
         ax.set_title(title, loc="left", fontsize=10)
     else:
         title = f"{task['label']} · {mode.replace('_', ' ')}"
         ax.set_title(title, loc="left", fontsize=12, fontweight="bold", pad=12)
+        note = f"\nUses all {task['pool_n']} available people" if mode == 'without_replacement' and n > task['pool_n'] else ''
         ax.text(.97, .94, f"Baseline {task['baseline_iq']} · pilot N={task['pool_n']}\n"
-                f"Mean {s['mean']:.2f} · SD {s['sd']:.2f}\n95%: {s['p025']}–{s['p975']}",
+                f"Mean {s['mean']:.2f} · SD {s['sd']:.2f}\n95%: {s['p025']}–{s['p975']}{note}",
                 transform=ax.transAxes, ha="right", va="top", fontsize=10)
 
 
@@ -113,49 +125,58 @@ def main():
                     above=int(categories[2]), full_pool_percentile=100*(categories[0]+.5*categories[1])/len(sample),
                     full_pool_percentile_iq=full_iq)
         tasks.append(task)
-        # n>N is excluded for both methods: the deployed helper returns zero
-        # noise in that case, before performing any sampling.
-        sizes = [n for n in SIZES if n <= len(sample)]
+        # Analysis extension requested by the user: replacement permits n>N;
+        # without replacement uses all available people when n>N. The live
+        # survey's n>N zero-noise safeguard is deliberately not applied here.
+        # Include an exact full-pool point in the summary curve so it reaches
+        # zero at N (e.g. 82), rather than drawing a sloping line through n>N.
+        sizes = sorted(set(SIZES + ([len(sample)] if len(sample) < max(SIZES) else [])))
         for n in sizes:
-            iqmap = mapping(n, baseline, full_iq)
-            assert iqmap.min() >= 50 and iqmap.max() <= 150
-            # Every possible mid-P value must agree with the actual survey helper.
-            for k, iq in enumerate(iqmap):
-                below, equal = divmod(k, 2)
-                group = [score-1]*below + [score]*equal + [score+1]*(n-below-equal)
-                assert iq == baseline + away(helper(group, score) - full_iq)
             for mi, mode in enumerate(MODES):
+                effective_n = n if mode == 'with_replacement' else min(n, len(sample))
+                iqmap = mapping(effective_n, baseline, full_iq)
+                assert iqmap.min() >= 50 and iqmap.max() <= 150
+                # Every attainable mid-P value must match the survey helper.
+                for k, iq in enumerate(iqmap):
+                    below, equal = divmod(k, 2)
+                    group = [score-1]*below + [score]*equal + [score+1]*(effective_n-below-equal)
+                    assert iq == baseline + away(helper(group, score) - full_iq)
                 rng = np.random.default_rng(np.random.SeedSequence([SEED, ti, n, mi]))
                 if mode == "with_replacement":
-                    draws = rng.multinomial(n, categories / len(sample), size=DRAWS)
+                    draws = rng.multinomial(effective_n, categories / len(sample), size=DRAWS)
                 else:
-                    draws = rng.multivariate_hypergeometric(categories, n, size=DRAWS)
+                    draws = rng.multivariate_hypergeometric(categories, effective_n, size=DRAWS)
                 empirical = np.bincount(iqmap[2*draws[:, 0]+draws[:, 1]] - SCORES[0],
                                         minlength=len(SCORES)) / DRAWS
-                exact = exact_distribution(n, categories, iqmap, mode)
+                exact = exact_distribution(effective_n, categories, iqmap, mode)
                 assert np.isclose(exact.sum(), 1, atol=1e-10)
                 cdf_error = float(np.max(np.abs(np.cumsum(empirical)-np.cumsum(exact))))
                 assert cdf_error < .003
-                if n == len(sample) and mode == "without_replacement":
+                if effective_n == len(sample) and mode == "without_replacement":
                     assert np.isclose(exact[SCORES == baseline][0], 1)
+                    assert empirical[SCORES == baseline][0] == 1
+                if n > len(sample) and mode == "with_replacement":
+                    assert stats(exact, baseline)['sd'] > 0
                 results[component, n, mode] = empirical, exact
-                summary.append(dict(**task, group_size=n, sampling=mode, simulated_draws=DRAWS,
+                summary.append(dict(**task, group_size=n, effective_group_size=effective_n,
+                                    sampling=mode, simulated_draws=DRAWS,
                                     **{f"exact_{k}":v for k,v in stats(exact, baseline).items()},
                                     **{f"empirical_{k}":v for k,v in stats(empirical, baseline).items()},
                                     maximum_empirical_cdf_error=cdf_error))
                 for iq, ep, xp in zip(SCORES, empirical, exact):
                     distributions.append(dict(component=component, baseline_iq=baseline, group_size=n,
+                                              effective_group_size=effective_n,
                                               sampling=mode, reported_iq=int(iq),
                                               empirical_probability=float(ep), exact_probability=float(xp)))
         print(f"Completed simulations: {label} (N={len(sample)}, baseline={baseline})", flush=True)
 
     for n in SIZES:
-        eligible = [t for t in tasks if n <= t["pool_n"]]
+        eligible = tasks
         rows = len(eligible)
         fig, axes = plt.subplots(rows, 2, figsize=(12, 3.6*rows+2.5), squeeze=False)
-        fig.subplots_adjust(left=.075, right=.975, bottom=1.5/(3.6*rows+2.5),
+        fig.subplots_adjust(left=.075, right=.975, bottom=1.9/(3.6*rows+2.5),
                             top=1-1.3/(3.6*rows+2.5), hspace=.5, wspace=.17)
-        fig.suptitle(f"Actual pilot data: feedback from {n} comparison draws", x=.075, y=.975,
+        fig.suptitle(f"Actual pilot data: target comparison-group size {n}", x=.075, y=.975,
                      ha="left", fontsize=19, fontweight="bold")
         fig.text(.075, 1-.85/(3.6*rows+2.5),
                  "Working memory: IQ 100 · Abstract and numerical reasoning: nearest available baseline IQ 101",
@@ -163,20 +184,22 @@ def main():
         for axs, task in zip(axes, eligible):
             ymax = max(results[task['component'], n, m][0].max() for m in MODES)*125
             for ax, mode in zip(axs, MODES):
-                panel(ax, task, n, mode, results[task['component'], n, mode], ymax)
-        missing = [t['label'] for t in tasks if n > t['pool_n']]
+                # Keep a nondegenerate distribution readable next to a point mass.
+                panel_ymax = 105 if mode == 'without_replacement' and n >= task['pool_n'] else (
+                    results[task['component'], n, mode][0].max()*125 if n >= task['pool_n'] else ymax)
+                panel(ax, task, n, mode, results[task['component'], n, mode], panel_ymax)
         footer = ("Source: actual pilot reference scores used by the IQ pilot (iq_scores_initial.json); 1,000,000 resamples per panel.\n"
                   "Preserves ties, task-specific pool sizes, full-pool correction and survey integer rounding. Dashed line: baseline IQ.\n"
-                  "Bars: empirical simulation frequencies. Mean, SD and equal-tail 95% intervals: exact probabilities.")
-        if missing:
-            footer += "\nExcluded because n exceeds the actual pool: " + ", ".join(missing) + "."
+                  "Bars: simulation frequencies; exact summary statistics. Point-mass panels have a separate y-axis scale.\n"
+                  "Without replacement uses min(target size, pool size). With replacement always uses the target number of draws.\n"
+                  "Analysis extension: unlike these plots, the live survey disables noise when the target exceeds the pool size.")
         fig.text(.075, .03, footer, fontsize=9, color="#475569", linespacing=1.6)
-        fig.savefig(OUT / f"pilot_n{n:03d}.png", dpi=170)
+        save_png(fig, OUT / f"pilot_n{n:03d}.png", dpi=170)
         plt.close(fig)
 
     for task in tasks:
         component = task['component']
-        sizes = [n for n in SIZES if n <= task['pool_n']]
+        sizes = SIZES
         for mode in MODES:
             fig, axes = plt.subplots(4, 3, figsize=(14, 15))
             fig.subplots_adjust(left=.075, right=.975, bottom=.14, top=.88, hspace=.64, wspace=.3)
@@ -186,19 +209,20 @@ def main():
                      f"{mode.replace('_', ' ')}", fontsize=14)
             fig.text(.075, .905, f"Pilot respondents: {task['below']} below, {task['equal']} tied, "
                      f"{task['above']} above the focal score", fontsize=11)
-            nondeg = [n for n in sizes if not (n == task['pool_n'] and mode == 'without_replacement')]
+            nondeg = [n for n in sizes if not (n >= task['pool_n'] and mode == 'without_replacement')]
             common_y = math.ceil(max(results[component,n,mode][0].max() for n in nondeg)*115/5)*5
             for ax, n in zip(axes.flat, sizes):
-                ymax = 105 if n == task['pool_n'] and mode == 'without_replacement' else common_y
+                ymax = 105 if n >= task['pool_n'] and mode == 'without_replacement' else common_y
                 panel(ax, task, n, mode, results[component,n,mode], ymax, compact=True)
             for ax in list(axes.flat)[len(sizes):]:
                 fig.delaxes(ax)
             fig.text(.075, .035,
                      "Source: deployed pilot reference scores, iq_scores_initial.json. 1,000,000 resamples per panel; ties retained.\n"
                      "Survey mid-P transform, full-pool correction and integer rounding. Dashed lines: baseline IQ; exact SD and 95% intervals.\n"
-                     "Common axes except sampling the entire pool without replacement. Sizes exceeding the pilot pool are excluded.",
+                     "Without replacement: use the whole pool if target n exceeds it; point-mass panels use a separate y-axis scale.\n"
+                     "With replacement: n draws at every size. Analysis extension; the live survey disables noise when n exceeds the pool.",
                      fontsize=10, color="#475569", linespacing=1.6)
-            fig.savefig(OUT / f"{component}_{mode}.png", dpi=170)
+            save_png(fig, OUT / f"{component}_{mode}.png", dpi=170)
             plt.close(fig)
 
     fig, axes = plt.subplots(1, 3, figsize=(14, 5.8), sharey=True)
@@ -211,16 +235,17 @@ def main():
             ax.plot([r['group_size'] for r in rows], [r['exact_sd'] for r in rows],
                     color=color, marker='o', label=mode.replace('_',' ').capitalize())
         ax.set_title(f"{task['label']}\nBaseline IQ {task['baseline_iq']} · pilot N={task['pool_n']}", fontsize=12)
-        ax.set(xlabel="Comparison-group size (draws)", ylim=(0, 5.5))
+        ax.set(xlabel="Target comparison-group size", xlim=(10,105), ylim=(0, 5.5))
         ax.grid(color="#E2E8F0")
         ax.spines[["top", "right"]].set_visible(False)
     axes[0].set_ylabel("Feedback SD (IQ points)")
     handles, labels = axes[0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(.5,.125), ncol=2, frameon=False)
     fig.text(.07, .035, "Source: actual pilot pools; exact sampling probabilities, checked against 1,000,000 simulations per setting.\n"
-             "Task-specific ties and survey calculation retained. Sizes above the actual reference-pool size are excluded.",
+             "Without replacement uses the whole pool if the target exceeds it; with replacement always draws the target number.\n"
+             "Analysis extension: the live survey instead disables noise when the target exceeds the pool size.",
              fontsize=10, color="#475569", linespacing=1.6)
-    fig.savefig(OUT / "pilot_noise_by_group_size.png", dpi=180)
+    save_png(fig, OUT / "pilot_noise_by_group_size.png", dpi=180)
     plt.close(fig)
 
     for filename, rows in [("summary.csv",summary), ("distributions.csv",distributions), ("reference_profiles.csv",tasks)]:
@@ -255,12 +280,21 @@ def main():
         "from their multinomial or multivariate hypergeometric distribution are exactly equivalent to "
         "resampling individual records from the actual pilot pool for this feedback calculation. All ties "
         "and observed frequencies are retained. The observations are not forced into a 100-person pool. "
-        "Sizes above a task's actual pool are excluded for both methods: the survey currently returns zero "
-        "noise rather than sampling when its requested group size exceeds the pool.\n\n"
+        "All target sizes are shown for all tasks, including 100. With replacement, exactly the target number "
+        "of draws is used, even if there are fewer reference people. Without replacement, the effective size "
+        "is min(target size, pool size); this is an explicit whole-pool convention, not a draw of 100 distinct "
+        "people from a smaller pool. The CSVs include both target and effective sizes. Whole-pool draws "
+        "produce a point mass at the calibrated baseline. At target 100, working memory uses all 82 people "
+        "and abstract reasoning all 60 without replacement. Numerical reasoning still draws 100 of 105.\n\n"
+        "This is an analysis extension beyond the live implementation: iq_noise_offset currently returns "
+        "zero noise whenever the requested size exceeds the pool, including with replacement. Thus the "
+        "new with-replacement n>pool panels illustrate the sampling design, not that safeguard. The survey "
+        "has not been changed.\n\n"
         "## Files and verification\n\n"
         "pilot_nNNN.png compares tasks and sampling methods at each size. working_memory_*.png gives "
-        "the exact IQ-100 case over all eligible sizes. The other task overviews show IQ 101 and are labelled "
-        "accordingly. pilot_noise_by_group_size.png summarizes variability. CSVs retain empirical and exact "
+        "the exact IQ-100 case over all target sizes. The other task overviews show IQ 101 and are labelled "
+        "accordingly. pilot_noise_by_group_size.png summarizes variability, with an additional full-pool "
+        "anchor at 82 for working memory so the curve reaches zero at the correct size. CSVs retain empirical and exact "
         "values; intervals are discrete equal-tail 95% quantiles and may cover more than 95%. "
         "Exact means are reported rather than assuming they equal baseline: the nonlinear transform, "
         "endpoint handling and rounding may shift the expected value.\n\n"
