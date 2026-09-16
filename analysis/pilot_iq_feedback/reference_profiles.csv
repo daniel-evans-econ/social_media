@@ -1,0 +1,4 @@
+component,label,raw_score,baseline_iq,pool_n,below,equal,above,full_pool_percentile,full_pool_percentile_iq
+working_memory,Working memory,8,100,82,41,9,32,55.48780487804878,102.06993385824917
+fluid,Abstract reasoning,7,101,60,31,5,24,55.833333333333336,102.20117433229822
+numerical,Numerical reasoning,9,101,105,52,14,39,56.19047619047619,102.33700369995826
