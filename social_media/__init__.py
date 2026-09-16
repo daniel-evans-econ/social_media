@@ -370,11 +370,9 @@ def estimate_iq(component: str, score: int, max_score: int) -> int:
 # Sampling error in that draw is exogenous to their own effort and ability, so
 # it identifies the causal effect of a higher or lower reported IQ.
 #
-# Simulated against the pilot-1 score distributions, a group of 25 gives a noise
-# SD of about 4 IQ points, with 97.5% of draws inside +/- 10. The offset is not
-# capped: the tails are thin enough on their own, and clipping them would pile
-# up mass at the bound.
-IQ_COMPARISON_GROUP = 25
+# Group size is provisional. Noise varies with the task and raw score; see the
+# pilot-data simulations in analysis/pilot_iq_feedback. The offset is not capped.
+IQ_COMPARISON_GROUP = 20
 
 
 def iq_reference_scores():
@@ -523,7 +521,7 @@ MOOD_CHOICES = [
 IQ_PERCEPTION_CHOICES = [
     [1, "Strongly negatively"],
     [2, "Negatively"],
-    [3, "Neutral/not much effect"],
+    [3, "Not much effect"],
     [4, "Positively"],
     [5, "Strongly positively"],
 ]
@@ -703,12 +701,13 @@ class Player(BasePlayer):
     received_signal_text = models.StringField(blank=True, max_length=200)
     received_signal_source = models.StringField(blank=True, max_length=60)
 
-    # ---- Randomized "like" button treatment ----
-    # Half of participants can like the messages they are shown. like_treatment
-    # repeats the participant-level assignment on every round for easy export;
-    # received_like records whether this round's message was liked.
+    # ---- Randomized reaction treatment (existing 50/50 assignment retained) ----
+    # Keep the legacy like indicator for exports; the categorical fields retain
+    # like, dislike and none. IQ feedback must not overwrite a block reaction.
     like_treatment = models.BooleanField(initial=False)
     received_like = models.BooleanField(blank=True, initial=False)
+    received_reaction = models.StringField(choices=['none', 'like', 'dislike'], initial='none')
+    iq_received_reaction = models.StringField(choices=['none', 'like', 'dislike'], initial='none')
 
     # ---- Bot check (Cloudflare Turnstile + honeypot) ----
     turnstile_token = models.StringField(blank=True)
@@ -791,6 +790,9 @@ class Player(BasePlayer):
     rses_10 = models.IntegerField(choices=RSES_CHOICES, widget=widgets.RadioSelectHorizontal, blank=True, label="")
 
     # ---- End-of-period measures ----
+    perceived_outperformed_count = models.IntegerField(
+        min=0, max=IQ_COMPARISON_GROUP, blank=True, label="",
+    )
     perceived_relative_performance = models.IntegerField(
         label="",
         min=0, max=100, blank=True,
@@ -962,6 +964,8 @@ class Player(BasePlayer):
     write_peer_well_down = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
     write_peer_poor_up = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
     write_peer_poor_down = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    write_peer_poor_reassure = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    write_peer_poor_rub_in = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
     write_match_tone = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
     write_untruthful = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
     share_well_positive = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
@@ -1171,8 +1175,20 @@ def round_spec(player: Player):
 
 
 def like_button_enabled(player: Player) -> bool:
-    """Whether this participant is in the arm that can 'like' messages it reads."""
+    """Whether this participant can like or dislike received messages."""
     return bool(player.participant.vars.get('like_treatment', False))
+
+
+def record_message_reaction(player, signal, field):
+    """Ignore reactions when no button was offered; keep page records separate."""
+    available = like_button_enabled(player) and signal.get('type') in ('quantitative', 'qualitative')
+    reaction = player.field_maybe_none(field) if available else 'none'
+    if reaction not in ('none', 'like', 'dislike'):
+        reaction = 'none'
+    setattr(player, field, reaction)
+    if field == 'received_reaction':
+        player.received_like = reaction == 'like'
+    return reaction
 
 
 def component_for_player(player: Player) -> str:
@@ -1629,7 +1645,7 @@ WRITING_MOTIVE_BLOCKS = [
         ),
         dict(
             field='write_peer_well_down',
-            text="I was less likely to write positively about my own performance.",
+            text="I was more likely to write critically about my own performance.",
         ),
     ]),
     _motive_block('peer_poor', [
@@ -1639,8 +1655,10 @@ WRITING_MOTIVE_BLOCKS = [
         ),
         dict(
             field='write_peer_poor_down',
-            text="I was less likely to write positively about my own performance.",
+            text="I was more likely to write critically about my own performance.",
         ),
+        dict(field='write_peer_poor_reassure', text="I tried to reassure them."),
+        dict(field='write_peer_poor_rub_in', text="I tried to rub it in."),
     ]),
     _motive_block('general', [
         dict(
@@ -1784,7 +1802,7 @@ EXPERIENCE_PAGE_META = {
     'writing': dict(
         motives=WRITING_MOTIVES,
         blocks=WRITING_MOTIVE_BLOCKS,
-        intro="Now we\u2019ll ask you about the content of the messages you wrote.",
+        intro="Now we\u2019ll ask you about the content of the messages you wrote to other participants regarding how you did on the IQ tasks.",
     ),
     'sharing': dict(
         motives=SHARING_MOTIVES,
@@ -2328,7 +2346,7 @@ class BlockFeedback(Page):
         'report_shared',
         'report_edit_back_count',
         'report_compose_history',
-        'received_like',
+        'received_reaction',
     ]
 
     @staticmethod
@@ -2369,7 +2387,8 @@ class BlockFeedback(Page):
                 and signal.get('type') in ('quantitative', 'qualitative')
                 and like_button_enabled(player)
             ),
-            liked=bool(player.field_maybe_none('received_like')),
+            reaction=player.field_maybe_none('received_reaction') or 'none',
+            reaction_field='received_reaction',
             task_construct=TASK_CONSTRUCT.get(task, "task"),
             iq_component_title=task_iq_title(task),
             # Read-only backdrop: re-render the question they just completed so
@@ -2418,6 +2437,7 @@ class BlockFeedback(Page):
 
         cond = get_condition(player)
         signal = pilot_feedback_signals(player)
+        reaction = record_message_reaction(player, signal, 'received_reaction')
         username = (player.participant.vars.get('display_name') or '').strip()
         if cond in ('quantitative_social', 'qualitative_social'):
             # Name comes from the username chosen on the Further-instructions page.
@@ -2438,6 +2458,8 @@ class BlockFeedback(Page):
             player.report_edit_back_count = 0
             player.report_compose_history = ''
         player.feedback_snapshot = json.dumps(dict(
+            received_reaction=reaction,
+            reaction_treatment=like_button_enabled(player),
             round=player.round_number,
             condition=cond,
             task=spec['task'],
@@ -2486,7 +2508,7 @@ class IQFeedback(Page):
         'iq_report_shared',
         'iq_report_edit_back_count',
         'iq_report_compose_history',
-        'received_like',
+        'iq_received_reaction',
     ]
 
     @staticmethod
@@ -2532,7 +2554,8 @@ class IQFeedback(Page):
                 and signal.get('type') in ('quantitative', 'qualitative')
                 and like_button_enabled(player)
             ),
-            liked=bool(player.field_maybe_none('received_like')),
+            reaction=player.field_maybe_none('iq_received_reaction') or 'none',
+            reaction_field='iq_received_reaction',
             task_construct=TASK_CONSTRUCT.get(task, "task"),
             iq_component_title=task_iq_title(task),
             # Read-only backdrop: re-render the just-completed question.
@@ -2587,6 +2610,7 @@ class IQFeedback(Page):
 
         cond = get_condition(player)
         signal = pilot_iq_feedback_signal(player)
+        reaction = record_message_reaction(player, signal, 'iq_received_reaction')
         username = (player.participant.vars.get('display_name') or '').strip()
         if cond in ('quantitative_social', 'qualitative_social'):
             # Name comes from the username chosen on the Further-instructions page.
@@ -2604,6 +2628,8 @@ class IQFeedback(Page):
             player.iq_report_edit_back_count = 0
             player.iq_report_compose_history = ''
         player.iq_feedback_snapshot = json.dumps(dict(
+            received_reaction=reaction,
+            reaction_treatment=like_button_enabled(player),
             round=player.round_number,
             condition=cond,
             task=spec['task'],
@@ -2739,7 +2765,7 @@ class GlobalIQFeedback(Page):
 
 class PerceivedPercentile(Page):
     form_model = 'player'
-    form_fields = ['perceived_relative_performance']
+    form_fields = ['perceived_outperformed_count']
 
     @staticmethod
     def is_displayed(player: Player):
@@ -2751,15 +2777,23 @@ class PerceivedPercentile(Page):
         task = round_spec(player)['task']
         return dict(
             period=period,
+            comparison_group=IQ_COMPARISON_GROUP,
+            comparison_midpoint=IQ_COMPARISON_GROUP // 2,
             iq_component=TASK_IQ_LABEL.get(task, 'IQ'),
             iq_component_title=task_iq_title(task),
         )
 
     @staticmethod
     def error_message(player: Player, values):
-        v = values.get('perceived_relative_performance')
+        v = values.get('perceived_outperformed_count')
         if v is None or v == '':
             return "Please move the slider to provide your percentile estimate before continuing."
+
+    @staticmethod
+    def before_next_page(player: Player, timeout_happened):
+        player.perceived_relative_performance = round(
+            100 * player.perceived_outperformed_count / IQ_COMPARISON_GROUP
+        )
 
 
 class PerceivedPercentileConfidence(Page):
@@ -3105,7 +3139,7 @@ class WTACompare(Page):
         # distinguishes the two blocks.
         with_msg_block = dict(
             kind="with_messages",
-            heading="With messages",
+            heading="With social interactions",
             description_lead="In this scenario, you are ",
             description_em="able to interact with other participants",
             description_tail=(
@@ -3115,7 +3149,7 @@ class WTACompare(Page):
         )
         without_msg_block = dict(
             kind="without_messages",
-            heading="Without messages",
+            heading="Without social interactions",
             description_lead="In this scenario, you are ",
             description_em="not able to interact with other participants",
             description_tail=". You learn only about your own performance.",
@@ -3300,6 +3334,7 @@ def _make_experience_slot(slot: int):
                 field_names=_experience_form_fields(player, slot),
                 storage_key=f'experience_{page_key}',
                 page_intro=meta['intro'],
+                writing_intro=page_key == 'writing',
                 motives=[],
             )
             if page_key == 'impacts':
@@ -3424,7 +3459,7 @@ class Results(Page):
 
         selected_accept_decline = 'Accept' if selected_choice == 'Yes' else 'Decline'
         selected_messages_label = (
-            'with messages' if selected_col == 't' else 'without messages'
+            'with social interactions' if selected_col == 't' else 'without social interactions'
         )
 
         return dict(

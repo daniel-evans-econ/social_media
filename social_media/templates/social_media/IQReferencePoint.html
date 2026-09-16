@@ -59,7 +59,9 @@
         You will have up to <strong style="color:darkred;">60 seconds</strong> to answer each question.
     </p>
     <p>
-        Your responses to these questions can be used to calculate components of <strong style="color:darkred;">IQ scores</strong>.
+        Your responses to these questions can be used to calculate components of your
+        <strong style="color:darkred;">IQ compared with {{ comparison_group }} other Prolific respondents</strong>.
+        We use a separately drawn comparison group for each component.
         An <strong style="color:darkred;">IQ score</strong> is a measure of intelligence used by psychologists.
         {% if has_optional_third %}
         These questions will appear across <strong style="color:darkred;">two periods</strong>.
@@ -117,8 +119,6 @@
     <p style="margin-top:16px;">
         After the survey, we will calculate your average <strong style="color:darkred;">IQ score</strong>
         across the {% if has_optional_third %}two{% else %}three{% endif %} tested components of <strong style="color:darkred;">IQ</strong>.
-        We will also do this for another
-        <strong style="color:darkred;">{{ comparison_group }} Prolific respondents</strong>.
         {% if iq_reference_asked %}
         What do you think your <strong style="color:darkred;">IQ score</strong> will be?
         Please answer using the slider above.

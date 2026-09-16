@@ -48,19 +48,20 @@
 <br>
 
 <p>
-    Imagine 100 other participants who
+    Imagine {{ comparison_group }} other participants who
     <strong style="color:darkred;">answered the same fifteen questions</strong>
     that you just did.
     How do you think
     <strong style="color:darkred;">your performance</strong>, in terms of the number of {{ iq_component }} questions answered correctly,
     <strong style="color:darkred;">ranks</strong>
-    compared to these 100 other participants?
+    compared to these {{ comparison_group }} other participants?
 </p>
 <p>
-    Move the slider from <strong style="color:darkred;">0</strong> to <strong style="color:darkred;">100</strong>. For example:
-    <br>&nbsp;&nbsp;&bull; <strong style="color:darkred;">0</strong> means you think you did <strong style="color:darkred;">worse</strong> than every other participant.
-    <br>&nbsp;&nbsp;&bull; <strong style="color:darkred;">50</strong> means you think you did <strong style="color:darkred;">better than half</strong> of the other participants, and <strong style="color:darkred;">worse than the other half</strong>.
-    <br>&nbsp;&nbsp;&bull; <strong style="color:darkred;">100</strong> means you think you did <strong style="color:darkred;">better</strong> than every other participant.
+    How many of these {{ comparison_group }} participants do you think you performed better than?
+    Move the slider from <strong style="color:darkred;">0</strong> to <strong style="color:darkred;">{{ comparison_group }}</strong>. For example:
+    <br>&nbsp;&nbsp;&bull; <strong style="color:darkred;">0</strong> means you think you performed better than <strong style="color:darkred;">nobody</strong> in the comparison group.
+    <br>&nbsp;&nbsp;&bull; <strong style="color:darkred;">{{ comparison_midpoint }}</strong> means you think you did <strong style="color:darkred;">better than half</strong> of the other participants.
+    <br>&nbsp;&nbsp;&bull; <strong style="color:darkred;">{{ comparison_group }}</strong> means you think you did <strong style="color:darkred;">better</strong> than every other participant.
 </p>
 <p>
     You will be paid <strong style="color:darkred;">$0.25</strong> if your answer is
@@ -71,16 +72,16 @@
 
 <div class="slider-wrap">
     <div class="slider-value" id="slider-value"></div>
-    <div class="track-placeholder" id="percentile-track-placeholder">
+    <div class="track-placeholder" id="percentile-track-placeholder" tabindex="0" role="button" aria-label="Activate performance estimate slider">
         <div class="track-line"></div>
     </div>
-    <input type="range" id="percentile-slider" min="0" max="100" step="1" value="50">
+    <input type="range" id="percentile-slider" min="0" max="{{ comparison_group }}" step="1" value="{{ comparison_midpoint }}" aria-label="Number of participants you think you outperformed">
     <div class="scale-marks">
-        <span>0: I am worse than everyone else</span>
-        <span>100: I am better than everyone else</span>
+        <span>0: Nobody</span>
+        <span>{{ comparison_midpoint }}: Half</span>
+        <span>{{ comparison_group }}: Everybody</span>
     </div>
-    <input type="hidden" name="perceived_relative_performance" id="perceived_relative_performance" value="">
-    <input type="hidden" id="iq-component-label" value="{{ iq_component }}">
+    <input type="hidden" name="perceived_outperformed_count" id="perceived_outperformed_count" value="">
 </div>
 
 {{ next_button }}
@@ -90,20 +91,19 @@
     var placeholder = document.getElementById('percentile-track-placeholder');
     var slider = document.getElementById('percentile-slider');
     var display = document.getElementById('slider-value');
-    var hidden = document.getElementById('perceived_relative_performance');
-    var labelEl = document.getElementById('iq-component-label');
-    var iqComponent = labelEl ? labelEl.value : 'IQ';
+    var hidden = document.getElementById('perceived_outperformed_count');
 
+    var groupSize = {{ comparison_group }};
     function updateDisplay(val) {
-        display.innerHTML = 'I think I have a higher ' + iqComponent
-            + ' than <strong style="color:darkred;">' + val + '%</strong> of the other participants.';
+        var percent = Math.round(100 * Number(val) / groupSize);
+        display.innerHTML = 'I think I performed better than <strong style="color:darkred;">' + percent + '%</strong> of the other participants.';
         hidden.value = String(val);
     }
 
     placeholder.addEventListener('click', function (e) {
         var rect = placeholder.getBoundingClientRect();
         var pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-        var val = Math.round(pct * 100);
+        var val = Math.round(pct * groupSize);
         slider.value = String(val);
         updateDisplay(val);
         placeholder.style.display = 'none';
@@ -112,6 +112,15 @@
 
     slider.addEventListener('input', function () {
         updateDisplay(slider.value);
+    });
+    placeholder.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            updateDisplay(slider.value);
+            placeholder.style.display = 'none';
+            slider.style.display = 'block';
+            slider.focus();
+        }
     });
 })();
 </script>

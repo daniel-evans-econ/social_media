@@ -28,7 +28,7 @@
         margin-top: 10px;
         background: #fff;
         border-radius: 6px;
-        overflow: hidden;
+        overflow: visible;
     }
     .wta-table th, .wta-table td {
         padding: 10px 8px;
@@ -39,6 +39,7 @@
     .wta-table td:not(:last-child) {
         border-right: 1px solid #d0d0d0;
     }
+    .wta-table thead { position: sticky; top: 0; z-index: 3; }
     .wta-table thead th {
         border-bottom: 1px solid #b0b0b0;
         background: #f6f7f9;
@@ -104,8 +105,7 @@
     For each row in both blocks, choose
     <strong style="color:darkred;">Accept</strong> if you are willing to take the test under
     that scenario, or <strong style="color:darkred;">Decline</strong> if you are not.
-    We will then <strong style="color:darkred;">randomly select and implement</strong> your
-    decision for one of the scenarios listed below.
+    We will then <strong style="color:darkred;">implement your decision on a randomly selected scenario</strong> from the list below.
     It is thus in your interest to make each choice in line with your
     <strong style="color:darkred;">true preferences</strong>.
 </p>
@@ -113,12 +113,12 @@
 <div class="wta-wrap">
     {% for block in blocks %}
     <section class="wta-block">
-        <h4>{{ block.heading }}</h4>
-        <p class="wta-block-desc">
-            {{ block.description_lead }}<strong style="color:darkred;">{{ block.description_em }}</strong>{{ block.description_tail }}
-        </p>
         <table class="wta-table">
             <thead>
+                <tr><th colspan="2" style="text-align:left;">
+                    <h4>{{ block.heading }}</h4>
+                    <p class="wta-block-desc">{{ block.description_lead }}<strong style="color:darkred;">{{ block.description_em }}</strong>{{ block.description_tail }}</p>
+                </th></tr>
                 <tr>
                     <th style="text-align:left; padding-left:16px;">Payment per correct answer</th>
                     <th>Your choice</th>

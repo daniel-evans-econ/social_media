@@ -31,7 +31,9 @@
 <h3 style="color:darkred; font-weight:bold;">Your experience</h3>
 <br>
 
-{% if page_intro %}<p>{{ page_intro }}</p>{% endif %}
+{% if writing_intro %}
+<p>Now we’ll ask you about the <strong>content</strong> of the messages you wrote to other participants regarding how you did on the IQ tasks.</p>
+{% elif page_intro %}<p>{{ page_intro }}</p>{% endif %}
 
 <p>
     Thinking specifically about your experience during this study, please indicate how much

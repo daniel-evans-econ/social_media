@@ -1,0 +1,30 @@
+<div class="fb-like-row" role="group" aria-label="React to this message">
+    <button type="button" class="fb-like" data-reaction="like"
+            aria-label="Like" aria-pressed="false"><span aria-hidden="true">&#128077;</span></button>
+    <button type="button" class="fb-like" data-reaction="dislike"
+            aria-label="Dislike" aria-pressed="false"><span aria-hidden="true">&#128078;</span></button>
+</div>
+<script>
+(function () {
+    var field = document.getElementById('id_received_reaction');
+    var buttons = document.querySelectorAll('[data-reaction]');
+    var key = 'reaction_{{ participant.code }}_{{ player.round_number }}_{{ reaction_field }}';
+    function select(value) {
+        if (['none', 'like', 'dislike'].indexOf(value) === -1) value = 'none';
+        field.value = value;
+        buttons.forEach(function (button) {
+            var selected = button.dataset.reaction === value;
+            button.classList.toggle('fb-like-on', selected);
+            button.setAttribute('aria-pressed', String(selected));
+        });
+    }
+    try { select(sessionStorage.getItem(key) || field.value); }
+    catch (_) { select(field.value); }
+    buttons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            select(field.value === button.dataset.reaction ? 'none' : button.dataset.reaction);
+            try { sessionStorage.setItem(key, field.value); } catch (_) {}
+        });
+    });
+})();
+</script>
