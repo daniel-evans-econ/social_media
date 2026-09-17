@@ -88,10 +88,16 @@
     .fb-received .fb-received-time { color: #8a8a8a; font-weight: 400; font-size: 0.9em; }
     .fb-preview .fb-preview-body { font-style: italic; color: #555; }
     /* Randomized treatment: react to the message you were shown. */
-    .fb-like-row { margin-top: 10px; border-top: 1px solid #e6e9ee; padding-top: 8px; }
+    .fb-post.fb-has-reactions { position: relative; padding-bottom: 28px; margin-bottom: 36px; }
+    .fb-like-row {
+        position: absolute; right: 16px; bottom: 0; transform: translateY(50%);
+        display: flex; gap: 8px; z-index: 1;
+    }
     .fb-like {
-        display: inline-flex; align-items: center; gap: 6px;
-        background: none; border: 2px solid transparent; padding: 7px 12px; border-radius: 6px;
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 44px; height: 36px; line-height: 1; padding: 0;
+        background: #fff; border: 2px solid #e2e6eb; border-radius: 999px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         color: #65686c; font-size: 1.3em; font-weight: 600; cursor: pointer;
     }
     .fb-like:hover { background: #f0f2f5; }
@@ -189,7 +195,7 @@
                     Here is an incoming message from
                     <strong style="color:darkred;">{{ signal.name }}</strong>.
                 </p>
-                <div class="fb-post fb-received">
+                <div class="fb-post fb-received{% if show_like_button %} fb-has-reactions{% endif %}">
                     <div class="fb-post-head">
                         <div class="fb-avatar">{{ signal_initial }}</div>
                         <div>

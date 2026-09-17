@@ -50,8 +50,11 @@ def main():
         load('IQReferencePoint')
         assert 'IQ compared with 20 other Prolific respondents' in page.locator('body').inner_text()
         assert 'separately drawn comparison group for each component' in page.locator('body').inner_text()
+        assert page.locator('.dist-wrap + #iq-comparison-explanation').count() == 1
+        assert 'components of IQ compared with 20 other Prolific respondents' in ' '.join(page.locator('#iq-comparison-explanation').inner_text().split())
         load('Experience_writing')
         assert page.locator('strong', has_text='content').count() == 1
+        assert page.locator('strong', has_text='content').evaluate('(el) => getComputedStyle(el).color') == 'rgb(139, 0, 0)'
         assert 'I tried to reassure them.' in page.locator('body').inner_text()
         assert 'I tried to rub it in.' in page.locator('body').inner_text()
         assert page.locator('td.motive-text', has_text='I was more likely to write critically about my own performance.').count() == 2
@@ -77,6 +80,18 @@ def main():
         like.click()
         like.click()
         assert field.input_value() == 'none'
+        for width, height in [(1280, 900), (390, 844)]:
+            page.set_viewport_size({'width': width, 'height': height})
+            bubble = page.locator('.fb-post.fb-has-reactions').bounding_box()
+            edge = bubble['y'] + bubble['height']
+            for button in [like, dislike]:
+                box = button.bounding_box()
+                assert box['y'] < edge < box['y'] + box['height'], (width, box, bubble)
+                assert abs(box['y'] + box['height'] / 2 - edge) <= 2
+                assert box['x'] >= bubble['x'] and box['x'] + box['width'] <= bubble['x'] + bubble['width']
+                assert button.evaluate('(el) => getComputedStyle(el).borderRadius') == '999px'
+            page.screenshot(path=str(screenshots/f'reactions_{width}.png'))
+        page.set_viewport_size({'width': 1280, 'height': 900})
         page.screenshot(path=str(screenshots/'reactions.png'))
         load('BlockFeedbackNoReactions')
         assert page.locator('[data-reaction]').count() == 0
@@ -108,7 +123,6 @@ def main():
             for name, selector, phrase in [
                 ('BigFiveSurvey1', 'thead', 'I see myself as someone who'),
                 ('SelfEsteemSurvey', 'thead', 'Please choose the option that best describes you.'),
-                ('NarcissismSurvey', '.npi-instruction', 'For each pair of statements'),
                 ('WTACompare', '.wta-table thead', 'social interactions'),
             ]:
                 load(name)
@@ -135,6 +149,9 @@ def main():
                     assert header.bounding_box()['y'] < 0
                 page.screenshot(path=str(screenshots/f'{name}_{width}.png'))
             checked.append(f'sticky headers and block transitions at {width}px')
+            load('NarcissismSurvey')
+            assert page.locator('.npi-instruction').evaluate('(el) => getComputedStyle(el).position') == 'static'
+        checked.append('reaction mini-bubbles straddle message border on desktop/mobile; narcissism instruction is not sticky')
         assert not errors, errors
         browser.close()
     print(json.dumps({'passed':checked, 'screenshots':str(screenshots)},indent=2))
