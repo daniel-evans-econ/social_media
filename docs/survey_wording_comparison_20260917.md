@@ -32,7 +32,7 @@ The optional question asking participants to predict their IQ, and its payment w
 
 **Current:**
 
-> You can also 👍 like or 👎 dislike any message you receive. You can select one reaction per message, change it, or click it again to remove it. We will share the messages you send with other participants and follow up with you to tell you how many likes and dislikes your messages received.
+> You can also 👍 like or 👎 dislike any message you receive. We will share the messages you send with other participants and follow up with you to tell you how many likes and dislikes your messages received.
 
 On feedback pages, the original button displayed “👍 Like”, changing to “👍 Liked” when selected. The current buttons show only 👍 and 👎; accessible labels remain “Like” and “Dislike”.
 
