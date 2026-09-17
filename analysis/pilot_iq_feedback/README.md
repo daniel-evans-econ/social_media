@@ -2,7 +2,9 @@
 
 These replace the idealized illustration in ../iq100_feedback for the user's actual-data request. Source: social_media/data/iq_scores_initial.json and iq_distribution_initial.json, the reference pools and calibrated score-to-IQ tables used by EXPERIMENT_PILOT=iq. Data hashes are included.
 
-## Baseline selection
+## Full sample IQ selection
+
+In the plots, full sample IQ means the calibrated IQ before comparison-group noise, not the uncalibrated IQ obtained directly from the full pool's empirical percentile. Number correct identifies the task score corresponding to that calibrated IQ. CSV field names baseline_iq and raw_score are retained for compatibility.
 
 Working memory: 8/15 correct, calibrated IQ 100, N=82 (41 below, 9 tied, 32 above). Abstract reasoning: 7/15, calibrated IQ 101, N=60 (31 below, 5 tied, 24 above). Numerical reasoning: 9/15, calibrated IQ 101, N=105 (52 below, 14 tied, 39 above). Only working memory has an exact calibrated IQ of 100. The other tasks use the nearest available IQ, without interpolation or recentering. The focal participant is treated as a new participant compared with these full reference pools; no reference observation is removed. Spatial reasoning is omitted because it is not one of the three tasks in the current IQ pilot.
 

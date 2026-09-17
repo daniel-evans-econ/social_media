@@ -90,7 +90,7 @@ def panel(ax, task, n, mode, result, ymax, compact=False):
     ax.set(xlim=(50, 150), ylim=(0, ymax), xticks=[60, 80, 100, 120, 140],
            xlabel="Reported IQ (points)", ylabel="Simulated draws (%)")
     ax.spines[["top", "right"]].set_visible(False)
-    ax.grid(axis="y", color="#E2E8F0", linewidth=.7)
+    ax.grid(False)
     ax.set_axisbelow(True)
     if compact:
         actual = min(n, task['pool_n']) if mode == 'without_replacement' else n
@@ -101,7 +101,7 @@ def panel(ax, task, n, mode, result, ymax, compact=False):
         title = f"{task['label']} · {mode.replace('_', ' ')}"
         ax.set_title(title, loc="left", fontsize=12, fontweight="bold", pad=12)
         note = f"\nUses all {task['pool_n']} available people" if mode == 'without_replacement' and n > task['pool_n'] else ''
-        ax.text(.97, .94, f"Baseline {task['baseline_iq']} · pilot N={task['pool_n']}\n"
+        ax.text(.97, .94, f"Full sample IQ {task['baseline_iq']} · pilot N={task['pool_n']}\n"
                 f"Mean {s['mean']:.2f} · SD {s['sd']:.2f}\n95%: {s['p025']}–{s['p975']}{note}",
                 transform=ax.transAxes, ha="right", va="top", fontsize=10)
 
@@ -179,7 +179,7 @@ def main():
         fig.suptitle(f"Actual pilot data: target comparison-group size {n}", x=.075, y=.975,
                      ha="left", fontsize=19, fontweight="bold")
         fig.text(.075, 1-.85/(3.6*rows+2.5),
-                 "Working memory: IQ 100 · Abstract and numerical reasoning: nearest available baseline IQ 101",
+                 "Working memory: full sample IQ 100 · Abstract and numerical reasoning: nearest available full sample IQ 101",
                  fontsize=10)
         for axs, task in zip(axes, eligible):
             ymax = max(results[task['component'], n, m][0].max() for m in MODES)*125
@@ -189,7 +189,7 @@ def main():
                     results[task['component'], n, mode][0].max()*125 if n >= task['pool_n'] else ymax)
                 panel(ax, task, n, mode, results[task['component'], n, mode], panel_ymax)
         footer = ("Source: actual pilot reference scores used by the IQ pilot (iq_scores_initial.json); 1,000,000 resamples per panel.\n"
-                  "Preserves ties, task-specific pool sizes, full-pool correction and survey integer rounding. Dashed line: baseline IQ.\n"
+                  "Preserves ties, task-specific pool sizes, full-pool correction and survey integer rounding. Dashed line: full sample IQ.\n"
                   "Bars: simulation frequencies; exact summary statistics. Point-mass panels have a separate y-axis scale.\n"
                   "Without replacement uses min(target size, pool size). With replacement always uses the target number of draws.\n"
                   "Analysis extension: unlike these plots, the live survey disables noise when the target exceeds the pool size.")
@@ -203,9 +203,9 @@ def main():
         for mode in MODES:
             fig, axes = plt.subplots(4, 3, figsize=(14, 15))
             fig.subplots_adjust(left=.075, right=.975, bottom=.14, top=.88, hspace=.64, wspace=.3)
-            fig.suptitle(f"{task['label']}: baseline IQ {task['baseline_iq']}", x=.075, y=.965,
+            fig.suptitle(f"{task['label']}: full sample IQ {task['baseline_iq']}", x=.075, y=.965,
                          ha="left", fontsize=23, fontweight="bold")
-            fig.text(.075, .93, f"Actual pilot N={task['pool_n']} · raw score {task['raw_score']}/15 · "
+            fig.text(.075, .93, f"Actual pilot N={task['pool_n']} · number correct {task['raw_score']}/15 at IQ {task['baseline_iq']} · "
                      f"{mode.replace('_', ' ')}", fontsize=14)
             fig.text(.075, .905, f"Pilot respondents: {task['below']} below, {task['equal']} tied, "
                      f"{task['above']} above the focal score", fontsize=11)
@@ -218,7 +218,7 @@ def main():
                 fig.delaxes(ax)
             fig.text(.075, .035,
                      "Source: deployed pilot reference scores, iq_scores_initial.json. 1,000,000 resamples per panel; ties retained.\n"
-                     "Survey mid-P transform, full-pool correction and integer rounding. Dashed lines: baseline IQ; exact SD and 95% intervals.\n"
+                     "Survey mid-P transform, full-pool correction and integer rounding. Dashed lines: full sample IQ; exact SD and 95% intervals.\n"
                      "Without replacement: use the whole pool if target n exceeds it; point-mass panels use a separate y-axis scale.\n"
                      "With replacement: n draws at every size. Analysis extension; the live survey disables noise when n exceeds the pool.",
                      fontsize=10, color="#475569", linespacing=1.6)
@@ -234,9 +234,9 @@ def main():
             rows = [r for r in summary if r['component']==task['component'] and r['sampling']==mode]
             ax.plot([r['group_size'] for r in rows], [r['exact_sd'] for r in rows],
                     color=color, marker='o', label=mode.replace('_',' ').capitalize())
-        ax.set_title(f"{task['label']}\nBaseline IQ {task['baseline_iq']} · pilot N={task['pool_n']}", fontsize=12)
+        ax.set_title(f"{task['label']}\nFull sample IQ {task['baseline_iq']} · pilot N={task['pool_n']}", fontsize=12)
         ax.set(xlabel="Target comparison-group size", xlim=(10,105), ylim=(0, 5.5))
-        ax.grid(color="#E2E8F0")
+        ax.grid(False)
         ax.spines[["top", "right"]].set_visible(False)
     axes[0].set_ylabel("Feedback SD (IQ points)")
     handles, labels = axes[0].get_legend_handles_labels()
@@ -259,7 +259,11 @@ def main():
         "These replace the idealized illustration in ../iq100_feedback for the user's actual-data request. "
         "Source: social_media/data/iq_scores_initial.json and iq_distribution_initial.json, the reference pools "
         "and calibrated score-to-IQ tables used by EXPERIMENT_PILOT=iq. Data hashes are included.\n\n"
-        "## Baseline selection\n\n"
+        "## Full sample IQ selection\n\n"
+        "In the plots, full sample IQ means the calibrated IQ before comparison-group noise, "
+        "not the uncalibrated IQ obtained directly from the full pool's empirical percentile. "
+        "Number correct identifies the task score corresponding to that calibrated IQ. "
+        "CSV field names baseline_iq and raw_score are retained for compatibility.\n\n"
         "Working memory: 8/15 correct, calibrated IQ 100, N=82 (41 below, 9 tied, 32 above). "
         "Abstract reasoning: 7/15, calibrated IQ 101, N=60 (31 below, 5 tied, 24 above). "
         "Numerical reasoning: 9/15, calibrated IQ 101, N=105 (52 below, 14 tied, 39 above). "
