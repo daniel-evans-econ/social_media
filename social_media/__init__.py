@@ -963,6 +963,8 @@ class Player(BasePlayer):
     write_poor_exaggerate = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
     write_peer_well_up = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
     write_peer_well_down = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    write_peer_well_acknowledge = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
+    write_peer_well_compare = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
     write_peer_poor_up = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
     write_peer_poor_down = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
     write_peer_poor_reassure = models.IntegerField(choices=BFI_CHOICES, widget=widgets.RadioSelectHorizontal, label="")
@@ -1648,6 +1650,8 @@ WRITING_MOTIVE_BLOCKS = [
             field='write_peer_well_down',
             text="I was more likely to write critically about my own performance.",
         ),
+        dict(field='write_peer_well_acknowledge', text="I tried to write messages that acknowledged how well they had done."),
+        dict(field='write_peer_well_compare', text="I tended to emphasize that I had performed just as well as or better than they had."),
     ]),
     _motive_block('peer_poor', [
         dict(

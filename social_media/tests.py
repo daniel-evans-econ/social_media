@@ -208,6 +208,8 @@ class PlayerBot(Bot):
                 write_poor_exaggerate=2,
                 write_peer_well_up=4,
                 write_peer_well_down=2,
+                write_peer_well_acknowledge=4,
+                write_peer_well_compare=2,
                 write_peer_poor_up=3,
                 write_peer_poor_down=5,
                 write_peer_poor_reassure=4,

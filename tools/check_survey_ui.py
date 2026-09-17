@@ -57,6 +57,11 @@ def main():
         assert page.locator('strong', has_text='content').evaluate('(el) => getComputedStyle(el).color') == 'rgb(139, 0, 0)'
         assert 'I tried to write messages that would help them feel better about their performance.' in page.locator('body').inner_text()
         assert 'I tended to emphasize that I had performed better than they had.' in page.locator('body').inner_text()
+        well_block = page.locator('.motive-block').filter(has_text='When another participant said they did well')
+        assert 'I tried to write messages that acknowledged how well they had done.' in well_block.inner_text()
+        assert 'I tended to emphasize that I had performed just as well as or better than they had.' in well_block.inner_text()
+        assert well_block.locator('input[name="write_peer_well_acknowledge"]').count() == 5
+        assert well_block.locator('input[name="write_peer_well_compare"]').count() == 5
         assert page.locator('td.motive-text', has_text='I was more likely to write critically about my own performance.').count() == 2
         checked.append('introduction and writing wording')
 

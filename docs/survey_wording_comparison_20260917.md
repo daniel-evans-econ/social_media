@@ -166,6 +166,12 @@ These were subsequently replaced, following approval, with:
 
 The second suggestion measures emphasizing a favorable comparison, rather than explicitly intending to make the other person feel worse.
 
+Two further items were then added under “When another participant said they did well” (also with no original counterparts):
+
+> I tried to write messages that acknowledged how well they had done.
+
+> I tended to emphasize that I had performed just as well as or better than they had.
+
 ## Layout changes with no wording changes
 
 - Big Five: “I see myself as someone who…” stays with the response labels while scrolling.
