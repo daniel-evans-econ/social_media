@@ -49,7 +49,7 @@ def main():
 
         load('IQReferencePoint')
         assert 'IQ compared with 20 other Prolific respondents' in page.locator('body').inner_text()
-        assert 'separately drawn comparison group for each component' in page.locator('body').inner_text()
+        assert 'separately drawn comparison group for each component' not in page.locator('body').inner_text()
         assert page.locator('.dist-wrap + #iq-comparison-explanation').count() == 1
         assert 'components of IQ compared with 20 other Prolific respondents' in ' '.join(page.locator('#iq-comparison-explanation').inner_text().split())
         load('Experience_writing')

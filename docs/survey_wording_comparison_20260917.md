@@ -20,7 +20,7 @@ Original means the version immediately before the meeting-note implementation (c
 
 **Current, directly below the distribution image:**
 
-> After the survey, we will calculate your average IQ score across the two tested components of IQ compared with 20 other Prolific respondents. We use a separately drawn comparison group for each component.
+> After the survey, we will calculate your average IQ score across the two tested components of IQ compared with 20 other Prolific respondents.
 
 The optional question asking participants to predict their IQ, and its payment wording, are unchanged.
 
