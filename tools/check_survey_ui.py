@@ -55,8 +55,8 @@ def main():
         load('Experience_writing')
         assert page.locator('strong', has_text='content').count() == 1
         assert page.locator('strong', has_text='content').evaluate('(el) => getComputedStyle(el).color') == 'rgb(139, 0, 0)'
-        assert 'I tried to reassure them.' in page.locator('body').inner_text()
-        assert 'I tried to rub it in.' in page.locator('body').inner_text()
+        assert 'I tried to write messages that would help them feel better about their performance.' in page.locator('body').inner_text()
+        assert 'I tended to emphasize that I had performed better than they had.' in page.locator('body').inner_text()
         assert page.locator('td.motive-text', has_text='I was more likely to write critically about my own performance.').count() == 2
         checked.append('introduction and writing wording')
 

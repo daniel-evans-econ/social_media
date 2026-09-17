@@ -401,14 +401,15 @@ def iq_noise_offset(player, component: str, score: int) -> int:
     """IQ points this participant gains or loses from their comparison group.
 
     Deterministic given the participant and component, so refreshing the
-    feedback page cannot re-roll the draw.
+    feedback page cannot re-roll the draw. Sample reference observations without
+    replacement; distinct respondents can still have the same raw score.
     """
     ref = iq_reference_scores() or {}
     sample = ref.get(component) or []
     if len(sample) < IQ_COMPARISON_GROUP:
         return 0
     rng = random.Random(f"{player.participant.code}-iqnoise-{component}")
-    group = [sample[rng.randrange(len(sample))] for _ in range(IQ_COMPARISON_GROUP)]
+    group = rng.sample(sample, IQ_COMPARISON_GROUP)
     offset = _percentile_iq(group, score) - _percentile_iq(sample, score)
     return int(offset + 0.5) if offset >= 0 else -int(-offset + 0.5)
 
@@ -1657,8 +1658,8 @@ WRITING_MOTIVE_BLOCKS = [
             field='write_peer_poor_down',
             text="I was more likely to write critically about my own performance.",
         ),
-        dict(field='write_peer_poor_reassure', text="I tried to reassure them."),
-        dict(field='write_peer_poor_rub_in', text="I tried to rub it in."),
+        dict(field='write_peer_poor_reassure', text="I tried to write messages that would help them feel better about their performance."),
+        dict(field='write_peer_poor_rub_in', text="I tended to emphasize that I had performed better than they had."),
     ]),
     _motive_block('general', [
         dict(

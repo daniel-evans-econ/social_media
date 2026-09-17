@@ -158,7 +158,7 @@ There were no original counterparts to these two additions under “When another
 
 > I tried to rub it in.
 
-They remain as above in the survey pending a wording decision. Suggested replacements, not implemented:
+These were subsequently replaced, following approval, with:
 
 > I tried to write messages that would help them feel better about their performance.
 
@@ -176,4 +176,4 @@ The second suggestion measures emphasizing a favorable comparison, rather than e
 
 ## Reference groups: confirmed implementation
 
-For each participant and IQ component, a separate seeded draw selects 20 reference observations with replacement. The seed contains the participant code and component name. Refreshing preserves the draw. Independently drawn groups can overlap; draws are not constrained to be unique or disjoint, and repeated reference observations within a group are possible. Each task in this experiment corresponds to a different IQ component.
+For each participant and IQ component, a separate seeded draw now selects 20 reference observations without replacement. The seed contains the participant code and component name. Refreshing preserves the draw. Each reference observation can appear only once within a group; distinct respondents can have identical scores. Independently drawn groups across participants or tasks can overlap and are not constrained to be unique or disjoint. Each task in this experiment corresponds to a different IQ component. This replaces the earlier with-replacement rule.
