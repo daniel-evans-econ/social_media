@@ -52,6 +52,25 @@ def main():
         assert 'separately drawn comparison group for each component' not in page.locator('body').inner_text()
         assert page.locator('.dist-wrap + #iq-comparison-explanation').count() == 1
         assert 'components of IQ compared with 20 other Prolific respondents' in ' '.join(page.locator('#iq-comparison-explanation').inner_text().split())
+        halves = page.locator('strong', has_text='50%')
+        assert halves.count() == 2
+        for half in halves.all():
+            assert half.evaluate('(el) => getComputedStyle(el).color') == 'rgb(139, 0, 0)'
+        load('IntroReactions')
+        intro = page.locator('body').inner_text()
+        assert 'Other participants can also react to any message you send.' in intro
+        assert 'how many of each reaction' in intro
+        assert 'likes and dislikes' not in intro
+        load('IntroNoReactions')
+        assert 'You can also react' not in page.locator('body').inner_text()
+        for asked in (0, 1):
+            for accepted in (0, 1):
+                load(f'FinalResults_{asked}_{accepted}')
+                text = ' '.join(page.locator('body').inner_text().split())
+                maximum = 0.50 + 0.25 * accepted + 0.50 * asked
+                assert f'${maximum:.2f}' in text
+                assert ('estimates of your IQ and percentile' in text) == bool(asked)
+        checked.append('both 50% highlights, reaction disclosure, and four final-bonus conditions')
         load('Experience_writing')
         assert page.locator('strong', has_text='content').count() == 1
         assert page.locator('strong', has_text='content').evaluate('(el) => getComputedStyle(el).color') == 'rgb(139, 0, 0)'
@@ -66,30 +85,30 @@ def main():
         checked.append('introduction and writing wording')
 
         load('BlockFeedbackReactions')
-        like = page.get_by_role('button', name='Like', exact=True)
-        dislike = page.get_by_role('button', name='Dislike', exact=True)
-        assert like.inner_text().strip() == '\U0001f44d'
-        assert dislike.inner_text().strip() == '\U0001f44e'
+        palette = [('Like', 'like', '👍'), ('Love', 'love', '❤️'), ('Care', 'care', '🤗'), ('Haha', 'haha', '😆'), ('Wow', 'wow', '😮'), ('Sad', 'sad', '😢'), ('Angry', 'angry', '😡')]
+        buttons = [page.get_by_role('button', name=name, exact=True) for name, _, _ in palette]
+        assert page.locator('[data-reaction]').count() == 7
+        assert page.get_by_role('button', name='Dislike', exact=True).count() == 0
         field = page.locator('#id_received_reaction')
-        like.click()
-        assert field.input_value() == 'like'
-        dislike.click()
-        assert field.input_value() == 'dislike'
-        assert like.get_attribute('aria-pressed') == 'false'
-        assert dislike.get_attribute('aria-pressed') == 'true'
-        page.reload()
-        assert field.input_value() == 'dislike'
-        dislike.click()
-        assert field.input_value() == 'none'
-        assert dislike.get_attribute('aria-pressed') == 'false'
-        like.click()
-        like.click()
-        assert field.input_value() == 'none'
-        for width, height in [(1280, 900), (390, 844)]:
+        for button, (_, value, emoji) in zip(buttons, palette):
+            assert button.inner_text().strip() == emoji
+            button.click()
+            assert field.input_value() == value
+            assert page.locator('[data-reaction][aria-pressed="true"]').count() == 1
+            page.reload()
+            assert field.input_value() == value
+            button.click()
+            assert field.input_value() == 'none'
+        buttons[0].click()
+        buttons[3].click()
+        assert field.input_value() == 'haha'
+        assert buttons[0].get_attribute('aria-pressed') == 'false'
+        buttons[3].click()
+        for width, height in [(1280, 900), (390, 844), (320, 740)]:
             page.set_viewport_size({'width': width, 'height': height})
             bubble = page.locator('.fb-post.fb-has-reactions').bounding_box()
             edge = bubble['y'] + bubble['height']
-            for button in [like, dislike]:
+            for button in buttons:
                 box = button.bounding_box()
                 assert box['y'] < edge < box['y'] + box['height'], (width, box, bubble)
                 assert abs(box['y'] + box['height'] / 2 - edge) <= 2
@@ -101,7 +120,24 @@ def main():
         load('BlockFeedbackNoReactions')
         assert page.locator('[data-reaction]').count() == 0
         assert field.input_value() == 'none'
-        checked.append('like/dislike/switch/remove/refresh and untreated arm')
+        checked.append('all seven reactions, switch/remove/refresh, no dislike, and untreated arm')
+
+        load('BlockFeedback_quantitative_social')
+        assert page.locator('.fb-emoji').count() == 0
+        assert page.locator('input[name="report_number"]').count() == 1
+        load('BlockFeedback_qualitative_social')
+        choices = page.locator('.fb-emoji input[type="radio"]')
+        assert choices.count() == 7
+        assert choices.evaluate_all('(els) => els.map(el => el.value)') == [emoji for _, _, emoji in palette]
+        for width in (1280, 390, 320):
+            page.set_viewport_size({'width': width, 'height': 900})
+            for choice in choices.all():
+                choice.locator('..').click()
+                assert choice.is_checked()
+            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 2')
+            page.screenshot(path=str(screenshots/f'qualitative_composer_{width}.png'))
+        page.set_viewport_size({'width': 1280, 'height': 900})
+        checked.append('matching qualitative emoji palette; quantitative composition stays number-only')
 
         load('PerceivedPercentile')
         field = page.locator('#perceived_outperformed_count')

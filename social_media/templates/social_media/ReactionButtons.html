@@ -1,8 +1,8 @@
 <div class="fb-like-row" role="group" aria-label="React to this message">
-    <button type="button" class="fb-like" data-reaction="like"
-            aria-label="Like" aria-pressed="false"><span aria-hidden="true">&#128077;</span></button>
-    <button type="button" class="fb-like" data-reaction="dislike"
-            aria-label="Dislike" aria-pressed="false"><span aria-hidden="true">&#128078;</span></button>
+    {% for option in reaction_options %}
+    <button type="button" class="fb-like" data-reaction="{{ option.value }}"
+            aria-label="{{ option.label }}" title="{{ option.label }}" aria-pressed="false"><span aria-hidden="true">{{ option.emoji }}</span></button>
+    {% endfor %}
 </div>
 <script>
 (function () {
@@ -10,7 +10,7 @@
     var buttons = document.querySelectorAll('[data-reaction]');
     var key = 'reaction_{{ participant.code }}_{{ player.round_number }}_{{ reaction_field }}';
     function select(value) {
-        if (['none', 'like', 'dislike'].indexOf(value) === -1) value = 'none';
+        if (value !== 'none' && !Array.prototype.some.call(buttons, function (button) { return button.dataset.reaction === value; })) value = 'none';
         field.value = value;
         buttons.forEach(function (button) {
             var selected = button.dataset.reaction === value;

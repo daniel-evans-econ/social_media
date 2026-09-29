@@ -17,7 +17,7 @@ from otree.api import Bot, Submission, SubmissionMustFail
 from otree.database import db
 
 from . import (
-    C, CFG, QD, WTA_AMOUNTS, QUAL_EMOJIS, BFI_CORE_FIELDS,
+    C, CFG, QD, WTA_AMOUNTS, QUAL_EMOJIS, REACTION_VALUES, BFI_CORE_FIELDS,
     round_spec, get_condition, experienced_conditions, like_button_enabled, pilot_feedback_signals,
     is_feedback_round, is_third_period, third_period_played,
     is_end_of_period_with_p3,
@@ -58,6 +58,9 @@ class PlayerBot(Bot):
         if self.round_number == 1:
             # Exercise both reaction arms deterministically in bot sessions.
             p.participant.vars['like_treatment'] = p.id_in_group % 2 == 0
+            # Four bots cover IQ-prior yes/no crossed with optional-period yes/no.
+            p.participant.vars['iq_reference_asked'] = p.id_in_group % 2 == 1
+            p.iq_reference_asked = p.participant.vars['iq_reference_asked']
             yield Submission(BotCheck, dict(
                 turnstile_token='', turnstile_bypass_key='',
                 turnstile_client_host='localhost',
@@ -71,6 +74,7 @@ class PlayerBot(Bot):
                 yield Submission(IQReferencePoint, dict(iq_reference_score=100), check_html=False)
             else:
                 yield Submission(IQReferencePoint, dict(), check_html=False)
+            self.capture_page('IntroReactions' if like_button_enabled(p) else 'IntroNoReactions')
             yield Submission(Intro, dict(display_name='Bot'), check_html=False)
 
         plays_question = (not is_third_period(p)) or third_period_played(p)
@@ -98,17 +102,20 @@ class PlayerBot(Bot):
                 cond = get_condition(p)
                 # Half of participants see reaction buttons; submitting the field
                 # unconditionally mirrors the always-present hidden input.
-                fb = dict(received_reaction=['like', 'dislike', 'none'][(p.round_number // 5 - 1) % 3])
+                fb = dict(received_reaction=REACTION_VALUES[(p.round_number // 5 - 1) % len(REACTION_VALUES)])
                 if cond == 'quantitative_social':
-                    fb.update(report_number=5, report_shared=True)
+                    # Even a forged emoji must not enter quantitative messages.
+                    fb.update(report_number=5, report_shared=True, report_emoji=QUAL_EMOJIS[0])
                 elif cond == 'qualitative_social':
-                    fb.update(report_emoji=QUAL_EMOJIS[0],
+                    fb.update(report_emoji=QUAL_EMOJIS[(p.round_number // 5 - 1) % len(QUAL_EMOJIS)],
                               report_message='Felt good about that one.', report_shared=True)
                 available = like_button_enabled(p) and pilot_feedback_signals(p).get('type') in ('quantitative', 'qualitative')
                 if available:
                     self.capture_page('BlockFeedbackReactions')
                 elif cond != 'control':
                     self.capture_page('BlockFeedbackNoReactions')
+                if cond in ('quantitative_social', 'qualitative_social'):
+                    self.capture_page('BlockFeedback_' + cond)
                 yield Submission(BlockFeedback, fb, check_html=False)
                 db.expire_all()
                 p = self.player
@@ -116,6 +123,11 @@ class PlayerBot(Bot):
                 assert p.received_reaction == expected
                 assert p.received_like == (expected == 'like')
                 assert json.loads(p.feedback_snapshot)['received_reaction'] == expected
+                if cond == 'qualitative_social':
+                    assert p.report_emoji == fb['report_emoji']
+                elif cond == 'quantitative_social':
+                    assert p.field_maybe_none('report_emoji') is None
+                    assert json.loads(p.feedback_snapshot)['sent_emoji'] is None
 
         if CFG['show_iq'] and is_end_of_period_with_p3(p):
             block_reaction = p.received_reaction
@@ -168,8 +180,8 @@ class PlayerBot(Bot):
                 yield Submission(GlobalIQFeedback, gifb, check_html=False)
             wta = {}
             for i in range(1, len(WTA_AMOUNTS) + 1):
-                wta[f'wta_t_{i}'] = 'Yes'
-                wta[f'wta_c_{i}'] = 'Yes'
+                wta[f'wta_t_{i}'] = 'Yes' if p.id_in_group <= 2 else 'No'
+                wta[f'wta_c_{i}'] = 'Yes' if p.id_in_group <= 2 else 'No'
             self.capture_page('WTACompare')
             yield Submission(WTACompare, wta, check_html=False)
             yield Submission(Results, dict(), check_html=False)
@@ -256,4 +268,10 @@ class PlayerBot(Bot):
             ), check_html=False)
             yield Submission(SurveyReliabilityOverall, dict(survey_reliability=7), check_html=False)
             yield Submission(Comments, dict(comments='Great study, no issues.'), check_html=False)
+            accepted = third_period_played(p)
+            asked = p.participant.vars['iq_reference_asked']
+            self.capture_page(f'FinalResults_{int(asked)}_{int(accepted)}')
+            expected_max = (0.75 if accepted else 0.50) + (0.50 if asked else 0)
+            assert f'${expected_max:.2f}' in self.html
+            assert ('estimates of your <strong' in self.html) == asked
             yield Submission(FinalResults, dict(), check_html=False)

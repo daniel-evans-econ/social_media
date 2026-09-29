@@ -427,7 +427,19 @@ def estimate_iq_for_player(player, component: str, score: int,
 QUAL_EMOJI_SMILE = "\U0001f603"   # 😃
 QUAL_EMOJI_NEUTRAL = "\U0001f610"  # 😐
 QUAL_EMOJI_FROWN = "\U0001f61e"   # 😞
-QUAL_EMOJIS = [QUAL_EMOJI_SMILE, QUAL_EMOJI_NEUTRAL, QUAL_EMOJI_FROWN]
+# Preserve the legacy icons for historical messages and simulated fallbacks.
+LEGACY_QUAL_EMOJIS = [QUAL_EMOJI_SMILE, QUAL_EMOJI_NEUTRAL, QUAL_EMOJI_FROWN]
+REACTION_OPTIONS = [
+    dict(value='like', label='Like', emoji='\U0001f44d'),
+    dict(value='love', label='Love', emoji='\u2764\ufe0f'),
+    dict(value='care', label='Care', emoji='\U0001f917'),
+    dict(value='haha', label='Haha', emoji='\U0001f606'),
+    dict(value='wow', label='Wow', emoji='\U0001f62e'),
+    dict(value='sad', label='Sad', emoji='\U0001f622'),
+    dict(value='angry', label='Angry', emoji='\U0001f621'),
+]
+REACTION_VALUES = ['none'] + [option['value'] for option in REACTION_OPTIONS]
+QUAL_EMOJIS = [option['emoji'] for option in REACTION_OPTIONS]
 
 PILOT_NAMES = ["Jane", "John"]
 
@@ -704,11 +716,11 @@ class Player(BasePlayer):
 
     # ---- Randomized reaction treatment (existing 50/50 assignment retained) ----
     # Keep the legacy like indicator for exports; the categorical fields retain
-    # like, dislike and none. IQ feedback must not overwrite a block reaction.
+    # each reaction and none. IQ feedback must not overwrite a block reaction.
     like_treatment = models.BooleanField(initial=False)
     received_like = models.BooleanField(blank=True, initial=False)
-    received_reaction = models.StringField(choices=['none', 'like', 'dislike'], initial='none')
-    iq_received_reaction = models.StringField(choices=['none', 'like', 'dislike'], initial='none')
+    received_reaction = models.StringField(choices=REACTION_VALUES, initial='none')
+    iq_received_reaction = models.StringField(choices=REACTION_VALUES, initial='none')
 
     # ---- Bot check (Cloudflare Turnstile + honeypot) ----
     turnstile_token = models.StringField(blank=True)
@@ -1178,7 +1190,7 @@ def round_spec(player: Player):
 
 
 def like_button_enabled(player: Player) -> bool:
-    """Whether this participant can like or dislike received messages."""
+    """Whether this participant can react to received messages."""
     return bool(player.participant.vars.get('like_treatment', False))
 
 
@@ -1186,7 +1198,7 @@ def record_message_reaction(player, signal, field):
     """Ignore reactions when no button was offered; keep page records separate."""
     available = like_button_enabled(player) and signal.get('type') in ('quantitative', 'qualitative')
     reaction = player.field_maybe_none(field) if available else 'none'
-    if reaction not in ('none', 'like', 'dislike'):
+    if reaction not in REACTION_VALUES:
         reaction = 'none'
     setattr(player, field, reaction)
     if field == 'received_reaction':
@@ -1402,7 +1414,7 @@ def pilot_feedback_signals(player: Player):
                     source_set_id=e.get('source_set_id'),
                     time=e.get('time') or _peer_message_time(rng))
     # Simulated fallback.
-    emoji = rng.choice(QUAL_EMOJIS)
+    emoji = rng.choice(LEGACY_QUAL_EMOJIS)
     if emoji == QUAL_EMOJI_SMILE:
         n = rng.choice([4, 5])
     elif emoji == QUAL_EMOJI_NEUTRAL:
@@ -2126,6 +2138,7 @@ class Intro(Page):
             has_optional_third=CFG['use_wta'],
             receives_messages=CFG['received_message_source'] is not None,
             like_treatment=like_button_enabled(player),
+            reaction_options=REACTION_OPTIONS,
             total_questions=2 * C.PERIOD_LENGTH if CFG['use_wta'] else 3 * C.PERIOD_LENGTH,
             period_components=period_components,
             flat_payment=FLAT_PAYMENT_DISPLAY,
@@ -2383,6 +2396,7 @@ class BlockFeedback(Page):
             signal=signal,
             signal_initial=signal_initial,
             qual_emojis=QUAL_EMOJIS,
+            reaction_options=REACTION_OPTIONS,
             in_treatment=cond in ('quantitative_social', 'qualitative_social'),
             is_quantitative=cond == 'quantitative_social',
             is_qualitative=cond == 'qualitative_social',
@@ -2431,10 +2445,10 @@ class BlockFeedback(Page):
                 return "Please add a short note before continuing."
             if len(msg) < 5:
                 return "Please write at least 5 characters in your note."
-            if not values.get('report_emoji'):
+            if values.get('report_emoji') not in QUAL_EMOJIS:
                 return "Please indicate how you feel."
         if values.get('report_shared') is None:
-            return "Please choose whether to share your message."
+            return "Please choose whether to send your message."
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
@@ -2448,6 +2462,7 @@ class BlockFeedback(Page):
             # Name comes from the username chosen on the Further-instructions page.
             player.report_display_name = username
             if cond == 'quantitative_social':
+                player.report_emoji = None
                 n = player.field_maybe_none('report_number')
                 if n is not None:
                     construct = TASK_CONSTRUCT.get(spec['task'], 'these')
@@ -2550,6 +2565,7 @@ class IQFeedback(Page):
             signal=signal,
             signal_initial=signal_initial,
             qual_emojis=QUAL_EMOJIS,
+            reaction_options=REACTION_OPTIONS,
             in_treatment=cond in ('quantitative_social', 'qualitative_social'),
             is_quantitative=cond == 'quantitative_social',
             is_qualitative=cond == 'qualitative_social',
@@ -2597,10 +2613,10 @@ class IQFeedback(Page):
                 return "Please add a short note before continuing."
             if len(msg) < 5:
                 return "Please write at least 5 characters in your note."
-            if not values.get('iq_report_emoji'):
+            if values.get('iq_report_emoji') not in QUAL_EMOJIS:
                 return "Please indicate how you feel."
         if values.get('iq_report_shared') is None:
-            return "Please choose whether to share your message."
+            return "Please choose whether to send your message."
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
@@ -2621,6 +2637,7 @@ class IQFeedback(Page):
             # Name comes from the username chosen on the Further-instructions page.
             player.iq_report_display_name = username
             if cond == 'quantitative_social':
+                player.iq_report_emoji = None
                 n = player.field_maybe_none('report_iq')
                 if n is not None:
                     player.iq_report_message = f"My {label} IQ score is {n}."
@@ -2700,6 +2717,7 @@ class GlobalIQFeedback(Page):
             signal=signal,
             signal_initial='?',
             qual_emojis=QUAL_EMOJIS,
+            reaction_options=REACTION_OPTIONS,
             in_treatment=cond in ('quantitative_social', 'qualitative_social'),
             is_quantitative=cond == 'quantitative_social',
             is_qualitative=cond == 'qualitative_social',
@@ -2740,10 +2758,10 @@ class GlobalIQFeedback(Page):
                 return "Please add a short note before continuing."
             if len(msg) < 5:
                 return "Please write at least 5 characters in your note."
-            if not values.get('global_report_emoji'):
+            if values.get('global_report_emoji') not in QUAL_EMOJIS:
                 return "Please indicate how you feel."
         if values.get('global_report_shared') is None:
-            return "Please choose whether to share your message."
+            return "Please choose whether to send your message."
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
@@ -2756,6 +2774,7 @@ class GlobalIQFeedback(Page):
         username = (player.participant.vars.get('display_name') or '').strip()
         if cond in ('quantitative_social', 'qualitative_social'):
             if cond == 'quantitative_social':
+                player.global_report_emoji = None
                 n = player.field_maybe_none('global_report_iq')
                 if n is not None:
                     player.global_report_message = f"My overall IQ score is {n}."
@@ -3543,12 +3562,11 @@ class FinalResults(Page):
             switched_p3 = switched_disqualified_count(player, C.THIRD_PERIOD_START, C.NUM_ROUNDS)
             subtracted += switched_p3 * p3_pay_rate
 
-        # Deferred estimate-accuracy bonus ceiling. Participants who were never
-        # asked the baseline IQ reference-point guess cannot earn its $0.50, so
-        # we drop it from the ceiling we quote them (1.25 -> 0.75).
-        guess_bonus_max = C.GUESS_BONUS_MAX
-        if not player.participant.vars.get('iq_reference_asked', False):
-            guess_bonus_max = guess_bonus_max - C.PAY_IQ_REFERENCE_GUESS
+        # Only played periods have percentile guesses; IQ-prior is randomized.
+        iq_reference_asked = bool(player.participant.vars.get('iq_reference_asked', False))
+        guess_bonus_max = len(task_rows) * C.PAY_PER_PERCENTILE
+        if iq_reference_asked:
+            guess_bonus_max += C.PAY_IQ_REFERENCE_GUESS
 
         return dict(
             total_payoff=total_payoff,
@@ -3557,6 +3575,7 @@ class FinalResults(Page):
             switched_subtracted=f"{subtracted:.2f}",
             had_switch_deduction=subtracted > 0,
             guess_bonus_max_display=f"{float(guess_bonus_max):.2f}",
+            iq_reference_asked=iq_reference_asked,
             prolific_url=PROLIFIC_COMPLETION_URL,
         )
 

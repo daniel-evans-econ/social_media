@@ -29,10 +29,13 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import sys
 from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+from tools.exclude_test_participants import exclude_test_rows, is_test_row, participant_code
 DATA_DIR = ROOT / "social_media" / "data"
 DEFAULT_ANALYSIS_DIR = Path(
     r"C:\Users\Evans\Desktop\research\social_media\pilot_1_analysis\data"
@@ -76,6 +79,12 @@ def build(analysis_dir: Path):
     else:
         quant_rows = block_rows
         quant_prefiltered = False
+
+    # Identify test participants across all sources before filtering any pool.
+    test_codes = {participant_code(r) for r in block_rows + note_rows + quant_rows if is_test_row(r)} - {None, ''}
+    block_rows = [r for r in exclude_test_rows(block_rows) if participant_code(r) not in test_codes]
+    note_rows = [r for r in exclude_test_rows(note_rows) if participant_code(r) not in test_codes]
+    quant_rows = [r for r in exclude_test_rows(quant_rows) if participant_code(r) not in test_codes]
 
     # (pcode, block_global) -> raw emoji, so the coded notes can recover their glyph.
     emoji_by_block = {}

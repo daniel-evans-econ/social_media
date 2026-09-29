@@ -37,6 +37,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from social_media.message_vocab import is_task_specific
+from tools.exclude_test_participants import exclude_test_rows
 DATA_DIR = ROOT / "social_media" / "data"
 
 NUM_ROUNDS = 45
@@ -55,7 +56,7 @@ def _read_wide_csv(path: Path):
     """Return a list of participants, each a dict: round -> {field: value}."""
     with open(path, newline="", encoding="utf-8-sig") as fh:
         reader = csv.DictReader(fh)
-        rows = list(reader)
+        rows = exclude_test_rows(list(reader))
     participants = []
     for row in rows:
         per_round = defaultdict(dict)

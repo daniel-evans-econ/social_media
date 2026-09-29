@@ -24,10 +24,12 @@
 </p>
 {% if receives_messages and like_treatment %}
 <p style="margin-top:1em;">
-    You can also <strong style="color:darkred;">&#128077; like or &#128078; dislike</strong> any message you receive.
+    You can also <strong style="color:darkred;">react</strong> to any message you receive using
+    {% for option in reaction_options %}<span title="{{ option.label }}" aria-label="{{ option.label }}">{{ option.emoji }}</span>{% endfor %}.
+    Other participants can also react to any message you send.
     We will share the messages you send with other participants and
     <strong style="color:darkred;">follow up with you</strong> to tell you
-    <strong style="color:darkred;">how many likes and dislikes</strong> your messages received.
+    <strong style="color:darkred;">how many of each reaction</strong> your messages received.
 </p>
 {% endif %}
 <p style="margin-top:1em;">

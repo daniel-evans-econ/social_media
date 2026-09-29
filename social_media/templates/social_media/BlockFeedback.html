@@ -62,7 +62,8 @@
     .fb-compose h4 { margin: 0 0 6px 0; color: #1a4998; font-size: 0.95em; }
     .fb-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
     .fb-row label { cursor: pointer; padding: 6px 12px; border: 2px solid #d0d0d0; border-radius: 8px; background: #fff; min-width: 38px; text-align: center; }
-    .fb-row.fb-emoji label { font-size: 1.5em; padding: 4px 10px; }
+    .fb-row.fb-emoji { gap: 4px; }
+    .fb-row.fb-emoji label { display: inline-flex; align-items: center; justify-content: center; font-size: 1.05em; padding: 0; min-width: 30px; height: 30px; }
     .fb-row input[type="radio"] { display: none; }
     .fb-row label:has(input[type="radio"]:checked) { border-color: #1a4998; background: #e8f0ff; font-weight: bold; }
     .fb-compose textarea { width: 100%; min-height: 50px; padding: 8px; border: 1px solid #b9d4ff; border-radius: 6px; resize: vertical; font-family: inherit; font-size: 0.95em; }
@@ -90,15 +91,15 @@
     /* Randomized treatment: react to the message you were shown. */
     .fb-post.fb-has-reactions { position: relative; padding-bottom: 28px; margin-bottom: 36px; }
     .fb-like-row {
-        position: absolute; left: 16px; bottom: 0; transform: translateY(50%);
-        display: flex; gap: 8px; z-index: 1;
+        position: absolute; left: 12px; bottom: 0; transform: translateY(50%);
+        display: flex; gap: 4px; z-index: 1;
     }
     .fb-like {
         display: inline-flex; align-items: center; justify-content: center;
-        width: 44px; height: 36px; line-height: 1; padding: 0;
+        width: 30px; height: 30px; line-height: 1; padding: 0;
         background: #fff; border: 2px solid #e2e6eb; border-radius: 999px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-        color: #65686c; font-size: 1.3em; font-weight: 600; cursor: pointer;
+        color: #65686c; font-size: 1.05em; font-weight: 600; cursor: pointer;
     }
     .fb-like:hover { background: #f0f2f5; }
     .fb-like .fb-like-icon { font-size: 1.05em; line-height: 1; }
@@ -240,10 +241,10 @@
                         {% else %}
                             <div style="font-size:0.9em;">How do you feel?</div>
                             <div class="fb-row fb-emoji">
-                                {% for e in qual_emojis %}
+                                {% for option in reaction_options %}
                                     <label>
-                                        <input type="radio" name="report_emoji" value="{{ e }}">
-                                        <span>{{ e }}</span>
+                                        <input type="radio" name="report_emoji" value="{{ option.emoji }}" aria-label="{{ option.label }}">
+                                        <span>{{ option.emoji }}</span>
                                     </label>
                                 {% endfor %}
                             </div>
@@ -328,11 +329,11 @@
                     <div class="fb-share-options">
                         <label>
                             <input type="radio" name="report_shared" value="True">
-                            <span>Yes, I wish to share my message</span>
+                            <span>Yes, I wish to send my message</span>
                         </label>
                         <label>
                             <input type="radio" name="report_shared" value="False">
-                            <span>No, I do not wish to share my message</span>
+                            <span>No, I do not wish to send my message</span>
                         </label>
                     </div>
                 </div>
@@ -645,7 +646,7 @@
                 if (currentPhase !== 'share') { e.preventDefault(); return; }
                 if (!document.querySelector('input[name="report_shared"]:checked')) {
                     e.preventDefault();
-                    showError('Please choose whether you wish to share your message.');
+                    showError('Please choose whether you wish to send your message.');
                 }
             }, true);
         }
