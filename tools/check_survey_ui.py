@@ -102,7 +102,7 @@ def main():
                 load('Intro_' + format + ('_reactions' if reactions else '_no_reactions'))
                 text = ' '.join(page.locator('body').inner_text().split())
                 assert ('Other participants can also react' in text) == reactions
-                assert ('After each period with social interactions' in text) == (reactions and format == 'quantitative_social')
+                assert 'After each period with social interactions' not in text
                 assert 'Your messages will' not in text
         for asked in (0, 1):
             for accepted in (0, 1):
