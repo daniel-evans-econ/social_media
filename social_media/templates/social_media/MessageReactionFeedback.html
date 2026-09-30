@@ -31,7 +31,7 @@
     <div class="rf-header" id="rf-title">Reactions to your messages</div>
     <div class="rf-body">
         {% if messages %}
-        <p>Here are the messages you sent during this period and the reactions they received.</p>
+        <p>Below you can read the messages you sent this period. We also report the number of each type of reaction that this message has received.</p>
         {% for message in messages %}
         <article class="rf-post" data-message-key="{{ message.key }}">
             <div class="rf-post-head">
@@ -49,7 +49,7 @@
         </article>
         {% endfor %}
         {% else %}
-        <p>You chose not to send any messages during this period, so there are no reactions to show.</p>
+        <p>You chose not to send any messages about the number of questions you answered correctly during this period, so there are no reactions to show.</p>
         {% endif %}
         <div class="rf-actions"><button class="rf-next" type="submit">Next</button></div>
     </div>

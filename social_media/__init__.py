@@ -1209,36 +1209,32 @@ def record_sent_message_time(player, kind):
 
 
 def reaction_feedback_messages(player):
-    """Replay only sent messages from this period; preview counts are synthetic."""
+    """Replay sent X-out-of-5 block messages only; never IQ-score messages."""
     start = player.round_number - C.PERIOD_LENGTH + 1
     times = player.participant.vars.get('sent_message_times', {})
     messages = []
     for source in player.in_rounds(start, player.round_number):
-        for kind, prefix, shared_field in (
-            ('block', 'report_', 'report_shared'),
-            ('iq', 'iq_report_', 'iq_report_shared'),
-        ):
-            if not source.field_maybe_none(shared_field):
-                continue
-            content = source.field_maybe_none(prefix + 'message')
-            if not content:
-                continue
-            key = f'{kind}-{source.round_number}'
-            timestamp = times.get(key, '')
-            if not timestamp:
-                try:
-                    history = json.loads(source.field_maybe_none(prefix + 'compose_history') or '[]')
-                    timestamp = next((e.get('time', '') for e in reversed(history)
-                                      if e.get('event') == 'compose_next'), '')
-                except (ValueError, TypeError, AttributeError):
-                    timestamp = ''
-            rng = random.Random(f'{player.participant.code}-reaction-counts-{key}')
-            name = source.field_maybe_none(prefix + 'display_name') or player.participant.vars.get('display_name', '')
-            messages.append(dict(
-                key=key, name=name, initial=name[:1].upper(), text=content,
-                timestamp=timestamp,
-                reactions=[dict(option, count=rng.randint(0, 9)) for option in REACTION_OPTIONS],
-            ))
+        if not is_feedback_round(source) or not source.field_maybe_none('report_shared'):
+            continue
+        content = source.field_maybe_none('report_message')
+        if not content or source.field_maybe_none('report_number') is None:
+            continue
+        key = f'block-{source.round_number}'
+        timestamp = times.get(key, '')
+        if not timestamp:
+            try:
+                history = json.loads(source.field_maybe_none('report_compose_history') or '[]')
+                timestamp = next((e.get('time', '') for e in reversed(history)
+                                  if e.get('event') == 'compose_next'), '')
+            except (ValueError, TypeError, AttributeError):
+                timestamp = ''
+        rng = random.Random(f'{player.participant.code}-reaction-counts-{key}')
+        name = source.field_maybe_none('report_display_name') or player.participant.vars.get('display_name', '')
+        messages.append(dict(
+            key=key, name=name, initial=name[:1].upper(), text=content,
+            timestamp=timestamp,
+            reactions=[dict(option, count=rng.randint(0, 9)) for option in REACTION_OPTIONS],
+        ))
     return messages
 
 
@@ -2685,7 +2681,6 @@ class IQFeedback(Page):
         cond = get_condition(player)
         signal = pilot_iq_feedback_signal(player)
         reaction = record_message_reaction(player, signal, 'iq_received_reaction')
-        record_sent_message_time(player, 'iq')
         username = (player.participant.vars.get('display_name') or '').strip()
         if cond in ('quantitative_social', 'qualitative_social'):
             # Name comes from the username chosen on the Further-instructions page.
@@ -3077,7 +3072,9 @@ class MessageReactionFeedback(Page):
     def vars_for_template(player):
         period = period_of_round(player.round_number)
         snapshots = dict(player.participant.vars.get('reaction_feedback_snapshots', {}))
-        key = str(period)
+        # A separate key prevents old preview caches from replaying IQ messages
+        # while retaining the original snapshots as a record of past exposure.
+        key = f'{period}:sent_blocks'
         if key not in snapshots:
             snapshots[key] = dict(
                 source='synthetic_preview', treatment=True, assignment_source='like_treatment', period=period,
@@ -3717,7 +3714,8 @@ def custom_export(players):
         if player.round_number not in (15, 30, 45):
             continue
         period = period_of_round(player.round_number)
-        snapshot = player.participant.vars.get('reaction_feedback_snapshots', {}).get(str(period))
+        snapshots = player.participant.vars.get('reaction_feedback_snapshots', {})
+        snapshot = snapshots.get(f'{period}:sent_blocks', snapshots.get(str(period)))
         yield [player.participant.code, period, get_condition(player),
                reaction_feedback_enabled(player), like_button_enabled(player),
                json.dumps(snapshot, ensure_ascii=False) if snapshot else '']

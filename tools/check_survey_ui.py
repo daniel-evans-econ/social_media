@@ -49,9 +49,11 @@ def main():
 
         if (fixtures / 'MessageReactionFeedback.html').exists():
             load('MessageReactionFeedback')
-            assert page.locator('.rf-post').count() == 3
-            assert page.locator('.rf-name').all_text_contents() == ['Bot'] * 3
-            assert page.locator('.rf-reaction').count() == 21
+            assert page.locator('.rf-post').count() == 2
+            assert page.locator('.rf-name').all_text_contents() == ['Bot'] * 2
+            assert page.locator('.rf-reaction').count() == 14
+            assert all('out of 5' in text for text in page.locator('.rf-text').all_text_contents())
+            assert all(key.startswith('block-') for key in page.locator('.rf-post').evaluate_all('(els) => els.map(el => el.dataset.messageKey)'))
             assert page.locator('.rf-reaction button, .rf-reaction input').count() == 0
             counts = page.locator('.rf-count').all_text_contents()
             page.reload()
@@ -73,7 +75,7 @@ def main():
                 assert page.locator('.rf-next').is_visible()
             load('MessageReactionFeedbackEmpty')
             assert page.locator('.rf-post').count() == 0
-            assert 'You chose not to send any messages' in page.locator('.rf-body').inner_text()
+            assert 'You chose not to send any messages about the number of questions you answered correctly' in page.locator('.rf-body').inner_text()
             page.set_viewport_size({'width': 1280, 'height': 900})
             checked.append('synthetic reaction counts, stable refresh, timestamps, mobile borders, empty sent-message state')
 

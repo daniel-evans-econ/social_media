@@ -172,15 +172,16 @@ class PlayerBot(Bot):
             if MessageReactionFeedback.is_displayed(p):
                 messages = reaction_feedback_messages(p)
                 assert messages == reaction_feedback_messages(p)
-                expected_count = 0 if p.id_in_group == 6 else 2 + int(CFG['show_iq'])
+                expected_count = 0 if p.id_in_group == 6 else 2
                 assert len(messages) == expected_count
+                assert all(m['key'].startswith('block-') and 'out of 5' in m['text'] for m in messages)
                 assert all(len(m['reactions']) == 7 for m in messages)
                 assert all(m['name'] == 'Bot' and m['initial'] == 'B' for m in messages)
                 self.capture_page('MessageReactionFeedback' if messages else 'MessageReactionFeedbackEmpty')
                 yield Submission(MessageReactionFeedback, {}, check_html=False)
                 db.expire_all()
                 p = self.player
-                snapshot = p.participant.vars['reaction_feedback_snapshots'][str((p.round_number - 1) // 15 + 1)]
+                snapshot = p.participant.vars['reaction_feedback_snapshots'][f'{(p.round_number - 1) // 15 + 1}:sent_blocks']
                 assert snapshot['source'] == 'synthetic_preview'
                 assert snapshot['assignment_source'] == 'like_treatment'
                 assert snapshot['messages'] == messages
