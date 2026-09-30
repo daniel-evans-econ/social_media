@@ -103,7 +103,7 @@ def main():
                 text = ' '.join(page.locator('body').inner_text().split())
                 assert ('Other participants can also react' in text) == reactions
                 assert ('After each period with social interactions' in text) == (reactions and format == 'quantitative_social')
-                assert ('in words and include an emoji' in text) == (format == 'qualitative_social')
+                assert 'Your messages will' not in text
         for asked in (0, 1):
             for accepted in (0, 1):
                 load(f'FinalResults_{asked}_{accepted}')
