@@ -2,6 +2,7 @@ from otree.api import *
 import json
 import os
 import random
+from datetime import datetime, timezone
 from pathlib import Path
 from statistics import NormalDist
 
@@ -1129,6 +1130,7 @@ def creating_session(subsession: Subsession):
             part.vars['like_treatment'] = (
                 random.Random(f"{part.code}-like").random() < 0.5
             )
+            reaction_feedback_assignment(p)
 
             # Four balanced cells decorrelate the social type (quantitative vs
             # qualitative) from the block order (control-first vs social-first).
@@ -1192,6 +1194,63 @@ def round_spec(player: Player):
 def like_button_enabled(player: Player) -> bool:
     """Whether this participant can react to received messages."""
     return bool(player.participant.vars.get('like_treatment', False))
+
+
+def reaction_feedback_enabled(player):
+    # An explicit environment OFF also disables this in previously created sessions.
+    return (os.environ.get('ENABLE_REACTION_FEEDBACK', '1') == '1'
+            and player.session.config.get('reaction_feedback_enabled', True))
+
+
+def reaction_feedback_assignment(player):
+    """Independent participant-level assignment, stable across tasks and refreshes."""
+    key = 'reaction_feedback_treatment'
+    if key not in player.participant.vars:
+        player.participant.vars[key] = random.Random(
+            f'{player.participant.code}-reaction-feedback'
+        ).random() < 0.5
+    return player.participant.vars[key]
+
+
+def record_sent_message_time(player, kind):
+    if reaction_feedback_enabled(player) and get_condition(player) == 'quantitative_social':
+        times = dict(player.participant.vars.get('sent_message_times', {}))
+        times[f'{kind}-{player.round_number}'] = datetime.now(timezone.utc).isoformat()
+        player.participant.vars['sent_message_times'] = times
+
+
+def reaction_feedback_messages(player):
+    """Replay only sent messages from this period; preview counts are synthetic."""
+    start = player.round_number - C.PERIOD_LENGTH + 1
+    times = player.participant.vars.get('sent_message_times', {})
+    messages = []
+    for source in player.in_rounds(start, player.round_number):
+        for kind, prefix, shared_field in (
+            ('block', 'report_', 'report_shared'),
+            ('iq', 'iq_report_', 'iq_report_shared'),
+        ):
+            if not source.field_maybe_none(shared_field):
+                continue
+            content = source.field_maybe_none(prefix + 'message')
+            if not content:
+                continue
+            key = f'{kind}-{source.round_number}'
+            timestamp = times.get(key, '')
+            if not timestamp:
+                try:
+                    history = json.loads(source.field_maybe_none(prefix + 'compose_history') or '[]')
+                    timestamp = next((e.get('time', '') for e in reversed(history)
+                                      if e.get('event') == 'compose_next'), '')
+                except (ValueError, TypeError, AttributeError):
+                    timestamp = ''
+            rng = random.Random(f'{player.participant.code}-reaction-counts-{key}')
+            name = source.field_maybe_none(prefix + 'display_name') or player.participant.vars.get('display_name', '')
+            messages.append(dict(
+                key=key, name=name, initial=name[:1].upper(), text=content,
+                timestamp=timestamp,
+                reactions=[dict(option, count=rng.randint(0, 9)) for option in REACTION_OPTIONS],
+            ))
+    return messages
 
 
 def record_message_reaction(player, signal, field):
@@ -2456,6 +2515,7 @@ class BlockFeedback(Page):
 
         cond = get_condition(player)
         signal = pilot_feedback_signals(player)
+        record_sent_message_time(player, 'block')
         reaction = record_message_reaction(player, signal, 'received_reaction')
         username = (player.participant.vars.get('display_name') or '').strip()
         if cond in ('quantitative_social', 'qualitative_social'):
@@ -2632,6 +2692,7 @@ class IQFeedback(Page):
         cond = get_condition(player)
         signal = pilot_iq_feedback_signal(player)
         reaction = record_message_reaction(player, signal, 'iq_received_reaction')
+        record_sent_message_time(player, 'iq')
         username = (player.participant.vars.get('display_name') or '').strip()
         if cond in ('quantitative_social', 'qualitative_social'):
             # Name comes from the username chosen on the Further-instructions page.
@@ -3007,6 +3068,31 @@ class ColorTask6(Page):
     def before_next_page(player: Player, timeout_happened):
         if timeout_happened:
             player.stroop_6_response_time = None
+
+
+class MessageReactionFeedback(Page):
+    """Preview counts shown after confidence, before the period outcomes."""
+
+    @staticmethod
+    def is_displayed(player):
+        return (reaction_feedback_enabled(player)
+                and is_end_of_period_with_p3(player)
+                and get_condition(player) == 'quantitative_social'
+                and reaction_feedback_assignment(player))
+
+    @staticmethod
+    def vars_for_template(player):
+        period = period_of_round(player.round_number)
+        snapshots = dict(player.participant.vars.get('reaction_feedback_snapshots', {}))
+        key = str(period)
+        if key not in snapshots:
+            snapshots[key] = dict(
+                source='synthetic_preview', treatment=True, period=period,
+                shown_at=datetime.now(timezone.utc).isoformat(),
+                messages=reaction_feedback_messages(player),
+            )
+            player.participant.vars['reaction_feedback_snapshots'] = snapshots
+        return dict(period=period, messages=snapshots[key]['messages'])
 
 
 class EndOfPeriodSurvey(Page):
@@ -3604,6 +3690,7 @@ page_sequence = [
     IQFeedback,
     PerceivedPercentile,
     PerceivedPercentileConfidence,
+    MessageReactionFeedback,
     EndOfPeriodSurvey,
     GlobalIQFeedback,
     WTACompare,
@@ -3625,3 +3712,17 @@ page_sequence = [
     Comments,
     FinalResults,
 ]
+
+
+def custom_export(players):
+    """Export assignment and exactly displayed synthetic counts without schema changes."""
+    yield ['participant_code', 'period', 'condition', 'reaction_feedback_enabled_at_export',
+           'reaction_feedback_treatment', 'feedback_snapshot_json']
+    for player in players:
+        if player.round_number not in (15, 30, 45):
+            continue
+        period = period_of_round(player.round_number)
+        snapshot = player.participant.vars.get('reaction_feedback_snapshots', {}).get(str(period))
+        yield [player.participant.code, period, get_condition(player),
+               reaction_feedback_enabled(player), reaction_feedback_assignment(player),
+               json.dumps(snapshot, ensure_ascii=False) if snapshot else '']

@@ -1,0 +1,68 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+
+{% block content %}
+<style>
+    .rf-backdrop { opacity: .5; pointer-events: none; }
+    .rf-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.35); opacity: 0; transition: opacity .25s; z-index: 9998; }
+    .rf-overlay.open { opacity: 1; }
+    .rf-sidebar { position: fixed; top: 0; right: 0; width: 440px; max-width: 92vw; height: 100%; background: white; box-shadow: -8px 0 24px rgba(0,0,0,.18); transform: translateX(105%); transition: transform .35s; z-index: 9999; border-radius: 14px 0 0 14px; overflow-y: auto; }
+    .rf-sidebar.open { transform: translateX(0); }
+    .rf-header { padding: 16px 20px 12px; border-bottom: 1px solid #eee; color: darkred; font-weight: 600; }
+    .rf-body { padding: 14px 20px 24px; }
+    .rf-post { position: relative; border: 1px solid #e2e6eb; border-radius: 12px; padding: 12px 12px 28px; margin: 24px 0 36px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+    .rf-post-head { display: flex; gap: 10px; align-items: center; }
+    .rf-avatar { flex: 0 0 36px; height: 36px; border-radius: 50%; background: #6c5ce7; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+    .rf-name { font-size: .95em; font-weight: 600; overflow-wrap: anywhere; }
+    .rf-time { color: #8a8a8a; font-weight: 400; font-size: .9em; white-space: nowrap; }
+    .rf-text { margin: 6px 0 0 46px; font-style: italic; color: #555; overflow-wrap: anywhere; }
+    .rf-reactions { position: absolute; left: 8px; right: 8px; bottom: 0; transform: translateY(50%); display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+    .rf-reaction { display: flex; align-items: center; justify-content: center; gap: 2px; height: 30px; border: 2px solid #e2e6eb; border-radius: 999px; background: white; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    .rf-count { font-size: 11px; color: #555; font-variant-numeric: tabular-nums; }
+    .rf-emoji { font-size: 15px; }
+    .rf-actions { display: flex; justify-content: flex-end; margin-top: 20px; }
+    .rf-next { background: darkred; color: white; border: 1px solid darkred; border-radius: 8px; padding: 8px 18px; }
+    body { overflow: hidden; }
+    @media (max-width: 360px) { .rf-body { padding-left: 14px; padding-right: 14px; } .rf-reactions { gap: 2px; } .rf-reaction { gap: 0; } .rf-emoji { font-size: 14px; } }
+</style>
+<div class="rf-backdrop" aria-hidden="true"><h3>Period {{ period }}</h3><p>Your messages</p></div>
+<div class="rf-overlay" aria-hidden="true"></div>
+<section class="rf-sidebar" role="dialog" aria-modal="true" aria-labelledby="rf-title">
+    <div class="rf-header" id="rf-title">Reactions to your messages</div>
+    <div class="rf-body">
+        {% if messages %}
+        <p>Here are the messages you sent during this period and the reactions they received.</p>
+        {% for message in messages %}
+        <article class="rf-post" data-message-key="{{ message.key }}">
+            <div class="rf-post-head">
+                <div class="rf-avatar" aria-hidden="true">{{ message.initial }}</div>
+                <div><span class="rf-name">{{ message.name }}</span> <time class="rf-time" datetime="{{ message.timestamp }}">Earlier this period</time></div>
+            </div>
+            <p class="rf-text">{{ message.text }}</p>
+            <div class="rf-reactions" aria-label="Reaction counts">
+                {% for reaction in message.reactions %}
+                <span class="rf-reaction" title="{{ reaction.label }}: {{ reaction.count }}" aria-label="{{ reaction.label }}: {{ reaction.count }}">
+                    <span class="rf-emoji" aria-hidden="true">{{ reaction.emoji }}</span><span class="rf-count" aria-hidden="true">{{ reaction.count }}</span>
+                </span>
+                {% endfor %}
+            </div>
+        </article>
+        {% endfor %}
+        {% else %}
+        <p>You chose not to send any messages during this period, so there are no reactions to show.</p>
+        {% endif %}
+        <div class="rf-actions"><button class="rf-next" type="submit">Next</button></div>
+    </div>
+</section>
+<script>
+    document.querySelectorAll('.rf-time').forEach(function (el) {
+        var time = new Date(el.getAttribute('datetime'));
+        if (!isNaN(time.getTime())) el.textContent = '· ' + time.toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'});
+    });
+    requestAnimationFrame(function () { requestAnimationFrame(function () {
+        document.querySelector('.rf-overlay').classList.add('open');
+        document.querySelector('.rf-sidebar').classList.add('open');
+        document.querySelector('.rf-next').focus({preventScroll: true});
+    }); });
+</script>
+{% endblock %}

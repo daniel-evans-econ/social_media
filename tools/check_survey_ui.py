@@ -47,6 +47,36 @@ def main():
         def load(name):
             page.goto(f'http://127.0.0.1:8765/qa/{name}.html', wait_until='load')
 
+        if (fixtures / 'MessageReactionFeedback.html').exists():
+            load('MessageReactionFeedback')
+            assert page.locator('.rf-post').count() == 3
+            assert page.locator('.rf-name').all_text_contents() == ['Bot'] * 3
+            assert page.locator('.rf-reaction').count() == 21
+            assert page.locator('.rf-reaction button, .rf-reaction input').count() == 0
+            counts = page.locator('.rf-count').all_text_contents()
+            page.reload()
+            assert page.locator('.rf-count').all_text_contents() == counts
+            assert all('Earlier' not in t for t in page.locator('.rf-time').all_text_contents())
+            for width, height in [(1280, 900), (390, 844), (320, 740)]:
+                page.set_viewport_size({'width': width, 'height': height})
+                page.wait_for_timeout(400)
+                assert page.locator('.rf-sidebar').evaluate('(el) => el.scrollWidth <= el.clientWidth + 1')
+                for post in page.locator('.rf-post').all():
+                    box = post.bounding_box()
+                    for reaction in post.locator('.rf-reaction').all():
+                        badge = reaction.bounding_box()
+                        assert badge['y'] < box['y'] + box['height'] < badge['y'] + badge['height']
+                        assert badge['x'] >= box['x'] and badge['x'] + badge['width'] <= box['x'] + box['width']
+                        assert reaction.evaluate('(el) => el.scrollWidth <= el.clientWidth + 1')
+                page.screenshot(path=str(screenshots/f'reaction_counts_{width}.png'))
+                page.locator('.rf-next').scroll_into_view_if_needed()
+                assert page.locator('.rf-next').is_visible()
+            load('MessageReactionFeedbackEmpty')
+            assert page.locator('.rf-post').count() == 0
+            assert 'You chose not to send any messages' in page.locator('.rf-body').inner_text()
+            page.set_viewport_size({'width': 1280, 'height': 900})
+            checked.append('synthetic reaction counts, stable refresh, timestamps, mobile borders, empty sent-message state')
+
         load('IQReferencePoint')
         assert 'IQ compared with 20 other Prolific respondents' in page.locator('body').inner_text()
         assert 'separately drawn comparison group for each component' not in page.locator('body').inner_text()

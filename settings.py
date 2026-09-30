@@ -28,6 +28,8 @@ ROOMS = [
 ]
 
 SESSION_CONFIG_DEFAULTS = dict(
+    # Preview treatment: set ENABLE_REACTION_FEEDBACK=0 to restore the old flow.
+    reaction_feedback_enabled=environ.get('ENABLE_REACTION_FEEDBACK', '1') == '1',
     real_world_currency_per_point=1.00,
     participation_fee=0.00,
     doc="",
@@ -46,4 +48,3 @@ ADMIN_PASSWORD = environ.get('OTREE_ADMIN_PASSWORD')
 DEMO_PAGE_INTRO_HTML = """ """
 # Heroku / production: set OTREE_SECRET_KEY (e.g. `heroku config:set OTREE_SECRET_KEY=...`).
 SECRET_KEY = environ.get('OTREE_SECRET_KEY', '2398301291032')
-
