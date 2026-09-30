@@ -1130,7 +1130,6 @@ def creating_session(subsession: Subsession):
             part.vars['like_treatment'] = (
                 random.Random(f"{part.code}-like").random() < 0.5
             )
-            reaction_feedback_assignment(p)
 
             # Four balanced cells decorrelate the social type (quantitative vs
             # qualitative) from the block order (control-first vs social-first).
@@ -1200,16 +1199,6 @@ def reaction_feedback_enabled(player):
     # An explicit environment OFF also disables this in previously created sessions.
     return (os.environ.get('ENABLE_REACTION_FEEDBACK', '1') == '1'
             and player.session.config.get('reaction_feedback_enabled', True))
-
-
-def reaction_feedback_assignment(player):
-    """Independent participant-level assignment, stable across tasks and refreshes."""
-    key = 'reaction_feedback_treatment'
-    if key not in player.participant.vars:
-        player.participant.vars[key] = random.Random(
-            f'{player.participant.code}-reaction-feedback'
-        ).random() < 0.5
-    return player.participant.vars[key]
 
 
 def record_sent_message_time(player, kind):
@@ -2198,6 +2187,10 @@ class Intro(Page):
             receives_messages=CFG['received_message_source'] is not None,
             like_treatment=like_button_enabled(player),
             reaction_options=REACTION_OPTIONS,
+            is_quantitative=player.participant.vars.get('social_type') == 'quantitative_social',
+            show_reaction_counts=(like_button_enabled(player)
+                                  and reaction_feedback_enabled(player)
+                                  and player.participant.vars.get('social_type') == 'quantitative_social'),
             total_questions=2 * C.PERIOD_LENGTH if CFG['use_wta'] else 3 * C.PERIOD_LENGTH,
             period_components=period_components,
             flat_payment=FLAT_PAYMENT_DISPLAY,
@@ -3078,7 +3071,7 @@ class MessageReactionFeedback(Page):
         return (reaction_feedback_enabled(player)
                 and is_end_of_period_with_p3(player)
                 and get_condition(player) == 'quantitative_social'
-                and reaction_feedback_assignment(player))
+                and like_button_enabled(player))
 
     @staticmethod
     def vars_for_template(player):
@@ -3087,7 +3080,7 @@ class MessageReactionFeedback(Page):
         key = str(period)
         if key not in snapshots:
             snapshots[key] = dict(
-                source='synthetic_preview', treatment=True, period=period,
+                source='synthetic_preview', treatment=True, assignment_source='like_treatment', period=period,
                 shown_at=datetime.now(timezone.utc).isoformat(),
                 messages=reaction_feedback_messages(player),
             )
@@ -3662,6 +3655,8 @@ class FinalResults(Page):
             had_switch_deduction=subtracted > 0,
             guess_bonus_max_display=f"{float(guess_bonus_max):.2f}",
             iq_reference_asked=iq_reference_asked,
+            show_reaction_followup=(CFG['received_message_source'] is not None
+                                    and like_button_enabled(player)),
             prolific_url=PROLIFIC_COMPLETION_URL,
         )
 
@@ -3717,12 +3712,12 @@ page_sequence = [
 def custom_export(players):
     """Export assignment and exactly displayed synthetic counts without schema changes."""
     yield ['participant_code', 'period', 'condition', 'reaction_feedback_enabled_at_export',
-           'reaction_feedback_treatment', 'feedback_snapshot_json']
+           'reaction_treatment', 'feedback_snapshot_json']
     for player in players:
         if player.round_number not in (15, 30, 45):
             continue
         period = period_of_round(player.round_number)
         snapshot = player.participant.vars.get('reaction_feedback_snapshots', {}).get(str(period))
         yield [player.participant.code, period, get_condition(player),
-               reaction_feedback_enabled(player), reaction_feedback_assignment(player),
+               reaction_feedback_enabled(player), like_button_enabled(player),
                json.dumps(snapshot, ensure_ascii=False) if snapshot else '']

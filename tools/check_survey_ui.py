@@ -88,11 +88,22 @@ def main():
             assert half.evaluate('(el) => getComputedStyle(el).color') == 'rgb(139, 0, 0)'
         load('IntroReactions')
         intro = page.locator('body').inner_text()
-        assert 'Other participants can also react to any message you send.' in intro
+        assert 'Other participants can also react to any message you send using the same emojis.' in intro
+        assert '👍, ❤️, 🤗, 😆, 😮, 😢, and 😡.' in intro
+        assert 'let you know' in intro
+        assert 'follow up with you' not in intro
         assert 'how many of each reaction' in intro
         assert 'likes and dislikes' not in intro
         load('IntroNoReactions')
         assert 'You can also react' not in page.locator('body').inner_text()
+        assert 'Other participants can also react' not in page.locator('body').inner_text()
+        for format in ('quantitative_social', 'qualitative_social'):
+            for reactions in (False, True):
+                load('Intro_' + format + ('_reactions' if reactions else '_no_reactions'))
+                text = ' '.join(page.locator('body').inner_text().split())
+                assert ('Other participants can also react' in text) == reactions
+                assert ('After each period with social interactions' in text) == (reactions and format == 'quantitative_social')
+                assert ('in words and include an emoji' in text) == (format == 'qualitative_social')
         for asked in (0, 1):
             for accepted in (0, 1):
                 load(f'FinalResults_{asked}_{accepted}')
@@ -100,6 +111,7 @@ def main():
                 maximum = 0.50 + 0.25 * accepted + 0.50 * asked
                 assert f'${maximum:.2f}' in text
                 assert ('estimates of your IQ and percentile' in text) == bool(asked)
+                assert ('We will follow up with you after the data collection is complete' in text) == (not asked)
         checked.append('both 50% highlights, reaction disclosure, and four final-bonus conditions')
         load('Experience_writing')
         assert page.locator('strong', has_text='content').count() == 1
@@ -170,6 +182,14 @@ def main():
         checked.append('matching qualitative emoji palette; quantitative composition stays number-only')
 
         load('PerceivedPercentile')
+        estimate_text = ' '.join(page.locator('body').inner_text().split())
+        assert '0 means you think you did worse than every other participant.' in estimate_text
+        assert '10 means you think you did better than half of the other participants, and worse than the other half of participants.' in estimate_text
+        assert '20 means you think you did better than every other participant.' in estimate_text
+        for phrase in ('worse than every other', 'better than half', 'worse than the other half', 'better than every other'):
+            emphasis = page.get_by_text(phrase, exact=True)
+            assert emphasis.evaluate('(el) => getComputedStyle(el).color') == 'rgb(139, 0, 0)'
+            assert int(emphasis.evaluate('(el) => getComputedStyle(el).fontWeight')) >= 600
         field = page.locator('#perceived_outperformed_count')
         assert field.input_value() == ''
         page.locator('#percentile-track-placeholder').click()

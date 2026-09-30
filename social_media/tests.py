@@ -25,7 +25,7 @@ from . import (
     BotCheck, Consent, ProlificID, IQReferencePoint, Intro, TaskIntro, QuestionPage, BlockFeedback, IQFeedback,
     EndOfPeriodSurvey, TaskEffort, WTACompare, Results, GlobalIQFeedback,
     PerceivedPercentile, PerceivedPercentileConfidence,
-    MessageReactionFeedback, reaction_feedback_assignment, reaction_feedback_messages,
+    MessageReactionFeedback, reaction_feedback_messages,
     BigFiveSurvey1, BigFiveSurvey2, _bfi_page_fields,
     SelfEsteemSurvey, NarcissismSurvey, Demographics,
     OutcomeConcern, PlatformUsage, RealismQuestion,
@@ -60,7 +60,8 @@ class PlayerBot(Bot):
         if self.round_number == 1:
             # Exercise both reaction arms deterministically in bot sessions.
             p.participant.vars['like_treatment'] = p.id_in_group % 2 == 0
-            p.participant.vars['reaction_feedback_treatment'] = p.id_in_group % 2 == 1
+            # Obsolete preview assignment must have no effect on the unified arm.
+            p.participant.vars['reaction_feedback_treatment'] = not like_button_enabled(p)
             # Four bots cover IQ-prior yes/no crossed with optional-period yes/no.
             p.participant.vars['iq_reference_asked'] = p.id_in_group % 2 == 1
             p.iq_reference_asked = p.participant.vars['iq_reference_asked']
@@ -78,6 +79,7 @@ class PlayerBot(Bot):
             else:
                 yield Submission(IQReferencePoint, dict(), check_html=False)
             self.capture_page('IntroReactions' if like_button_enabled(p) else 'IntroNoReactions')
+            self.capture_page('Intro_' + p.participant.vars['social_type'] + ('_reactions' if like_button_enabled(p) else '_no_reactions'))
             yield Submission(Intro, dict(display_name='Bot'), check_html=False)
             # The intro writes participant.vars; refresh before the bot changes
             # the example gate so it cannot overwrite the saved username.
@@ -112,7 +114,7 @@ class PlayerBot(Bot):
                 fb = dict(received_reaction=REACTION_VALUES[(p.round_number // 5 - 1) % len(REACTION_VALUES)])
                 if cond == 'quantitative_social':
                     # Even a forged emoji must not enter quantitative messages.
-                    fb.update(report_number=5, report_shared=p.id_in_group != 5 and p.round_number % 15 != 5, report_emoji=QUAL_EMOJIS[0])
+                    fb.update(report_number=5, report_shared=p.id_in_group != 6 and p.round_number % 15 != 5, report_emoji=QUAL_EMOJIS[0])
                 elif cond == 'qualitative_social':
                     fb.update(report_emoji=QUAL_EMOJIS[(p.round_number // 5 - 1) % len(QUAL_EMOJIS)],
                               report_message='Felt good about that one.', report_shared=True)
@@ -141,7 +143,7 @@ class PlayerBot(Bot):
             cond = get_condition(p)
             iqfb = dict(iq_received_reaction='none')
             if cond == 'quantitative_social':
-                iqfb.update(report_iq=100, iq_report_shared=p.id_in_group != 5)
+                iqfb.update(report_iq=100, iq_report_shared=p.id_in_group != 6)
             elif cond == 'qualitative_social':
                 iqfb.update(iq_report_emoji=QUAL_EMOJIS[0],
                             iq_report_message='Felt good about that one.',
@@ -165,12 +167,12 @@ class PlayerBot(Bot):
             yield Submission(PerceivedPercentileConfidence, dict(perceived_percentile_confidence=50), check_html=False)
             with patch.dict(os.environ, {'ENABLE_REACTION_FEEDBACK': '0'}):
                 assert not MessageReactionFeedback.is_displayed(p)
-            if get_condition(p) != 'quantitative_social' or not reaction_feedback_assignment(p):
+            if get_condition(p) != 'quantitative_social' or not like_button_enabled(p):
                 assert not MessageReactionFeedback.is_displayed(p)
             if MessageReactionFeedback.is_displayed(p):
                 messages = reaction_feedback_messages(p)
                 assert messages == reaction_feedback_messages(p)
-                expected_count = 0 if p.id_in_group == 5 else 2 + int(CFG['show_iq'])
+                expected_count = 0 if p.id_in_group == 6 else 2 + int(CFG['show_iq'])
                 assert len(messages) == expected_count
                 assert all(len(m['reactions']) == 7 for m in messages)
                 assert all(m['name'] == 'Bot' and m['initial'] == 'B' for m in messages)
@@ -180,6 +182,7 @@ class PlayerBot(Bot):
                 p = self.player
                 snapshot = p.participant.vars['reaction_feedback_snapshots'][str((p.round_number - 1) // 15 + 1)]
                 assert snapshot['source'] == 'synthetic_preview'
+                assert snapshot['assignment_source'] == 'like_treatment'
                 assert snapshot['messages'] == messages
 
         if is_end_of_period_with_p3(p):

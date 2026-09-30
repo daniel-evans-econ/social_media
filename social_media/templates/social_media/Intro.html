@@ -22,14 +22,24 @@
     We <strong style="color:darkred;">do not verify the truthfulness</strong> of the messages
     you send.{% endif %}
 </p>
+<p>
+    {% if is_quantitative %}
+    Your messages will report how many questions you answered correctly{% if show_iq %} or your IQ score{% endif %}.
+    {% else %}
+    Your messages will describe how you did in words and include an emoji.
+    {% endif %}
+</p>
 {% if receives_messages and like_treatment %}
 <p style="margin-top:1em;">
-    You can also <strong style="color:darkred;">react</strong> to any message you receive using
-    {% for option in reaction_options %}<span title="{{ option.label }}" aria-label="{{ option.label }}">{{ option.emoji }}</span>{% endfor %}.
-    Other participants can also react to any message you send.
+    You can also <strong style="color:darkred;">react</strong> to any message you receive using the emojis
+    {% for option in reaction_options %}{% if option.value != 'like' %}, {% if option.value == 'angry' %}and {% endif %}{% endif %}<span title="{{ option.label }}" aria-label="{{ option.label }}">{{ option.emoji }}</span>{% endfor %}.
+    Other participants can also react to any message you send using the same emojis.
     We will share the messages you send with other participants and
-    <strong style="color:darkred;">follow up with you</strong> to tell you
+    <strong style="color:darkred;">let you know</strong>
     <strong style="color:darkred;">how many of each reaction</strong> your messages received.
+    {% if show_reaction_counts %}
+    After each period with social interactions, you will see the reactions to the messages you sent during that period.
+    {% endif %}
 </p>
 {% endif %}
 <p style="margin-top:1em;">
