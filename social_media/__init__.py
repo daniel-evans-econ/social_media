@@ -439,6 +439,14 @@ REACTION_OPTIONS = [
     dict(value='sad', label='Sad', emoji='\U0001f622'),
     dict(value='angry', label='Angry', emoji='\U0001f621'),
 ]
+AVATAR_OPTIONS = [dict(value=name, label=name.title()) for name in ('fox', 'cat', 'bear', 'rabbit', 'owl', 'panda')]
+
+def avatar_for_name(name):
+    return random.Random('avatar-' + name).choice(AVATAR_OPTIONS)['value']
+
+def own_avatar(player):
+    return player.participant.vars.get('avatar_choice') or avatar_for_name(player.participant.vars.get('display_name', ''))
+
 REACTION_VALUES = ['none'] + [option['value'] for option in REACTION_OPTIONS]
 QUAL_EMOJIS = [option['emoji'] for option in REACTION_OPTIONS]
 
@@ -1208,34 +1216,50 @@ def record_sent_message_time(player, kind):
         player.participant.vars['sent_message_times'] = times
 
 
+def record_received_message_time(player):
+    times = dict(player.participant.vars.get('received_message_times', {}))
+    key = str(player.round_number)
+    if key not in times:
+        times[key] = datetime.now(timezone.utc).isoformat()
+        player.participant.vars['received_message_times'] = times
+    return times[key]
+
+
 def reaction_feedback_messages(player):
-    """Replay sent X-out-of-5 block messages only; never IQ-score messages."""
+    """Rank sent block messages and actually received block messages; exclude IQ messages."""
     start = player.round_number - C.PERIOD_LENGTH + 1
     times = player.participant.vars.get('sent_message_times', {})
+    received_times = player.participant.vars.get('received_message_times', {})
     messages = []
     for source in player.in_rounds(start, player.round_number):
-        if not is_feedback_round(source) or not source.field_maybe_none('report_shared'):
+        if not is_feedback_round(source):
             continue
-        content = source.field_maybe_none('report_message')
-        if not content or source.field_maybe_none('report_number') is None:
-            continue
-        key = f'block-{source.round_number}'
-        timestamp = times.get(key, '')
-        if not timestamp:
-            try:
-                history = json.loads(source.field_maybe_none('report_compose_history') or '[]')
-                timestamp = next((e.get('time', '') for e in reversed(history)
-                                  if e.get('event') == 'compose_next'), '')
-            except (ValueError, TypeError, AttributeError):
-                timestamp = ''
-        rng = random.Random(f'{player.participant.code}-reaction-counts-{key}')
+        own_text = source.field_maybe_none('report_message')
         name = source.field_maybe_none('report_display_name') or player.participant.vars.get('display_name', '')
-        messages.append(dict(
-            key=key, name=name, initial=name[:1].upper(), text=content,
-            timestamp=timestamp,
-            reactions=[dict(option, count=rng.randint(0, 9)) for option in REACTION_OPTIONS],
-        ))
-    return messages
+        candidates = []
+        if source.field_maybe_none('report_shared') and own_text and source.field_maybe_none('report_number') is not None:
+            timestamp = times.get(f'block-{source.round_number}', '')
+            if not timestamp:
+                try:
+                    history = json.loads(source.field_maybe_none('report_compose_history') or '[]')
+                    timestamp = next((e.get('time', '') for e in reversed(history) if e.get('event') == 'compose_next'), '')
+                except (ValueError, TypeError, AttributeError):
+                    timestamp = ''
+            candidates.append((f'block-{source.round_number}', name, own_text, timestamp, True))
+        peer_text = source.field_maybe_none('received_signal_text')
+        peer_name = source.field_maybe_none('received_signal_name')
+        if peer_text and peer_name:
+            candidates.append((f'received-{source.round_number}', peer_name, peer_text,
+                               received_times.get(str(source.round_number), ''), False))
+        for key, name, content, timestamp, is_own in candidates:
+            rng = random.Random(f'{player.participant.code}-reaction-counts-{key}')
+            all_reactions = [dict(option, count=rng.randint(0, 9)) for option in REACTION_OPTIONS]
+            messages.append(dict(key=key, name=name, initial=name[:1].upper(), text=content,
+                timestamp=timestamp, is_own=is_own,
+                avatar=own_avatar(player) if is_own else avatar_for_name(name),
+                total=sum(r['count'] for r in all_reactions), all_reactions=all_reactions,
+                reactions=sorted((r for r in all_reactions if r['count']), key=lambda r: -r['count'])))
+    return sorted(messages, key=lambda message: -message['total'])
 
 
 def record_message_reaction(player, signal, field):
@@ -2182,7 +2206,8 @@ class Intro(Page):
             has_optional_third=CFG['use_wta'],
             receives_messages=CFG['received_message_source'] is not None,
             like_treatment=like_button_enabled(player),
-            reaction_options=REACTION_OPTIONS,
+            reaction_options=REACTION_OPTIONS, avatar_options=AVATAR_OPTIONS,
+            selected_avatar=player.participant.vars.get('avatar_choice', ''),
             is_quantitative=player.participant.vars.get('social_type') == 'quantitative_social',
             show_reaction_counts=(like_button_enabled(player)
                                   and reaction_feedback_enabled(player)
@@ -2193,9 +2218,18 @@ class Intro(Page):
         )
 
     @staticmethod
+    def live_method(player, data):
+        avatar = data.get('avatar')
+        if avatar in [option['value'] for option in AVATAR_OPTIONS]:
+            player.participant.vars['avatar_choice'] = avatar
+            return {player.id_in_group: dict(avatar=avatar)}
+
+    @staticmethod
     def error_message(player: Player, values):
         if not (values.get('display_name') or '').strip():
             return "Please enter the username you want to use."
+        if player.participant.vars.get('avatar_choice') not in [option['value'] for option in AVATAR_OPTIONS]:
+            return "Please choose an avatar."
 
     @staticmethod
     def before_next_page(player: Player, timeout_happened):
@@ -2416,6 +2450,11 @@ class BlockFeedback(Page):
     ]
 
     @staticmethod
+    def live_method(player, data):
+        if data.get('event') == 'received_message_shown' and pilot_feedback_signals(player).get('name'):
+            return {player.id_in_group: dict(received_timestamp=record_received_message_time(player))}
+
+    @staticmethod
     def is_displayed(player: Player):
         if is_third_period(player) and not third_period_played(player):
             return False
@@ -2435,14 +2474,21 @@ class BlockFeedback(Page):
         signal = pilot_feedback_signals(player)
         signal_name = (signal.get('name') or '') if isinstance(signal, dict) else ''
         signal_initial = signal_name[:1].upper() if signal_name else '?'
+        received_times = dict(player.participant.vars.get('received_message_times', {}))
+        if signal_name and str(player.round_number) not in received_times:
+            received_times[str(player.round_number)] = datetime.now(timezone.utc).isoformat()
+            player.participant.vars['received_message_times'] = received_times
         player.like_treatment = like_button_enabled(player)
         return dict(
             condition=cond,
             block_score=block_correct(player),
             report_options=list(range(6)),
             display_name=player.participant.vars.get('display_name', ''),
+            avatar_choice=own_avatar(player),
             signal=signal,
+            received_timestamp=player.participant.vars.get('received_message_times', {}).get(str(player.round_number), ''),
             signal_initial=signal_initial,
+            signal_avatar=avatar_for_name(signal_name),
             qual_emojis=QUAL_EMOJIS,
             reaction_options=REACTION_OPTIONS,
             in_treatment=cond in ('quantitative_social', 'qualitative_social'),
@@ -2505,6 +2551,8 @@ class BlockFeedback(Page):
         cond = get_condition(player)
         signal = pilot_feedback_signals(player)
         record_sent_message_time(player, 'block')
+        if signal.get('name'):
+            record_received_message_time(player)
         reaction = record_message_reaction(player, signal, 'received_reaction')
         username = (player.participant.vars.get('display_name') or '').strip()
         if cond in ('quantitative_social', 'qualitative_social'):
@@ -2535,6 +2583,7 @@ class BlockFeedback(Page):
             set_id=spec['set_id'],
             block_score=block_correct(player),
             signal=signal,
+            received_timestamp=player.participant.vars.get('received_message_times', {}).get(str(player.round_number), ''),
             sent_number=player.field_maybe_none('report_number'),
             sent_emoji=player.field_maybe_none('report_emoji'),
             sent_message=player.field_maybe_none('report_message'),
@@ -2611,8 +2660,10 @@ class IQFeedback(Page):
             n_correct=n_correct,
             iq=iq,
             display_name=player.participant.vars.get('display_name', ''),
+            avatar_choice=own_avatar(player),
             signal=signal,
             signal_initial=signal_initial,
+            signal_avatar=avatar_for_name(signal_name),
             qual_emojis=QUAL_EMOJIS,
             reaction_options=REACTION_OPTIONS,
             in_treatment=cond in ('quantitative_social', 'qualitative_social'),
@@ -2763,6 +2814,7 @@ class GlobalIQFeedback(Page):
             n_correct=None,
             iq=iq,
             display_name=player.participant.vars.get('display_name', ''),
+            avatar_choice=own_avatar(player),
             signal=signal,
             signal_initial='?',
             qual_emojis=QUAL_EMOJIS,
@@ -3074,7 +3126,7 @@ class MessageReactionFeedback(Page):
         snapshots = dict(player.participant.vars.get('reaction_feedback_snapshots', {}))
         # A separate key prevents old preview caches from replaying IQ messages
         # while retaining the original snapshots as a record of past exposure.
-        key = f'{period}:sent_blocks'
+        key = f'{period}:ranked_blocks_v1'
         if key not in snapshots:
             snapshots[key] = dict(
                 source='synthetic_preview', treatment=True, assignment_source='like_treatment', period=period,
@@ -3709,13 +3761,13 @@ page_sequence = [
 def custom_export(players):
     """Export assignment and exactly displayed synthetic counts without schema changes."""
     yield ['participant_code', 'period', 'condition', 'reaction_feedback_enabled_at_export',
-           'reaction_treatment', 'feedback_snapshot_json']
+           'reaction_treatment', 'feedback_snapshot_json', 'avatar_choice']
     for player in players:
         if player.round_number not in (15, 30, 45):
             continue
         period = period_of_round(player.round_number)
         snapshots = player.participant.vars.get('reaction_feedback_snapshots', {})
-        snapshot = snapshots.get(f'{period}:sent_blocks', snapshots.get(str(period)))
+        snapshot = snapshots.get(f'{period}:ranked_blocks_v1', snapshots.get(f'{period}:sent_blocks', snapshots.get(str(period))))
         yield [player.participant.code, period, get_condition(player),
                reaction_feedback_enabled(player), like_button_enabled(player),
-               json.dumps(snapshot, ensure_ascii=False) if snapshot else '']
+               json.dumps(snapshot, ensure_ascii=False) if snapshot else '', own_avatar(player)]

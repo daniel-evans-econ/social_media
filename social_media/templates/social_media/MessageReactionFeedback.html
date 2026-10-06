@@ -16,8 +16,11 @@
     .rf-name { font-size: .95em; font-weight: 600; overflow-wrap: anywhere; }
     .rf-time { color: #8a8a8a; font-weight: 400; font-size: .9em; white-space: nowrap; }
     .rf-text { margin: 6px 0 0 46px; font-style: italic; color: #555; overflow-wrap: anywhere; }
-    .rf-reactions { position: absolute; left: 8px; right: 8px; bottom: 0; transform: translateY(50%); display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
-    .rf-reaction { display: flex; align-items: center; justify-content: center; gap: 2px; height: 30px; border: 2px solid #e2e6eb; border-radius: 999px; background: white; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    .rf-reactions { position: absolute; left: 8px; right: 8px; bottom: 0; transform: translateY(50%); display: flex; gap: 3px; }
+    .rf-reaction { flex: 0 1 34px; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 2px; height: 30px; border: 2px solid #e2e6eb; border-radius: 999px; background: white; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    .rf-own { background: #eef8ef; border-color: #c4dec8; }
+    .rf-you { color: #406a47; }
+    .care-icon { width: 1.3em; height: 1.3em; vertical-align: middle; }
     .rf-count { font-size: 11px; color: #555; font-variant-numeric: tabular-nums; }
     .rf-emoji { font-size: 15px; }
     .rf-actions { display: flex; justify-content: flex-end; margin-top: 20px; }
@@ -28,28 +31,28 @@
 <div class="rf-backdrop" aria-hidden="true"><h3>Period {{ period }}</h3><p>Your messages</p></div>
 <div class="rf-overlay" aria-hidden="true"></div>
 <section class="rf-sidebar" role="dialog" aria-modal="true" aria-labelledby="rf-title">
-    <div class="rf-header" id="rf-title">Reactions to your messages</div>
+    <div class="rf-header" id="rf-title">Reactions to messages written in this period</div>
     <div class="rf-body">
         {% if messages %}
-        <p>Below you can read the messages you sent this period. We also report the number of each type of reaction that this message has received.</p>
+        <p>Below you can read the messages you sent and received this period, ordered by the total number of reactions they received.</p>
         {% for message in messages %}
-        <article class="rf-post" data-message-key="{{ message.key }}">
+        <article class="rf-post{% if message.is_own %} rf-own{% endif %}" data-total="{{ message.total }}" data-message-key="{{ message.key }}">
             <div class="rf-post-head">
-                <div class="rf-avatar" aria-hidden="true">{{ message.initial }}</div>
-                <div><span class="rf-name">{{ message.name }}</span> <time class="rf-time" datetime="{{ message.timestamp }}">Earlier this period</time></div>
+                <img class="rf-avatar" src="/static/social/avatars/{{ message.avatar }}.svg" alt="">
+                <div><span class="rf-name">{{ message.name }}</span>{% if message.is_own %} <small class="rf-you">You</small>{% endif %} <time class="rf-time" datetime="{{ message.timestamp }}">Earlier this period</time></div>
             </div>
             <p class="rf-text">{{ message.text }}</p>
             <div class="rf-reactions" aria-label="Reaction counts">
                 {% for reaction in message.reactions %}
                 <span class="rf-reaction" title="{{ reaction.label }}: {{ reaction.count }}" aria-label="{{ reaction.label }}: {{ reaction.count }}">
-                    <span class="rf-emoji" aria-hidden="true">{{ reaction.emoji }}</span><span class="rf-count" aria-hidden="true">{{ reaction.count }}</span>
+                    <span class="rf-emoji" aria-hidden="true">{% if reaction.value == 'care' %}<img class="care-icon" src="/static/social/care.svg" alt="Care">{% else %}{{ reaction.emoji }}{% endif %}</span><span class="rf-count" aria-hidden="true">{{ reaction.count }}</span>
                 </span>
                 {% endfor %}
             </div>
         </article>
         {% endfor %}
         {% else %}
-        <p>You chose not to send any messages about the number of questions you answered correctly during this period, so there are no reactions to show.</p>
+        <p>There are no messages to show for this period.</p>
         {% endif %}
         <div class="rf-actions"><button class="rf-next" type="submit">Next</button></div>
     </div>

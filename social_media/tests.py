@@ -80,6 +80,9 @@ class PlayerBot(Bot):
                 yield Submission(IQReferencePoint, dict(), check_html=False)
             self.capture_page('IntroReactions' if like_button_enabled(p) else 'IntroNoReactions')
             self.capture_page('Intro_' + p.participant.vars['social_type'] + ('_reactions' if like_button_enabled(p) else '_no_reactions'))
+            assert Intro.error_message(p, dict(display_name='Bot')) == 'Please choose an avatar.'
+            assert Intro.live_method(p, dict(avatar='invalid')) is None
+            assert Intro.live_method(p, dict(avatar='fox')) == {p.id_in_group: dict(avatar='fox')}
             yield Submission(Intro, dict(display_name='Bot'), check_html=False)
             # The intro writes participant.vars; refresh before the bot changes
             # the example gate so it cannot overwrite the saved username.
@@ -148,6 +151,7 @@ class PlayerBot(Bot):
                 iqfb.update(iq_report_emoji=QUAL_EMOJIS[0],
                             iq_report_message='Felt good about that one.',
                             iq_report_shared=True)
+            self.capture_page('IQFeedback_' + cond)
             yield Submission(IQFeedback, iqfb, check_html=False)
             db.expire_all()
             p = self.player
@@ -173,15 +177,20 @@ class PlayerBot(Bot):
                 messages = reaction_feedback_messages(p)
                 assert messages == reaction_feedback_messages(p)
                 expected_count = 0 if p.id_in_group == 6 else 2
-                assert len(messages) == expected_count
-                assert all(m['key'].startswith('block-') and 'out of 5' in m['text'] for m in messages)
-                assert all(len(m['reactions']) == 7 for m in messages)
-                assert all(m['name'] == 'Bot' and m['initial'] == 'B' for m in messages)
-                self.capture_page('MessageReactionFeedback' if messages else 'MessageReactionFeedbackEmpty')
+                assert sum(m['is_own'] for m in messages) == expected_count
+                expected_received = sum(bool(r.field_maybe_none('received_signal_text')) for r in p.in_rounds(p.round_number - 14, p.round_number))
+                assert sum(not m['is_own'] for m in messages) == expected_received
+                assert [m['total'] for m in messages] == sorted((m['total'] for m in messages), reverse=True)
+                assert all(m['key'].startswith(('block-', 'received-')) and 'out of 5' in m['text'] for m in messages)
+                assert all(len(m['all_reactions']) == 7 for m in messages)
+                assert all(all(r['count'] > 0 for r in m['reactions']) for m in messages)
+                assert all([r['count'] for r in m['reactions']] == sorted((r['count'] for r in m['reactions']), reverse=True) for m in messages)
+                assert all(m['name'] == 'Bot' and m['avatar'] == 'fox' for m in messages if m['is_own'])
+                self.capture_page('MessageReactionFeedback' if expected_count else 'MessageReactionFeedbackEmpty')
                 yield Submission(MessageReactionFeedback, {}, check_html=False)
                 db.expire_all()
                 p = self.player
-                snapshot = p.participant.vars['reaction_feedback_snapshots'][f'{(p.round_number - 1) // 15 + 1}:sent_blocks']
+                snapshot = p.participant.vars['reaction_feedback_snapshots'][f'{(p.round_number - 1) // 15 + 1}:ranked_blocks_v1']
                 assert snapshot['source'] == 'synthetic_preview'
                 assert snapshot['assignment_source'] == 'like_treatment'
                 assert snapshot['messages'] == messages
@@ -206,6 +215,7 @@ class PlayerBot(Bot):
                         global_report_message='Felt good overall.',
                         global_report_shared=True,
                     )
+                self.capture_page('GlobalIQFeedback_' + treatment)
                 yield Submission(GlobalIQFeedback, gifb, check_html=False)
             wta = {}
             for i in range(1, len(WTA_AMOUNTS) + 1):

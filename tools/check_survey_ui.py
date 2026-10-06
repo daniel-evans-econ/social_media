@@ -49,11 +49,14 @@ def main():
 
         if (fixtures / 'MessageReactionFeedback.html').exists():
             load('MessageReactionFeedback')
-            assert page.locator('.rf-post').count() == 2
-            assert page.locator('.rf-name').all_text_contents() == ['Bot'] * 2
-            assert page.locator('.rf-reaction').count() == 14
+            assert page.locator('.rf-post').count() == 5
+            assert page.locator('.rf-own').count() == 2
+            assert page.locator('.rf-own .rf-name').all_text_contents() == ['Bot'] * 2
+            assert 0 < page.locator('.rf-reaction').count() <= 35
+            totals = page.locator('.rf-post').evaluate_all('(els) => els.map(el => Number(el.dataset.total))')
+            assert totals == sorted(totals, reverse=True)
             assert all('out of 5' in text for text in page.locator('.rf-text').all_text_contents())
-            assert all(key.startswith('block-') for key in page.locator('.rf-post').evaluate_all('(els) => els.map(el => el.dataset.messageKey)'))
+            assert all(key.startswith(('block-', 'received-')) for key in page.locator('.rf-post').evaluate_all('(els) => els.map(el => el.dataset.messageKey)'))
             assert page.locator('.rf-reaction button, .rf-reaction input').count() == 0
             counts = page.locator('.rf-count').all_text_contents()
             page.reload()
@@ -74,8 +77,9 @@ def main():
                 page.locator('.rf-next').scroll_into_view_if_needed()
                 assert page.locator('.rf-next').is_visible()
             load('MessageReactionFeedbackEmpty')
-            assert page.locator('.rf-post').count() == 0
-            assert 'You chose not to send any messages about the number of questions you answered correctly' in page.locator('.rf-body').inner_text()
+            assert page.locator('.rf-post').count() == 3
+            assert page.locator('.rf-own').count() == 0
+            assert all(int(x) > 0 for x in page.locator('.rf-count').all_text_contents())
             page.set_viewport_size({'width': 1280, 'height': 900})
             checked.append('synthetic reaction counts, stable refresh, timestamps, mobile borders, empty sent-message state')
 
@@ -91,10 +95,11 @@ def main():
         load('IntroReactions')
         intro = page.locator('body').inner_text()
         assert 'Other participants can also react to any message you send using the same emojis.' in intro
-        assert '👍, ❤️, 🤗, 😆, 😮, 😢, and 😡.' in intro
+        assert page.locator('img.care-icon').count() == 1
+        assert ', and 😡' in ' '.join(intro.split())
         assert 'let you know' in intro
         assert 'follow up with you' not in intro
-        assert 'how many of each reaction' in intro
+        assert 'how many of each type of reaction' in intro
         assert 'likes and dislikes' not in intro
         load('IntroNoReactions')
         assert 'You can also react' not in page.locator('body').inner_text()
@@ -106,6 +111,11 @@ def main():
                 assert ('Other participants can also react' in text) == reactions
                 assert 'After each period with social interactions' not in text
                 assert 'Your messages will' not in text
+                assert page.locator('.avatar-option').count() == 6
+                page.evaluate('window.liveSend = data => window.liveRecv(data)')
+                page.get_by_role('radio', name='Panda', exact=True).locator('..').click()
+                assert page.get_by_role('radio', name='Panda', exact=True).is_checked()
+                assert page.locator('#avatar-status').inner_text() == ''
         for asked in (0, 1):
             for accepted in (0, 1):
                 load(f'FinalResults_{asked}_{accepted}')
@@ -134,25 +144,43 @@ def main():
         assert page.locator('[data-reaction]').count() == 7
         assert page.get_by_role('button', name='Dislike', exact=True).count() == 0
         field = page.locator('#id_received_reaction')
+        page.evaluate('sessionStorage.clear()')
+        page.reload()
+        page.locator('.reaction-trigger').hover()
+        assert page.locator('#reaction-palette').is_visible()
+        assert field.input_value() == 'none'
+        page.locator('.reaction-trigger').focus()
+        page.keyboard.press('Escape')
+        assert page.locator('#reaction-palette').is_hidden()
+        page.keyboard.press('ArrowDown')
+        assert page.locator('[data-reaction="like"]').evaluate('(el) => el === document.activeElement')
         for button, (_, value, emoji) in zip(buttons, palette):
-            assert button.inner_text().strip() == emoji
+            page.locator('.reaction-trigger').click()
+            if value == 'care':
+                assert button.locator('img.care-icon').count() == 1
+            else:
+                assert button.inner_text().strip() == emoji
             button.click()
             assert field.input_value() == value
             assert page.locator('[data-reaction][aria-pressed="true"]').count() == 1
             page.reload()
             assert field.input_value() == value
+            page.locator('.reaction-trigger').click()
             button.click()
             assert field.input_value() == 'none'
+        page.locator('.reaction-trigger').click()
         buttons[0].click()
+        page.locator('.reaction-trigger').click()
         buttons[3].click()
         assert field.input_value() == 'haha'
-        assert buttons[0].get_attribute('aria-pressed') == 'false'
+        assert page.locator('[data-reaction="like"]').get_attribute('aria-pressed') == 'false'
+        page.locator('.reaction-trigger').click()
         buttons[3].click()
         for width, height in [(1280, 900), (390, 844), (320, 740)]:
             page.set_viewport_size({'width': width, 'height': height})
             bubble = page.locator('.fb-post.fb-has-reactions').bounding_box()
             edge = bubble['y'] + bubble['height']
-            for button in buttons:
+            for button in [page.locator('.reaction-trigger')]:
                 box = button.bounding_box()
                 assert box['y'] < edge < box['y'] + box['height'], (width, box, bubble)
                 assert abs(box['y'] + box['height'] / 2 - edge) <= 2
@@ -176,12 +204,31 @@ def main():
         for width in (1280, 390, 320):
             page.set_viewport_size({'width': width, 'height': 900})
             for choice in choices.all():
+                page.locator('.emoji-compose-trigger').click()
                 choice.locator('..').click()
                 assert choice.is_checked()
+                preview = page.locator('.fb-preview-body').first
+                if choice.input_value() == '🤗':
+                    assert preview.locator('img.care-icon').count() == 1
+                else:
+                    assert choice.input_value() in preview.inner_text()
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 2')
             page.screenshot(path=str(screenshots/f'qualitative_composer_{width}.png'))
         page.set_viewport_size({'width': 1280, 'height': 900})
         checked.append('matching qualitative emoji palette; quantitative composition stays number-only')
+
+        for name, field_name in [('IQFeedback', 'iq_report_message'), ('GlobalIQFeedback', 'global_report_message')]:
+            load(name + '_qualitative_social')
+            page.locator('.emoji-compose-trigger').click()
+            page.get_by_role('radio', name='Care', exact=True).locator('..').click()
+            assert page.locator('.fb-preview-body').first.locator('img.care-icon').count() == 1
+            page.locator('[name="' + field_name + '"]').fill('I felt good about this task.')
+            assert 'I felt good about this task.' in page.locator('.fb-preview-body').first.inner_text()
+            page.locator('#fb-compose-next').click()
+            assert page.locator('#fb-confirm-next').is_visible()
+            load(name + '_quantitative_social')
+            assert page.locator('.emoji-compose-trigger').count() == 0
+        checked.append('task and overall IQ emoji-only preview, text entry, and confirmation')
 
         load('PerceivedPercentile')
         estimate_text = ' '.join(page.locator('body').inner_text().split())

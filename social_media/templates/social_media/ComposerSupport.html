@@ -1,0 +1,38 @@
+<style>
+.care-icon { width: 1.3em; height: 1.3em; vertical-align: middle; }
+.fb-preview { background: #eef8ef; border-color: #c4dec8; }
+.emoji-compose-wrap { position: relative; }
+.fb-compose .emoji-compose-wrap textarea { padding-left: 42px; }
+.emoji-compose-trigger { position: absolute; left: 4px; top: 5px; width: 34px; height: 34px; border: 0; border-radius: 50%; background: white; font-size: 25px; color: #65686c; cursor: pointer; }
+.fb-row.composer-palette { position: absolute; left: 0; bottom: calc(100% - 4px); z-index: 3; padding: 8px; border: 1px solid #ddd; border-radius: 22px; background: white; box-shadow: 0 3px 12px #0002; flex-wrap: nowrap; }
+.composer-palette[hidden] { display: none; }
+.fb-row.composer-palette input[type=radio] { display: block; position: absolute; opacity: 0; width: 1px; height: 1px; }
+.composer-palette label:focus-within { outline: 2px solid #1877f2; }
+</style>
+<script>
+window.renderMessageEmoji = function (element, message, emoji) {
+    element.textContent = message + (message && emoji ? ' ' : '');
+    if (emoji === '🤗') {
+        var icon = document.createElement('img');
+        icon.src = '/static/social/care.svg'; icon.alt = 'Care'; icon.className = 'care-icon';
+        element.appendChild(icon);
+    } else if (emoji) element.appendChild(document.createTextNode(emoji));
+};
+(function () {
+    document.querySelectorAll('.received-emoji').forEach(function (element) {
+        window.renderMessageEmoji(element, '', element.textContent.trim());
+    });
+    var trigger = document.querySelector('.emoji-compose-trigger');
+    var palette = document.querySelector('.composer-palette');
+    if (!trigger || !palette) return;
+    function setOpen(open) { palette.hidden = !open; trigger.setAttribute('aria-expanded', String(open)); }
+    trigger.addEventListener('click', function () { setOpen(palette.hidden); });
+    palette.addEventListener('change', function () { setOpen(false); trigger.focus(); });
+    document.addEventListener('click', function (event) {
+        if (!palette.contains(event.target) && !trigger.contains(event.target)) setOpen(false);
+    });
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && !palette.hidden) { setOpen(false); trigger.focus(); }
+    });
+})();
+</script>

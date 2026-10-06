@@ -196,7 +196,7 @@
                 </p>
                 <div class="fb-post fb-received{% if show_like_button %} fb-has-reactions{% endif %}">
                     <div class="fb-post-head">
-                        <div class="fb-avatar">{{ signal_initial }}</div>
+                        <img class="fb-avatar" src="/static/social/avatars/{{ signal_avatar }}.svg" alt="">
                         <div>
                             <div class="fb-post-name">
                                 {{ signal.name }}
@@ -212,7 +212,7 @@
                             {% if is_quantitative %}
                                 I got {{ signal.number }} out of 5 correct.
                             {% else %}
-                                <div class="fb-post-quote">{{ signal.sentence }} <span style="font-size:1.4em;">{{ signal.emoji }}</span></div>
+                                <div class="fb-post-quote">{{ signal.sentence }} <span class="received-emoji" style="font-size:1.4em;">{{ signal.emoji }}</span></div>
                             {% endif %}
                             {% if show_like_button %}
                             {% include "social_media/ReactionButtons.html" %}
@@ -239,21 +239,14 @@
                             </p>
                             <input type="hidden" name="report_message" id="id_report_message" value="">
                         {% else %}
-                            <div style="font-size:0.9em;">How do you feel?</div>
-                            <div class="fb-row fb-emoji">
-                                {% for option in reaction_options %}
-                                    <label>
-                                        <input type="radio" name="report_emoji" value="{{ option.emoji }}" aria-label="{{ option.label }}">
-                                        <span>{{ option.emoji }}</span>
-                                    </label>
-                                {% endfor %}
-                            </div>
-                            <div style="margin-top:8px;">
-                                <label for="id_report_message" style="font-size:0.85em;">
-                                    Add a short note (max 140 characters):
-                                </label>
-                                <textarea name="report_message" id="id_report_message"
-                                          minlength="5" maxlength="140"></textarea>
+                            <p style="font-size:.9em">Please also add an emoji to your message.</p>
+                            <label for="id_report_message" style="font-size:.85em">Add a short note (max 140 characters):</label>
+                            <div class="emoji-compose-wrap">
+                                <button type="button" class="emoji-compose-trigger" aria-label="Add an emoji" aria-expanded="false" aria-controls="composer-palette">☺</button>
+                                <div id="composer-palette" class="fb-row fb-emoji composer-palette" hidden>
+                                    {% for option in reaction_options %}<label><input type="radio" name="report_emoji" value="{{ option.emoji }}" aria-label="{{ option.label }}"><span>{% include "social_media/EmojiIcon.html" %}</span></label>{% endfor %}
+                                </div>
+                                <textarea name="report_message" id="id_report_message" minlength="5" maxlength="140"></textarea>
                             </div>
                         {% endif %}
 
@@ -261,7 +254,7 @@
                             <div class="fb-yourmsg-title">Your message</div>
                             <div class="fb-post fb-preview">
                                 <div class="fb-post-head">
-                                    <div class="fb-avatar fb-preview-avatar">?</div>
+                                    <img class="fb-avatar fb-preview-avatar" src="/static/social/avatars/{{ avatar_choice }}.svg" alt="">
                                     <div>
                                         <div class="fb-post-name">
                                             <span class="fb-preview-name">Your name</span>
@@ -287,7 +280,7 @@
                         <div class="fb-yourmsg-title">Your message</div>
                         <div class="fb-post fb-preview">
                             <div class="fb-post-head">
-                                <div class="fb-avatar fb-preview-avatar">?</div>
+                                <img class="fb-avatar fb-preview-avatar" src="/static/social/avatars/{{ avatar_choice }}.svg" alt="">
                                 <div>
                                     <div class="fb-post-name">
                                         <span class="fb-preview-name">Your name</span>
@@ -314,7 +307,7 @@
                         <div class="fb-yourmsg-title">Your message</div>
                         <div class="fb-post fb-preview">
                             <div class="fb-post-head">
-                                <div class="fb-avatar fb-preview-avatar">?</div>
+                                <img class="fb-avatar fb-preview-avatar" src="/static/social/avatars/{{ avatar_choice }}.svg" alt="">
                                 <div>
                                     <div class="fb-post-name">
                                         <span class="fb-preview-name">Your name</span>
@@ -365,6 +358,7 @@
     </div>
 </aside>
 
+{% include "social_media/ComposerSupport.html" %}
 <script>
 (function () {
     var TASK_CONSTRUCT = "{{ task_construct }}";
@@ -466,7 +460,7 @@
         if (msg.length < 5) { showError('Please write at least 5 characters in your note.'); return false; }
         var emoChecked = document.querySelector('input[name="report_emoji"]:checked');
         if (document.querySelectorAll('input[name="report_emoji"]').length && !emoChecked) {
-            showError('Please indicate how you feel.'); return false;
+            showError('Please add an emoji to your message.'); return false;
         }
         return true;
     }
@@ -510,11 +504,11 @@
             var bodyEl = p.querySelector('.fb-preview-body');
             var avEl = p.querySelector('.fb-preview-avatar');
             if (nameEl) nameEl.textContent = name || 'Your name';
-            if (avEl) avEl.textContent = name ? name.charAt(0).toUpperCase() : '?';
+
             if (timeEl) timeEl.textContent = lastMsgTime ? ('\u00B7 ' + lastMsgTime) : '';
             if (bodyEl) {
-                if (msg) {
-                    bodyEl.textContent = msg + (emoji ? ' ' + emoji : '');
+                if (msg || emoji) {
+                    window.renderMessageEmoji(bodyEl, msg, emoji);
                 } else {
                     bodyEl.textContent = 'Your message will appear here.';
                 }
@@ -559,6 +553,11 @@
     var receivedTimeEl = document.getElementById('fb-received-time');
     var composeRevealed = !HAS_RECEIVED;
     var incomingStarted = false;
+    window.liveRecv = function (data) {
+        if (data.received_timestamp && receivedTimeEl) {
+            receivedTimeEl.textContent = '· ' + new Date(data.received_timestamp).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+        }
+    };
 
     function nowTimeStrTz() {
         var d = new Date();
@@ -575,7 +574,8 @@
         window.setTimeout(function () {
             if (typingEl) typingEl.style.display = 'none';
             if (receivedContent) receivedContent.style.display = 'block';
-            if (receivedTimeEl) receivedTimeEl.textContent = '\u00B7 ' + nowTimeStrTz();
+            if (typeof liveSend === 'function') liveSend({event: 'received_message_shown'});
+            if (receivedTimeEl) receivedTimeEl.textContent = '\u00B7 ' + new Date('{{ received_timestamp }}').toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
             window.setTimeout(function () {
                 composeRevealed = true;
                 if (composePanel) composePanel.style.display = 'block';

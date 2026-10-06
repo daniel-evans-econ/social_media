@@ -1,29 +1,55 @@
-<div class="fb-like-row" role="group" aria-label="React to this message">
-    {% for option in reaction_options %}
-    <button type="button" class="fb-like" data-reaction="{{ option.value }}"
-            aria-label="{{ option.label }}" title="{{ option.label }}" aria-pressed="false"><span aria-hidden="true">{{ option.emoji }}</span></button>
-    {% endfor %}
+<style>
+.reaction-picker { position: absolute; left: 12px; bottom: 0; transform: translateY(50%); z-index: 2; }
+.reaction-picker .fb-like-row { position: absolute; left: 0; bottom: 100%; transform: none; padding: 8px 6px; margin: 0; border-radius: 24px; background: white; box-shadow: 0 2px 12px #0002; gap: 3px; }
+.reaction-picker .fb-like-row[hidden] { display: none; }
+.reaction-trigger { width: 34px; height: 32px; }
+.reaction-trigger svg { width: 20px; height: 20px; }
+.care-icon { width: 1.3em; height: 1.3em; vertical-align: middle; }
+</style>
+<div class="reaction-picker" role="group" aria-label="React to this message">
+    <button type="button" class="fb-like reaction-trigger" aria-label="Choose a reaction" aria-expanded="false" aria-controls="reaction-palette">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 21H3V10h5m0 11h10a2 2 0 0 0 2-1.6l1.5-8A2 2 0 0 0 19.5 9H14l1-5c.3-2-2-3-3-1L8 10v11Z"/></svg>
+    </button>
+    <div class="fb-like-row" id="reaction-palette" hidden>
+        {% for option in reaction_options %}
+        <button type="button" class="fb-like" data-reaction="{{ option.value }}" aria-label="{{ option.label }}" title="{{ option.label }}" aria-pressed="false"><span aria-hidden="true">{% include "social_media/EmojiIcon.html" %}</span></button>
+        {% endfor %}
+    </div>
 </div>
 <script>
 (function () {
     var field = document.getElementById('id_received_reaction');
-    var buttons = document.querySelectorAll('[data-reaction]');
+    var picker = document.querySelector('.reaction-picker'), trigger = picker.querySelector('.reaction-trigger');
+    var palette = picker.querySelector('.fb-like-row'), buttons = palette.querySelectorAll('[data-reaction]');
+    var outline = trigger.innerHTML;
     var key = 'reaction_{{ participant.code }}_{{ player.round_number }}_{{ reaction_field }}';
+    function open(value) { palette.hidden = !value; trigger.setAttribute('aria-expanded', String(value)); }
     function select(value) {
         if (value !== 'none' && !Array.prototype.some.call(buttons, function (button) { return button.dataset.reaction === value; })) value = 'none';
         field.value = value;
+        trigger.innerHTML = outline;
+        trigger.setAttribute('aria-label', 'Choose a reaction');
+        trigger.classList.toggle('fb-like-on', value !== 'none');
         buttons.forEach(function (button) {
             var selected = button.dataset.reaction === value;
             button.classList.toggle('fb-like-on', selected);
             button.setAttribute('aria-pressed', String(selected));
+            if (selected) { trigger.innerHTML = button.innerHTML; trigger.setAttribute('aria-label', button.title + ' selected; change or remove reaction'); }
         });
     }
-    try { select(sessionStorage.getItem(key) || field.value); }
-    catch (_) { select(field.value); }
+    try { select(sessionStorage.getItem(key) || field.value); } catch (_) { select(field.value); }
+    picker.addEventListener('pointerenter', function (event) { if (event.pointerType === 'mouse') open(true); });
+    picker.addEventListener('pointerleave', function (event) { if (event.pointerType === 'mouse' && !picker.contains(document.activeElement)) open(false); });
+    trigger.addEventListener('click', function () { open(true); });
+    trigger.addEventListener('keydown', function (event) { if (event.key === 'ArrowDown') { event.preventDefault(); open(true); buttons[0].focus(); } });
+    picker.addEventListener('keydown', function (event) { if (event.key === 'Escape') { open(false); trigger.focus(); } });
+    picker.addEventListener('focusout', function (event) { if (!picker.contains(event.relatedTarget)) open(false); });
+    document.addEventListener('click', function (event) { if (!picker.contains(event.target)) open(false); });
     buttons.forEach(function (button) {
         button.addEventListener('click', function () {
             select(field.value === button.dataset.reaction ? 'none' : button.dataset.reaction);
             try { sessionStorage.setItem(key, field.value); } catch (_) {}
+            open(false); trigger.focus();
         });
     });
 })();

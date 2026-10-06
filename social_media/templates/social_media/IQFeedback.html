@@ -198,7 +198,7 @@
                 </p>
                 <div class="fb-post fb-received{% if show_like_button %} fb-has-reactions{% endif %}">
                     <div class="fb-post-head">
-                        <div class="fb-avatar">{{ signal_initial }}</div>
+                        <img class="fb-avatar" src="/static/social/avatars/{{ signal_avatar }}.svg" alt="">
                         <div>
                             <div class="fb-post-name">
                                 {{ signal.name }}
@@ -214,7 +214,7 @@
                             {% if is_quantitative %}
                                 My {{ label }} IQ score is {{ signal.iq }}.
                             {% else %}
-                                <div class="fb-post-quote">{{ signal.sentence }} <span style="font-size:1.4em;">{{ signal.emoji }}</span></div>
+                                <div class="fb-post-quote">{{ signal.sentence }} <span class="received-emoji" style="font-size:1.4em;">{{ signal.emoji }}</span></div>
                             {% endif %}
                             {% if show_like_button %}
                             {% include "social_media/ReactionButtons.html" %}
@@ -238,23 +238,16 @@
                                        style="width:74px; padding:6px; text-align:center;
                                               border:1px solid #b9d4ff; border-radius:6px;">.
                             </p>
-                            <input type="hidden" name="iq_report_message" id="id_iq_report_message" value="">
+                            <input type="hidden" name="iq_report_message" id="id_report_message" value="">
                         {% else %}
-                            <div style="font-size:0.9em;">How do you feel?</div>
-                            <div class="fb-row fb-emoji">
-                                {% for option in reaction_options %}
-                                    <label>
-                                        <input type="radio" name="iq_report_emoji" value="{{ option.emoji }}" aria-label="{{ option.label }}">
-                                        <span>{{ option.emoji }}</span>
-                                    </label>
-                                {% endfor %}
-                            </div>
-                            <div style="margin-top:8px;">
-                                <label for="id_iq_report_message" style="font-size:0.85em;">
-                                    Add a short note (max 140 characters):
-                                </label>
-                                <textarea name="iq_report_message" id="id_iq_report_message"
-                                          minlength="5" maxlength="140"></textarea>
+                            <p style="font-size:.9em">Please also add an emoji to your message.</p>
+                            <label for="id_report_message" style="font-size:.85em">Add a short note (max 140 characters):</label>
+                            <div class="emoji-compose-wrap">
+                                <button type="button" class="emoji-compose-trigger" aria-label="Add an emoji" aria-expanded="false" aria-controls="composer-palette">☺</button>
+                                <div id="composer-palette" class="fb-row fb-emoji composer-palette" hidden>
+                                    {% for option in reaction_options %}<label><input type="radio" name="iq_report_emoji" value="{{ option.emoji }}" aria-label="{{ option.label }}"><span>{% include "social_media/EmojiIcon.html" %}</span></label>{% endfor %}
+                                </div>
+                                <textarea name="iq_report_message" id="id_report_message" minlength="5" maxlength="140"></textarea>
                             </div>
                         {% endif %}
 
@@ -262,7 +255,7 @@
                             <div class="fb-yourmsg-title">Your message</div>
                             <div class="fb-post fb-preview">
                                 <div class="fb-post-head">
-                                    <div class="fb-avatar fb-preview-avatar">?</div>
+                                    <img class="fb-avatar fb-preview-avatar" src="/static/social/avatars/{{ avatar_choice }}.svg" alt="">
                                     <div>
                                         <div class="fb-post-name">
                                             <span class="fb-preview-name">Your name</span>
@@ -288,7 +281,7 @@
                         <div class="fb-yourmsg-title">Your message</div>
                         <div class="fb-post fb-preview">
                             <div class="fb-post-head">
-                                <div class="fb-avatar fb-preview-avatar">?</div>
+                                <img class="fb-avatar fb-preview-avatar" src="/static/social/avatars/{{ avatar_choice }}.svg" alt="">
                                 <div>
                                     <div class="fb-post-name">
                                         <span class="fb-preview-name">Your name</span>
@@ -315,7 +308,7 @@
                         <div class="fb-yourmsg-title">Your message</div>
                         <div class="fb-post fb-preview">
                             <div class="fb-post-head">
-                                <div class="fb-avatar fb-preview-avatar">?</div>
+                                <img class="fb-avatar fb-preview-avatar" src="/static/social/avatars/{{ avatar_choice }}.svg" alt="">
                                 <div>
                                     <div class="fb-post-name">
                                         <span class="fb-preview-name">Your name</span>
@@ -368,6 +361,7 @@
     </div>
 </aside>
 
+{% include "social_media/ComposerSupport.html" %}
 <script>
 (function () {
     var LABEL = "{{ label }}";
@@ -457,19 +451,19 @@
             if (raw === '') { showError('Please enter your IQ score.'); return false; }
             var n = parseInt(raw, 10);
             if (isNaN(n) || n < 60 || n > 140) { showError('Please enter an IQ score between 60 and 140.'); return false; }
-            var hiddenMsg = document.getElementById('id_iq_report_message');
+            var hiddenMsg = document.getElementById('id_report_message');
             if (hiddenMsg && hiddenMsg.tagName === 'INPUT') {
                 hiddenMsg.value = 'My ' + LABEL + ' IQ score is ' + n + '.';
             }
             return true;
         }
-        var msgEl = document.getElementById('id_iq_report_message');
+        var msgEl = document.getElementById('id_report_message');
         var msg = msgEl ? String(msgEl.value || '').trim() : '';
         if (!msg) { showError('Please add a short note before continuing.'); return false; }
         if (msg.length < 5) { showError('Please write at least 5 characters in your note.'); return false; }
         var emoChecked = document.querySelector('input[name="iq_report_emoji"]:checked');
         if (document.querySelectorAll('input[name="iq_report_emoji"]').length && !emoChecked) {
-            showError('Please indicate how you feel.'); return false;
+            showError('Please add an emoji to your message.'); return false;
         }
         return true;
     }
@@ -488,7 +482,7 @@
             if (raw === '') return '';
             return 'My ' + LABEL + ' IQ score is ' + raw + '.';
         }
-        var msgEl = document.getElementById('id_iq_report_message');
+        var msgEl = document.getElementById('id_report_message');
         return msgEl ? String(msgEl.value || '').trim() : '';
     }
     function currentEmoji() {
@@ -513,11 +507,11 @@
             var bodyEl = p.querySelector('.fb-preview-body');
             var avEl = p.querySelector('.fb-preview-avatar');
             if (nameEl) nameEl.textContent = name || 'Your name';
-            if (avEl) avEl.textContent = name ? name.charAt(0).toUpperCase() : '?';
+
             if (timeEl) timeEl.textContent = lastMsgTime ? ('\u00B7 ' + lastMsgTime) : '';
             if (bodyEl) {
-                if (msg) {
-                    bodyEl.textContent = msg + (emoji ? ' ' + emoji : '');
+                if (msg || emoji) {
+                    window.renderMessageEmoji(bodyEl, msg, emoji);
                 } else {
                     bodyEl.textContent = 'Your message will appear here.';
                 }
@@ -528,7 +522,7 @@
     // Message edits (number / free text) stamp the "latest typed" time.
     function onMessageEdit() {
         var iqEl = document.getElementById('id_report_iq');
-        var hiddenMsg = document.getElementById('id_iq_report_message');
+        var hiddenMsg = document.getElementById('id_report_message');
         if (iqEl && hiddenMsg && hiddenMsg.tagName === 'INPUT') {
             var raw = String(iqEl.value).trim();
             hiddenMsg.value = raw === '' ? '' : 'My ' + LABEL + ' IQ score is ' + raw + '.';
@@ -541,7 +535,7 @@
 
     var iqElInit = document.getElementById('id_report_iq');
     if (iqElInit) iqElInit.addEventListener('input', onMessageEdit);
-    var msgElInit = document.getElementById('id_iq_report_message');
+    var msgElInit = document.getElementById('id_report_message');
     if (msgElInit && msgElInit.tagName === 'TEXTAREA') msgElInit.addEventListener('input', onMessageEdit);
     Array.prototype.forEach.call(document.querySelectorAll('input[name="iq_report_emoji"]'), function (el) {
         el.addEventListener('change', function () { logDraftIfChanged(); clearError(); renderPreviews(); });

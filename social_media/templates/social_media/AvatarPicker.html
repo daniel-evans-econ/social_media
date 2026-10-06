@@ -1,0 +1,38 @@
+<style>
+.care-icon { width: 1.3em; height: 1.3em; vertical-align: middle; }
+.avatar-options { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0 22px; }
+.avatar-option { position: relative; padding: 5px; border: 2px solid #ddd; border-radius: 50%; cursor: pointer; }
+.avatar-option img { width: 52px; height: 52px; }
+.avatar-option input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.avatar-option:has(input:checked) { border-color: #1877f2; background: #e8f0ff; }
+.avatar-option:focus-within { outline: 2px solid #222; }
+</style>
+<fieldset><legend style="font-size:1em">Choose an avatar to appear beside your messages.</legend>
+<div class="avatar-options">
+{% for avatar in avatar_options %}<label class="avatar-option" title="{{ avatar.label }}">
+<input type="radio" name="avatar_picker" value="{{ avatar.value }}" aria-label="{{ avatar.label }}" {% if selected_avatar == avatar.value %}checked{% endif %}>
+<img src="/static/social/avatars/{{ avatar.value }}.svg" alt="">
+</label>{% endfor %}
+</div></fieldset>
+<p id="avatar-status" role="status" style="font-size:.9em"></p>
+<script>
+(function () {
+    var pending = false, selected = document.querySelector('[name=avatar_picker]:checked');
+    var status = document.getElementById('avatar-status');
+    window.liveRecv = function (data) {
+        if (selected && data.avatar === selected.value) { pending = false; status.textContent = ''; }
+    };
+    document.querySelectorAll('[name=avatar_picker]').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            selected = radio; pending = true; status.textContent = 'Saving your avatar…';
+            liveSend({avatar: radio.value});
+        });
+    });
+    document.querySelector('form').addEventListener('submit', function (event) {
+        if (!selected || pending) {
+            event.preventDefault();
+            status.textContent = pending ? 'Please wait while your avatar is saved.' : 'Please choose an avatar.';
+        }
+    });
+})();
+</script>
