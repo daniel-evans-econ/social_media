@@ -1265,7 +1265,7 @@ def reaction_feedback_messages(player):
             all_reactions = [dict(option, count=rng.randint(0, 9)) for option in REACTION_OPTIONS]
             messages.append(dict(key=key, name=name, initial=name[:1].upper(), text=content,
                 timestamp=timestamp, is_own=is_own,
-                avatar=own_avatar(player) if is_own else avatar_for_name(name),
+                avatar=own_avatar(player) if is_own else None,
                 total=sum(r['count'] for r in all_reactions), all_reactions=all_reactions,
                 reactions=sorted((r for r in all_reactions if r['count']), key=lambda r: -r['count'])))
     return sorted(messages, key=lambda message: -message['total'])
@@ -2215,7 +2215,7 @@ class Intro(Page):
             has_optional_third=CFG['use_wta'],
             receives_messages=CFG['received_message_source'] is not None,
             like_treatment=like_button_enabled(player),
-            reaction_options=REACTION_OPTIONS, avatar_groups=AVATAR_GROUPS,
+            reaction_options=REACTION_OPTIONS, avatar_options=AVATAR_OPTIONS,
             selected_avatar=player.participant.vars.get('avatar_choice', ''),
             is_quantitative=player.participant.vars.get('social_type') == 'quantitative_social',
             show_reaction_counts=(like_button_enabled(player)
@@ -2497,7 +2497,6 @@ class BlockFeedback(Page):
             signal=signal,
             received_timestamp=player.participant.vars.get('received_message_times', {}).get(str(player.round_number), ''),
             signal_initial=signal_initial,
-            signal_avatar=avatar_for_name(signal_name),
             qual_emojis=QUAL_EMOJIS,
             reaction_options=REACTION_OPTIONS,
             in_treatment=cond in ('quantitative_social', 'qualitative_social'),
@@ -2672,7 +2671,6 @@ class IQFeedback(Page):
             avatar_choice=own_avatar(player),
             signal=signal,
             signal_initial=signal_initial,
-            signal_avatar=avatar_for_name(signal_name),
             qual_emojis=QUAL_EMOJIS,
             reaction_options=REACTION_OPTIONS,
             in_treatment=cond in ('quantitative_social', 'qualitative_social'),
@@ -3135,7 +3133,7 @@ class MessageReactionFeedback(Page):
         snapshots = dict(player.participant.vars.get('reaction_feedback_snapshots', {}))
         # A separate key prevents old preview caches from replaying IQ messages
         # while retaining the original snapshots as a record of past exposure.
-        key = f'{period}:ranked_blocks_v2'
+        key = f'{period}:ranked_blocks_v3'
         if key not in snapshots:
             snapshots[key] = dict(
                 source='synthetic_preview', treatment=True, assignment_source='like_treatment', period=period,
@@ -3776,7 +3774,7 @@ def custom_export(players):
             continue
         period = period_of_round(player.round_number)
         snapshots = player.participant.vars.get('reaction_feedback_snapshots', {})
-        snapshot = snapshots.get(f'{period}:ranked_blocks_v2', snapshots.get(f'{period}:ranked_blocks_v1', snapshots.get(f'{period}:sent_blocks', snapshots.get(str(period)))))
+        snapshot = snapshots.get(f'{period}:ranked_blocks_v3', snapshots.get(f'{period}:ranked_blocks_v2', snapshots.get(f'{period}:ranked_blocks_v1', snapshots.get(f'{period}:sent_blocks', snapshots.get(str(period))))))
         yield [player.participant.code, period, get_condition(player),
                reaction_feedback_enabled(player), like_button_enabled(player),
                json.dumps(snapshot, ensure_ascii=False) if snapshot else '', own_avatar(player)]

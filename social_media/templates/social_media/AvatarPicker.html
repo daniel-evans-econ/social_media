@@ -1,17 +1,12 @@
 <style>
 .care-icon { width: 1.3em; height: 1.3em; vertical-align: middle; }
 .avatar-picker { margin-top: 1em; max-width: 420px; }
-.avatar-styles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.avatar-style { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 7px 3px; border: 2px solid #ddd; border-radius: 10px; background: white; cursor: pointer; font: inherit; font-size: .78em; }
-.avatar-style img { width: 40px; height: 40px; }
-.avatar-style.selected { border-color: #1877f2; background: #e8f0ff; }
-.avatar-style[aria-expanded=true] { border-color: #666; }
-.avatar-style.selected[aria-expanded=true] { border-color: #1877f2; }
-.avatar-style:focus-visible, .avatar-option:focus-within { outline: 2px solid #222; outline-offset: 2px; }
-.avatar-style-label { max-width: 100%; font-size: .9em; }
-.avatar-style-label::after { content: '▾'; position: absolute; top: 5px; right: 6px; color: #666; }
-.avatar-style[aria-expanded=true] .avatar-style-label::after { content: '▴'; }
-.avatar-options { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; padding: 8px; margin: 8px 0 0; border: 1px solid #ddd; border-radius: 10px; background: #f8fafc; }
+.avatar-control { position: relative; display: inline-block; }
+.avatar-trigger { width: 54px; height: 54px; display: flex; align-items: center; justify-content: center; padding: 3px; border: 2px solid #d8dde3; border-radius: 50%; background: white; color: #777; font: inherit; font-size: 26px; cursor: pointer; }
+.avatar-trigger img { width: 100%; height: 100%; border-radius: 50%; }
+.avatar-trigger.selected { border-color: #8eb9ec; }
+.avatar-trigger:focus-visible, .avatar-option:focus-within { outline: 2px solid #222; outline-offset: 2px; }
+.avatar-options { position: absolute; z-index: 10; top: 100%; left: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); width: min(320px, calc(100vw - 48px)); box-sizing: border-box; gap: 4px; padding: 8px; margin: 0; border: 1px solid #ddd; border-radius: 16px; background: white; box-shadow: 0 3px 14px #0002; }
 .avatar-options[hidden] { display: none; }
 .avatar-option { position: relative; padding: 2px; margin: 0; border: 2px solid transparent; border-radius: 50%; cursor: pointer; }
 .avatar-option img { width: 100%; height: auto; display: block; }
@@ -19,83 +14,60 @@
 .avatar-option:has(input:checked) { border-color: #1877f2; background: #e8f0ff; }
 </style>
 <fieldset class="avatar-picker"><legend style="font-size:1em">Choose an <strong style="color:darkred;">avatar</strong> to appear beside your messages.</legend>
-<div class="avatar-styles">
-{% for group in avatar_groups %}
-<button type="button" class="avatar-style" aria-expanded="false" aria-controls="avatar-tones-{{ forloop.counter }}" aria-label="{{ group.label }}: choose skin tone">
-{% for avatar in group.options %}{% if forloop.counter == 3 %}<img src="/static/social/avatars/{{ avatar.value }}.svg" alt="">{% endif %}{% endfor %}
-<span class="avatar-style-label">{{ group.label }}</span>
-</button>
-{% endfor %}
-</div>
-{% for group in avatar_groups %}
-<div id="avatar-tones-{{ forloop.counter }}" class="avatar-options" role="group" aria-label="{{ group.label }} skin tones" hidden>
-{% for avatar in group.options %}<label class="avatar-option" title="{{ avatar.label }}">
-<input type="radio" name="avatar_picker" value="{{ avatar.value }}" aria-label="{{ avatar.label }}" {% if selected_avatar == avatar.value %}checked{% endif %}>
+<div class="avatar-control">
+<button type="button" class="avatar-trigger" aria-label="Choose an avatar" aria-expanded="false" aria-controls="avatar-options"><span aria-hidden="true">?</span></button>
+<div id="avatar-options" class="avatar-options" role="group" aria-label="Avatar choices" hidden>
+{% for avatar in avatar_options %}<label class="avatar-option">
+<input type="radio" name="avatar_picker" value="{{ avatar.value }}" aria-label="Avatar {{ forloop.counter }}" {% if selected_avatar == avatar.value %}checked{% endif %}>
 <img src="/static/social/avatars/{{ avatar.value }}.svg" alt="">
 </label>{% endfor %}
-</div>{% endfor %}</fieldset>
+</div></div></fieldset>
 <p id="avatar-status" role="status" style="font-size:.9em"></p>
 <script>
 (function () {
     var pending = false, selected = document.querySelector('[name=avatar_picker]:checked');
     var status = document.getElementById('avatar-status');
-    var picker = document.querySelector('.avatar-picker');
-    var buttons = picker.querySelectorAll('.avatar-style');
-    function closePanels() {
-        buttons.forEach(function (button) {
-            button.setAttribute('aria-expanded', 'false');
-            document.getElementById(button.getAttribute('aria-controls')).hidden = true;
-        });
-    }
-    function selectedButton(radio) {
-        return picker.querySelector('[aria-controls="' + radio.closest('.avatar-options').id + '"]');
-    }
+    var control = document.querySelector('.avatar-control');
+    var trigger = control.querySelector('.avatar-trigger');
+    var palette = control.querySelector('.avatar-options');
+    function open(value) { palette.hidden = !value; trigger.setAttribute('aria-expanded', String(value)); }
     function showSelection() {
-        buttons.forEach(function (button) { button.classList.remove('selected'); });
-        if (selected) {
-            var button = selectedButton(selected);
-            button.classList.add('selected');
-            button.querySelector('img').src = '/static/social/avatars/' + selected.value + '.svg';
-            button.setAttribute('aria-label', selected.getAttribute('aria-label') + ' selected; change avatar');
-        }
+        if (!selected) return;
+        var image = document.createElement('img');
+        image.src = '/static/social/avatars/' + selected.value + '.svg'; image.alt = '';
+        trigger.replaceChildren(image); trigger.classList.add('selected');
+        trigger.setAttribute('aria-label', selected.getAttribute('aria-label') + ' selected; change avatar');
     }
-    buttons.forEach(function (button) {
-        button.dataset.defaultLabel = button.getAttribute('aria-label');
-        button.addEventListener('click', function () {
-            var wasOpen = button.getAttribute('aria-expanded') === 'true';
-            closePanels();
-            if (!wasOpen) {
-                button.setAttribute('aria-expanded', 'true');
-                document.getElementById(button.getAttribute('aria-controls')).hidden = false;
-            }
-        });
-        button.addEventListener('keydown', function (event) {
-            if (event.key === 'ArrowDown') {
-                event.preventDefault(); closePanels(); button.setAttribute('aria-expanded', 'true');
-                var panel = document.getElementById(button.getAttribute('aria-controls'));
-                panel.hidden = false;
-                (panel.querySelector('input:checked') || panel.querySelector('input')).focus();
-            }
-        });
+    control.addEventListener('pointerenter', function (event) { if (event.pointerType === 'mouse') open(true); });
+    control.addEventListener('pointerleave', function (event) {
+        if (event.pointerType === 'mouse' && !palette.contains(document.activeElement)) open(false);
     });
-    picker.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape') {
-            var button = picker.querySelector('.avatar-style[aria-expanded=true]');
-            closePanels(); if (button) button.focus();
+    trigger.addEventListener('click', function () { open(true); });
+    trigger.addEventListener('keydown', function (event) {
+        if (event.key === 'ArrowDown') {
+            event.preventDefault(); open(true);
+            (palette.querySelector('input:checked') || palette.querySelector('input')).focus();
         }
     });
+    control.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') { open(false); trigger.focus(); }
+    });
+    control.addEventListener('focusout', function (event) {
+        // A pointer click on a portrait label briefly focuses the body before its radio.
+        if (event.relatedTarget && !control.contains(event.relatedTarget)) open(false);
+    });
+    document.addEventListener('click', function (event) { if (!control.contains(event.target)) open(false); });
     window.liveRecv = function (data) {
         if (selected && data.avatar === selected.value) { pending = false; status.textContent = ''; }
     };
-    document.querySelectorAll('[name=avatar_picker]').forEach(function (radio) {
+    palette.querySelectorAll('input').forEach(function (radio) {
         radio.addEventListener('change', function () {
             selected = radio; pending = true; status.textContent = 'Saving your avatar…';
-            buttons.forEach(function (button) { button.setAttribute('aria-label', button.dataset.defaultLabel); });
-            showSelection(); closePanels(); selectedButton(radio).focus();
+            showSelection(); open(false); trigger.focus();
             liveSend({avatar: radio.value});
         });
         radio.addEventListener('click', function () {
-            if (radio.checked) { closePanels(); selectedButton(radio).focus(); }
+            if (radio.checked) { open(false); trigger.focus(); }
         });
     });
     showSelection();

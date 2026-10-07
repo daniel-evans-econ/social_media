@@ -53,13 +53,13 @@ def main():
                 load(name + '_qualitative_social')
                 page.locator('.emoji-compose-trigger').wait_for(state='visible')
                 assert page.locator('.fb-compose').evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(255, 255, 255)'
-                assert page.locator('.fb-preview').first.evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(240, 246, 255)'
+                assert page.locator('.fb-preview').first.evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(247, 250, 255)'
                 page.locator('.fb-compose').screenshot(path=str(screenshots / (name + '_blue_message.png')))
             load('MessageReactionFeedback')
-            assert page.locator('.rf-own').first.evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(240, 246, 255)'
+            assert page.locator('.rf-own').first.evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(247, 250, 255)'
             assert not errors, errors
             browser.close()
-            print('Passed: white outer boxes and original light-blue own-message bubbles on all four pages.')
+            print('Passed: white outer boxes and lighter blue own-message bubbles on all four pages.')
             return
 
         if '--reactions-only' in sys.argv:
@@ -104,7 +104,7 @@ def main():
                 load(name + '_qualitative_social')
                 page.locator('.emoji-compose-trigger').wait_for(state='visible')
                 assert page.locator('.fb-compose').evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(255, 255, 255)'
-                assert page.locator('.fb-preview').first.evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(240, 246, 255)'
+                assert page.locator('.fb-preview').first.evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(247, 250, 255)'
                 page.locator('.fb-compose').screenshot(path=str(screenshots / (name + '_white_composer.png')))
             assert not errors, errors
             browser.close()
@@ -126,20 +126,24 @@ def main():
             page.evaluate('window.liveSend = data => window.liveRecv(data)')
             choices = page.locator('[name="avatar_picker"]')
             assert choices.count() == 18
-            assert page.locator('.avatar-style-label').all_text_contents() == ['Feminine', 'Masculine', 'Gender-neutral']
+            assert page.locator('.avatar-trigger').inner_text() == '?'
+            assert page.locator('.avatar-picker').get_by_text('Feminine', exact=True).count() == 0
+            page.locator('.avatar-trigger').hover()
+            assert page.locator('.avatar-options:visible').count() == 1
+            assert page.locator('[name=avatar_picker]:checked').count() == 0
+            page.mouse.move(0, 0)
             assert page.locator('.avatar-options:visible').count() == 0
             for choice in choices.all():
-                panel_id = choice.evaluate('(el) => el.closest(".avatar-options").id')
-                page.locator('[aria-controls="' + panel_id + '"]').click()
+                page.locator('.avatar-trigger').click()
                 assert page.locator('.avatar-options:visible').count() == 1
                 choice.locator('..').click()
-                assert choice.is_checked()
+                assert choice.is_checked(), (choice.input_value(), page.locator('[name=avatar_picker]:checked').evaluate_all('(els) => els.map(el => el.value)'), page.locator('#avatar-status').inner_text(), page.locator('.avatar-options').is_visible())
                 assert page.locator('#avatar-status').inner_text() == ''
                 assert page.locator('.avatar-options:visible').count() == 0
-                assert page.locator('.avatar-style.selected img').get_attribute('src').endswith('/' + choice.input_value() + '.svg')
-            page.locator('.avatar-style').nth(2).focus()
+                assert page.locator('.avatar-trigger.selected img').get_attribute('src').endswith('/' + choice.input_value() + '.svg')
+            page.locator('.avatar-trigger').focus()
             page.keyboard.press('ArrowDown')
-            page.get_by_role('radio', name='Gender-neutral, skin tone 3', exact=True).focus()
+            page.get_by_role('radio', name='Avatar 15', exact=True).focus()
             page.keyboard.press('ArrowRight')
             assert page.locator('[name="avatar_picker"][value="neutral-4"]').is_checked()
             assert page.locator('.avatar-options:visible').count() == 0
@@ -149,15 +153,28 @@ def main():
                 assert page.locator('.avatar-option img').evaluate_all('(els) => els.every(el => el.complete && el.naturalWidth > 0)')
                 assert page.locator('.avatar-picker').bounding_box()['height'] < 180
                 page.locator('fieldset').screenshot(path=str(screenshots / f'human_avatars_{width}.png'))
-                page.locator('.avatar-style').nth(2).click()
-                page.locator('fieldset').screenshot(path=str(screenshots / f'human_avatars_expanded_{width}.png'))
+                page.locator('.avatar-trigger').click()
+                page.locator('.avatar-options').screenshot(path=str(screenshots / f'human_avatars_expanded_{width}.png'))
                 assert page.locator('.avatar-options:visible').evaluate('(el) => el.scrollWidth <= el.clientWidth + 1')
+                popup_box = page.locator('.avatar-options').bounding_box()
+                assert popup_box['x'] >= 0 and popup_box['x'] + popup_box['width'] <= width
                 page.keyboard.press('Escape')
                 assert page.locator('.avatar-options:visible').count() == 0
             load('IntroAvatarSaved')
             assert page.locator('[name="avatar_picker"][value="neutral-4"]').is_checked()
-            assert page.locator('.avatar-style.selected img').get_attribute('src').endswith('/neutral-4.svg')
+            assert page.locator('.avatar-trigger.selected img').get_attribute('src').endswith('/neutral-4.svg')
             assert page.locator('.avatar-options:visible').count() == 0
+            touch_context = browser.new_context(viewport={'width': 390, 'height': 844}, has_touch=True, is_mobile=True)
+            touch_context.route('**/*', serve)
+            touch_page = touch_context.new_page()
+            touch_page.goto('http://127.0.0.1:8765/qa/IntroReactions.html', wait_until='load')
+            touch_page.evaluate('window.liveSend = data => window.liveRecv(data)')
+            touch_page.locator('.avatar-trigger').tap()
+            assert touch_page.locator('.avatar-options').is_visible()
+            touch_page.locator('[name=avatar_picker][value="neutral-6"]').locator('..').tap()
+            assert touch_page.locator('.avatar-trigger img').get_attribute('src').endswith('/neutral-6.svg')
+            assert touch_page.locator('.avatar-options').is_hidden()
+            touch_context.close()
             for name in ('BlockFeedback_qualitative_social', 'MessageReactionFeedback'):
                 load(name)
                 avatars = page.locator('img[src*="/avatars/"]')
@@ -165,6 +182,11 @@ def main():
                 assert avatars.evaluate_all('(els) => els.every(el => /\\/(feminine|masculine|neutral)-[1-6]\\.svg$/.test(el.src) && el.complete && el.naturalWidth > 0)')
                 if name.startswith('BlockFeedback'):
                     assert page.locator('.fb-preview-avatar').first.get_attribute('src').endswith('/neutral-3.svg')
+                    assert page.locator('.fb-received img.fb-avatar').count() == 0
+                    assert len(page.locator('.fb-received .fb-avatar').inner_text()) == 1
+                else:
+                    assert page.locator('.rf-post:not(.rf-own) img.rf-avatar').count() == 0
+                    assert all(len(value) == 1 for value in page.locator('.rf-post:not(.rf-own) .rf-avatar').all_text_contents())
             assert not errors, errors
             browser.close()
             print(json.dumps({'passed': '18 human avatar selections, keyboard navigation, images at three widths, own and peer message avatars', 'screenshots': str(screenshots)}))
@@ -236,8 +258,8 @@ def main():
                 assert 'Your messages will' not in text
                 assert page.locator('.avatar-option').count() == 18
                 page.evaluate('window.liveSend = data => window.liveRecv(data)')
-                page.locator('.avatar-style').nth(2).click()
-                page.get_by_role('radio', name='Gender-neutral, skin tone 3', exact=True).locator('..').click()
+                page.locator('.avatar-trigger').click()
+                page.get_by_role('radio', name='Avatar 15', exact=True).locator('..').click()
                 assert page.locator('[name="avatar_picker"][value="neutral-3"]').is_checked()
                 assert page.locator('#avatar-status').inner_text() == ''
         for asked in (0, 1):
