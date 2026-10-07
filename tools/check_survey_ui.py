@@ -51,15 +51,12 @@ def main():
             load('BlockFeedbackReactions')
             field = page.locator('#id_received_reaction')
             trigger = page.locator('.reaction-trigger')
-            trigger.click()
-            assert page.locator('.reaction-remove').is_hidden()
+            assert page.get_by_role('button', name='Remove reaction', exact=True).count() == 0
             for value in ('like', 'love', 'care', 'haha', 'wow', 'sad', 'angry'):
                 trigger.click()
                 page.locator('[data-reaction="' + value + '"]').click()
                 assert field.input_value() == value
                 trigger.click()
-                assert page.get_by_role('button', name='Remove reaction', exact=True).is_visible()
-                page.get_by_role('button', name='Remove reaction', exact=True).click()
                 assert field.input_value() == 'none'
                 assert page.locator('[data-reaction][aria-pressed=true]').count() == 0
                 assert trigger.locator('svg').count() == 1
@@ -67,27 +64,36 @@ def main():
             assert field.input_value() == 'none'
             trigger.click()
             page.locator('[data-reaction="love"]').click()
-            trigger.click()
+            trigger.press('ArrowDown')
             page.locator('[data-reaction="love"]').click()
             assert field.input_value() == 'none'
             trigger.click()
             page.locator('[data-reaction="care"]').click()
+            trigger.hover()
+            page.locator('[data-reaction="wow"]').click()
+            assert field.input_value() == 'wow'
             for width in (1280, 390, 320):
                 page.set_viewport_size({'width': width, 'height': 900})
-                trigger.click()
+                trigger.press('ArrowDown')
                 panel = page.locator('#reaction-palette')
                 assert panel.evaluate('(el) => el.scrollWidth <= el.clientWidth + 1')
                 box = panel.bounding_box()
                 assert box['x'] >= 0 and box['x'] + box['width'] <= width
-                page.locator('.fb-received').screenshot(path=str(screenshots / f'remove_reaction_{width}.png'))
-            page.get_by_role('button', name='Remove reaction', exact=True).focus()
-            page.keyboard.press('Enter')
+                page.locator('.fb-received').screenshot(path=str(screenshots / f'reaction_toggle_{width}.png'))
+                trigger.press('Escape')
+            trigger.press('Enter')
             assert field.input_value() == 'none'
             page.reload()
             assert field.input_value() == 'none'
+            for name in ('BlockFeedback', 'IQFeedback', 'GlobalIQFeedback'):
+                load(name + '_qualitative_social')
+                page.locator('.emoji-compose-trigger').wait_for(state='visible')
+                assert page.locator('.fb-compose').evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(255, 255, 255)'
+                assert page.locator('.fb-preview').first.evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(238, 248, 239)'
+                page.locator('.fb-compose').screenshot(path=str(screenshots / (name + '_white_composer.png')))
             assert not errors, errors
             browser.close()
-            print('Passed: explicit removal of all seven reactions, same-emoji toggle, keyboard removal, refresh persistence, and three screen widths.')
+            print('Passed: direct toggle of all seven reactions, same-emoji toggle, hover switching, keyboard removal, refresh persistence, mobile layouts, and white/green message boxes.')
             return
 
         if '--avatars-only' in sys.argv:
@@ -258,7 +264,7 @@ def main():
         page.keyboard.press('ArrowDown')
         assert page.locator('[data-reaction="like"]').evaluate('(el) => el === document.activeElement')
         for button, (_, value, emoji) in zip(buttons, palette):
-            page.locator('.reaction-trigger').click()
+            page.locator('.reaction-trigger').press('ArrowDown')
             if value == 'care':
                 assert button.locator('img.care-icon').count() == 1
             else:
@@ -268,16 +274,16 @@ def main():
             assert page.locator('[data-reaction][aria-pressed="true"]').count() == 1
             page.reload()
             assert field.input_value() == value
-            page.locator('.reaction-trigger').click()
+            page.locator('.reaction-trigger').press('ArrowDown')
             button.click()
             assert field.input_value() == 'none'
-        page.locator('.reaction-trigger').click()
+        page.locator('.reaction-trigger').press('ArrowDown')
         buttons[0].click()
-        page.locator('.reaction-trigger').click()
+        page.locator('.reaction-trigger').press('ArrowDown')
         buttons[3].click()
         assert field.input_value() == 'haha'
         assert page.locator('[data-reaction="like"]').get_attribute('aria-pressed') == 'false'
-        page.locator('.reaction-trigger').click()
+        page.locator('.reaction-trigger').press('ArrowDown')
         buttons[3].click()
         for width, height in [(1280, 900), (390, 844), (320, 740)]:
             page.set_viewport_size({'width': width, 'height': height})
