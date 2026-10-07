@@ -1,9 +1,12 @@
 <style>
 .reaction-picker { position: absolute; left: 12px; bottom: 0; transform: translateY(50%); z-index: 2; }
-.reaction-picker .fb-like-row { position: absolute; left: 0; bottom: 100%; transform: none; padding: 8px 6px; margin: 0; border-radius: 24px; background: white; box-shadow: 0 2px 12px #0002; gap: 3px; }
+.reaction-picker .fb-like-row { position: absolute; left: 0; bottom: 100%; transform: none; padding: 8px 6px; margin: 0; border-radius: 24px; background: white; box-shadow: 0 2px 12px #0002; gap: 3px; width: 240px; box-sizing: border-box; flex-wrap: wrap; }
 .reaction-picker .fb-like-row[hidden] { display: none; }
 .reaction-trigger { width: 34px; height: 32px; }
 .reaction-trigger svg { width: 20px; height: 20px; }
+.reaction-remove { width: 100%; border: 0; border-radius: 8px; padding: 5px; background: transparent; color: #555; font: inherit; font-size: .78em; text-decoration: underline; cursor: pointer; }
+.reaction-remove:hover { background: #f0f2f5; }
+.reaction-remove:focus-visible { outline: 2px solid #222; }
 .care-icon { width: 1.3em; height: 1.3em; vertical-align: middle; }
 </style>
 <div class="reaction-picker" role="group" aria-label="React to this message">
@@ -14,6 +17,7 @@
         {% for option in reaction_options %}
         <button type="button" class="fb-like" data-reaction="{{ option.value }}" aria-label="{{ option.label }}" title="{{ option.label }}" aria-pressed="false"><span aria-hidden="true">{% include "social_media/EmojiIcon.html" %}</span></button>
         {% endfor %}
+        <button type="button" class="reaction-remove" hidden>Remove reaction</button>
     </div>
 </div>
 <script>
@@ -21,12 +25,14 @@
     var field = document.getElementById('id_received_reaction');
     var picker = document.querySelector('.reaction-picker'), trigger = picker.querySelector('.reaction-trigger');
     var palette = picker.querySelector('.fb-like-row'), buttons = palette.querySelectorAll('[data-reaction]');
+    var remove = picker.querySelector('.reaction-remove');
     var outline = trigger.innerHTML;
     var key = 'reaction_{{ participant.code }}_{{ player.round_number }}_{{ reaction_field }}';
     function open(value) { palette.hidden = !value; trigger.setAttribute('aria-expanded', String(value)); }
     function select(value) {
         if (value !== 'none' && !Array.prototype.some.call(buttons, function (button) { return button.dataset.reaction === value; })) value = 'none';
         field.value = value;
+        remove.hidden = value === 'none';
         trigger.innerHTML = outline;
         trigger.setAttribute('aria-label', 'Choose a reaction');
         trigger.classList.toggle('fb-like-on', value !== 'none');
@@ -45,11 +51,15 @@
     picker.addEventListener('keydown', function (event) { if (event.key === 'Escape') { open(false); trigger.focus(); } });
     picker.addEventListener('focusout', function (event) { if (!picker.contains(event.relatedTarget)) open(false); });
     document.addEventListener('click', function (event) { if (!picker.contains(event.target)) open(false); });
+    function save(value) {
+        select(value);
+        try { sessionStorage.setItem(key, field.value); } catch (_) {}
+        open(false); trigger.focus();
+    }
+    remove.addEventListener('click', function () { save('none'); });
     buttons.forEach(function (button) {
         button.addEventListener('click', function () {
-            select(field.value === button.dataset.reaction ? 'none' : button.dataset.reaction);
-            try { sessionStorage.setItem(key, field.value); } catch (_) {}
-            open(false); trigger.focus();
+            save(field.value === button.dataset.reaction ? 'none' : button.dataset.reaction);
         });
     });
 })();

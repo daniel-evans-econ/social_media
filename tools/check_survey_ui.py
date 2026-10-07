@@ -47,7 +47,53 @@ def main():
         def load(name):
             page.goto(f'http://127.0.0.1:8765/qa/{name}.html', wait_until='load')
 
+        if '--reactions-only' in sys.argv:
+            load('BlockFeedbackReactions')
+            field = page.locator('#id_received_reaction')
+            trigger = page.locator('.reaction-trigger')
+            trigger.click()
+            assert page.locator('.reaction-remove').is_hidden()
+            for value in ('like', 'love', 'care', 'haha', 'wow', 'sad', 'angry'):
+                trigger.click()
+                page.locator('[data-reaction="' + value + '"]').click()
+                assert field.input_value() == value
+                trigger.click()
+                assert page.get_by_role('button', name='Remove reaction', exact=True).is_visible()
+                page.get_by_role('button', name='Remove reaction', exact=True).click()
+                assert field.input_value() == 'none'
+                assert page.locator('[data-reaction][aria-pressed=true]').count() == 0
+                assert trigger.locator('svg').count() == 1
+            page.reload()
+            assert field.input_value() == 'none'
+            trigger.click()
+            page.locator('[data-reaction="love"]').click()
+            trigger.click()
+            page.locator('[data-reaction="love"]').click()
+            assert field.input_value() == 'none'
+            trigger.click()
+            page.locator('[data-reaction="care"]').click()
+            for width in (1280, 390, 320):
+                page.set_viewport_size({'width': width, 'height': 900})
+                trigger.click()
+                panel = page.locator('#reaction-palette')
+                assert panel.evaluate('(el) => el.scrollWidth <= el.clientWidth + 1')
+                box = panel.bounding_box()
+                assert box['x'] >= 0 and box['x'] + box['width'] <= width
+                page.locator('.fb-received').screenshot(path=str(screenshots / f'remove_reaction_{width}.png'))
+            page.get_by_role('button', name='Remove reaction', exact=True).focus()
+            page.keyboard.press('Enter')
+            assert field.input_value() == 'none'
+            page.reload()
+            assert field.input_value() == 'none'
+            assert not errors, errors
+            browser.close()
+            print('Passed: explicit removal of all seven reactions, same-emoji toggle, keyboard removal, refresh persistence, and three screen widths.')
+            return
+
         if '--avatars-only' in sys.argv:
+            # Reproduce the server-rendered checked input for a returning participant.
+            saved_html = (fixtures / 'IntroReactions.html').read_text(encoding='utf-8').replace('value="neutral-4"', 'value="neutral-4" checked')
+            (fixtures / 'IntroAvatarSaved.html').write_text(saved_html, encoding='utf-8')
             load('IntroReactions')
             emphasis = page.locator('.avatar-picker legend strong')
             assert emphasis.inner_text() == 'avatar'
@@ -59,19 +105,38 @@ def main():
             page.evaluate('window.liveSend = data => window.liveRecv(data)')
             choices = page.locator('[name="avatar_picker"]')
             assert choices.count() == 18
-            assert page.locator('.avatar-group-label').all_text_contents() == ['Feminine', 'Masculine', 'Gender-neutral']
+            assert page.locator('.avatar-style-label').all_text_contents() == ['Feminine', 'Masculine', 'Gender-neutral']
+            assert page.locator('.avatar-options:visible').count() == 0
             for choice in choices.all():
+                panel_id = choice.evaluate('(el) => el.closest(".avatar-options").id')
+                page.locator('[aria-controls="' + panel_id + '"]').click()
+                assert page.locator('.avatar-options:visible').count() == 1
                 choice.locator('..').click()
                 assert choice.is_checked()
                 assert page.locator('#avatar-status').inner_text() == ''
+                assert page.locator('.avatar-options:visible').count() == 0
+                assert page.locator('.avatar-style.selected img').get_attribute('src').endswith('/' + choice.input_value() + '.svg')
+            page.locator('.avatar-style').nth(2).focus()
+            page.keyboard.press('ArrowDown')
             page.get_by_role('radio', name='Gender-neutral, skin tone 3', exact=True).focus()
             page.keyboard.press('ArrowRight')
-            assert page.get_by_role('radio', name='Gender-neutral, skin tone 4', exact=True).is_checked()
+            assert page.locator('[name="avatar_picker"][value="neutral-4"]').is_checked()
+            assert page.locator('.avatar-options:visible').count() == 0
             for width in (1280, 390, 320):
                 page.set_viewport_size({'width': width, 'height': 900})
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 2')
                 assert page.locator('.avatar-option img').evaluate_all('(els) => els.every(el => el.complete && el.naturalWidth > 0)')
+                assert page.locator('.avatar-picker').bounding_box()['height'] < 180
                 page.locator('fieldset').screenshot(path=str(screenshots / f'human_avatars_{width}.png'))
+                page.locator('.avatar-style').nth(2).click()
+                page.locator('fieldset').screenshot(path=str(screenshots / f'human_avatars_expanded_{width}.png'))
+                assert page.locator('.avatar-options:visible').evaluate('(el) => el.scrollWidth <= el.clientWidth + 1')
+                page.keyboard.press('Escape')
+                assert page.locator('.avatar-options:visible').count() == 0
+            load('IntroAvatarSaved')
+            assert page.locator('[name="avatar_picker"][value="neutral-4"]').is_checked()
+            assert page.locator('.avatar-style.selected img').get_attribute('src').endswith('/neutral-4.svg')
+            assert page.locator('.avatar-options:visible').count() == 0
             for name in ('BlockFeedback_qualitative_social', 'MessageReactionFeedback'):
                 load(name)
                 avatars = page.locator('img[src*="/avatars/"]')
@@ -150,8 +215,9 @@ def main():
                 assert 'Your messages will' not in text
                 assert page.locator('.avatar-option').count() == 18
                 page.evaluate('window.liveSend = data => window.liveRecv(data)')
+                page.locator('.avatar-style').nth(2).click()
                 page.get_by_role('radio', name='Gender-neutral, skin tone 3', exact=True).locator('..').click()
-                assert page.get_by_role('radio', name='Gender-neutral, skin tone 3', exact=True).is_checked()
+                assert page.locator('[name="avatar_picker"][value="neutral-3"]').is_checked()
                 assert page.locator('#avatar-status').inner_text() == ''
         for asked in (0, 1):
             for accepted in (0, 1):
