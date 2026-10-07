@@ -22,7 +22,7 @@ class Round:
 
 def main():
     rounds = [
-        Round(5, report_shared=True, report_number=3, report_message='I got 3 out of 5 correct.',
+        Round(5, report_shared=True, report_number=3, report_message='I got 3 out of 5 abstract reasoning questions in this block correct.',
               report_display_name='Me', received_signal_name='Peer', received_signal_text='I got 4 out of 5 correct.'),
         Round(10, report_shared=False, report_number=1, report_message='UNSENT'),
         Round(15, report_shared=False, iq_report_shared=True, iq_report_message='IQ MUST NOT APPEAR'),
@@ -38,6 +38,7 @@ def main():
     assert all(m['total'] == 0 and m['reactions'] == [] for m in messages)
     assert all(len(m['all_reactions']) == 7 for m in messages)
     assert messages[0]['avatar'] == 'neutral-3'
+    assert messages[0]['text'] == 'I got 3 out of 5 correct.'
     assert messages[1]['avatar'] is None
     assert messages[1]['initial'] == 'P'
     assert messages[0]['timestamp'] == '2026-10-06T12:00:00Z'
@@ -52,6 +53,7 @@ def main():
     assert first == survey.reaction_feedback_messages(player)
     baseline = {m['key']: m for m in first}
     base_counts = {r['value']: r['count'] for r in baseline['received-5']['all_reactions']}
+    base_names = {r['value']: r['reactors'] for r in baseline['received-5']['all_reactions']}
     for option in survey.REACTION_OPTIONS:
         rounds[0].fields['received_reaction'] = option['value']
         updated = {m['key']: m for m in survey.reaction_feedback_messages(player)}
@@ -61,6 +63,10 @@ def main():
         assert peer['total'] == baseline['received-5']['total'] + 1
         assert {r['value']: r['count'] for r in peer['all_reactions']} == {
             value: count + int(value == option['value']) for value, count in base_counts.items()}
+        for reaction in peer['all_reactions']:
+            expected = base_names[reaction['value']] + (['Me (You)'] if reaction['value'] == option['value'] else [])
+            assert reaction['reactors'] == expected
+            assert len(reaction['reactors']) == reaction['count']
         assert updated == {m['key']: m for m in survey.reaction_feedback_messages(player)}
     rounds[0].fields['received_reaction'] = 'none'
     assert survey.reaction_feedback_messages(player) == first
@@ -78,6 +84,10 @@ def main():
         player.participant.code = f'sparse-qa-{seed}'
         for message in survey.reaction_feedback_messages(player):
             assert 0 <= message['total'] <= 6 and len(message['reactions']) <= min(7, message['total'])
+            names = [name for reaction in message['all_reactions'] for name in reaction['reactors']]
+            assert len(names) == len(set(names)) == message['total']
+            assert all(len(r['reactors']) == r['count'] for r in message['all_reactions'])
+            assert all(name.startswith('PreviewUser') for name in names)
             totals.append(message['total'])
             distinct_types.add(len(message['reactions']))
     assert max(distinct_types) > 2

@@ -235,7 +235,7 @@
                                        min="0" max="5" step="1"
                                        style="width:60px; padding:6px; text-align:center;
                                               border:1px solid #b9d4ff; border-radius:6px;">
-                                out of 5 {{ task_construct }} questions in this block correct.
+                                out of 5 correct.
                             </p>
                             <input type="hidden" name="report_message" id="id_report_message" value="">
                         {% else %}
@@ -361,7 +361,6 @@
 {% include "social_media/ComposerSupport.html" %}
 <script>
 (function () {
-    var TASK_CONSTRUCT = "{{ task_construct }}";
     var AUTO_ADVANCE_MS = 5000;
     var _dnEl = document.getElementById('fb-display-name');
     var DISPLAY_NAME = _dnEl ? String(_dnEl.value || '').trim() : '';
@@ -450,7 +449,7 @@
             if (isNaN(n) || n < 0 || n > 5) { showError('Please enter a number from 0 to 5.'); return false; }
             var hiddenMsg = document.getElementById('id_report_message');
             if (hiddenMsg && hiddenMsg.tagName === 'INPUT') {
-                hiddenMsg.value = 'I got ' + n + ' out of 5 ' + TASK_CONSTRUCT + ' questions in this block correct.';
+                hiddenMsg.value = 'I got ' + n + ' out of 5 correct.';
             }
             return true;
         }
@@ -477,7 +476,7 @@
         if (numEl) {  // quantitative: derived from the free 0-5 number
             var raw = String(numEl.value).trim();
             if (raw === '') return '';
-            return 'I got ' + raw + ' out of 5 ' + TASK_CONSTRUCT + ' questions in this block correct.';
+            return 'I got ' + raw + ' out of 5 correct.';
         }
         var msgEl = document.getElementById('id_report_message');
         return msgEl ? String(msgEl.value || '').trim() : '';
@@ -522,7 +521,7 @@
         var hiddenMsg = document.getElementById('id_report_message');
         if (numEl && hiddenMsg && hiddenMsg.tagName === 'INPUT') {
             var n = String(numEl.value).trim();
-            hiddenMsg.value = 'I got ' + n + ' out of 5 ' + TASK_CONSTRUCT + ' questions in this block correct.';
+            hiddenMsg.value = 'I got ' + n + ' out of 5 correct.';
         }
         if (currentMessage()) lastMsgTime = nowTimeStr();
         logDraftIfChanged();

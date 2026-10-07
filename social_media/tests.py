@@ -139,6 +139,7 @@ class PlayerBot(Bot):
                     assert p.report_emoji == fb['report_emoji']
                 elif cond == 'quantitative_social':
                     assert p.field_maybe_none('report_emoji') is None
+                    assert p.report_message == f"I got {p.report_number} out of 5 correct."
                     assert json.loads(p.feedback_snapshot)['sent_emoji'] is None
 
         if CFG['show_iq'] and is_end_of_period_with_p3(p):
@@ -198,7 +199,7 @@ class PlayerBot(Bot):
                 yield Submission(MessageReactionFeedback, {}, check_html=False)
                 db.expire_all()
                 p = self.player
-                snapshot = p.participant.vars['reaction_feedback_snapshots'][f'{(p.round_number - 1) // 15 + 1}:ranked_blocks_v6']
+                snapshot = p.participant.vars['reaction_feedback_snapshots'][f'{(p.round_number - 1) // 15 + 1}:ranked_blocks_v7']
                 assert snapshot['source'] == 'synthetic_preview'
                 assert snapshot['assignment_source'] == 'like_treatment'
                 assert snapshot['messages'] == messages

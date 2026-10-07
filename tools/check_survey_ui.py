@@ -93,18 +93,57 @@ def main():
                     badge = post.locator('.rf-reaction[data-reaction="' + own_reaction + '"]')
                     assert badge.count() == 1 and int(badge.locator('.rf-count').inner_text()) >= 1
                 assert counts == sorted(counts, reverse=True)
+                for badge in post.locator('.rf-reaction').all():
+                    assert badge.get_attribute('type') == 'button'
+                    assert badge.locator('.rf-tooltip-name').count() == int(badge.locator('.rf-count').inner_text())
+                    names = badge.locator('.rf-tooltip-name').all_text_contents()
+                    assert sum(name.endswith('(You)') for name in names) == int(badge.get_attribute('data-reaction') == own_reaction)
                 totals.append(total)
             assert totals == sorted(totals, reverse=True)
             for width in (1280, 390, 320):
                 page.set_viewport_size({'width': width, 'height': 900})
                 page.wait_for_timeout(400)
                 assert page.locator('.rf-sidebar').evaluate('(el) => el.scrollWidth <= el.clientWidth + 1')
+                badge = page.locator('.rf-reaction').first
+                badge.hover()
+                tooltip = page.locator('#rf-tooltip')
+                tooltip.wait_for(state='visible')
+                assert tooltip.locator('.rf-tooltip-name').all_text_contents() == badge.locator('.rf-tooltip-name').all_text_contents()
+                box = tooltip.bounding_box()
+                assert box['x'] >= 0 and box['x'] + box['width'] <= width
+                assert box['y'] >= 0 and box['y'] + box['height'] <= 900
                 page.screenshot(path=str(screenshots / f'sparse_reactions_{width}.png'))
+                page.keyboard.press('Escape')
+                tooltip.wait_for(state='hidden')
+                badge.focus()
+                tooltip.wait_for(state='visible')
+                page.locator('.rf-sidebar').evaluate('(el) => el.dispatchEvent(new Event("scroll"))')
+                tooltip.wait_for(state='hidden')
+                badge.click()
+                tooltip.wait_for(state='visible')
+                page.locator('#rf-title').click()
+                tooltip.wait_for(state='hidden')
+                badge.evaluate('(el) => el.blur()')
             page.reload()
             assert totals == page.locator('.rf-post').evaluate_all('(els) => els.map(el => Number(el.dataset.total))')
+            mobile = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True)
+            mobile.route('**/*', serve)
+            touch_page = mobile.new_page()
+            touch_page.on('pageerror', lambda error: errors.append(str(error)))
+            touch_page.goto('http://127.0.0.1:8765/qa/MessageReactionFeedback.html')
+            touch_page.locator('.rf-reaction').first.tap()
+            touch_page.locator('#rf-tooltip').wait_for(state='visible')
+            touch_page.locator('#rf-title').tap()
+            touch_page.locator('#rf-tooltip').wait_for(state='hidden')
+            mobile.close()
+            load('BlockFeedback_quantitative_social')
+            page.locator('#id_report_number').fill('3')
+            assert page.locator('.fb-preview-body').first.inner_text() == 'I got 3 out of 5 correct.'
+            page.locator('#fb-compose-next').click()
+            assert page.locator('#id_report_message').input_value() == 'I got 3 out of 5 correct.'
             assert not errors, errors
             browser.close()
-            print('Passed: exact wording, sparse reaction totals and badges, sorting, refresh stability, and three screen widths.')
+            print('Passed: short quantitative wording; reaction counts and usernames; hover, keyboard, touch and scroll dismissal; ranking, refresh stability, and three screen widths.')
             return
 
         if '--colours-only' in sys.argv:

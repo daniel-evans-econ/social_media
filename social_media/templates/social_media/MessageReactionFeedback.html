@@ -23,6 +23,11 @@
     .care-icon { width: 1.3em; height: 1.3em; vertical-align: middle; }
     .rf-count { font-size: 11px; color: #555; font-variant-numeric: tabular-nums; }
     .rf-emoji { font-size: 15px; }
+    button.rf-reaction { padding: 0; color: inherit; cursor: pointer; }
+    button.rf-reaction:focus-visible { outline: 2px solid #1877f2; outline-offset: 2px; }
+    .rf-tooltip { position: fixed; z-index: 10001; max-width: min(240px, calc(100vw - 16px)); padding: 8px 10px; border-radius: 8px; background: #333; color: white; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; box-shadow: 0 3px 10px #0003; }
+    .rf-tooltip[hidden] { display: none; }
+    .rf-tooltip-name { display: block; }
     .rf-actions { display: flex; justify-content: flex-end; margin-top: 20px; }
     .rf-next { background: darkred; color: white; border: 1px solid darkred; border-radius: 8px; padding: 8px 18px; }
     body { overflow: hidden; }
@@ -44,9 +49,10 @@
             <p class="rf-text">{{ message.text }}</p>
             <div class="rf-reactions" aria-label="Reaction counts">
                 {% for reaction in message.reactions %}
-                <span class="rf-reaction" data-reaction="{{ reaction.value }}" title="{{ reaction.label }}: {{ reaction.count }}" aria-label="{{ reaction.label }}: {{ reaction.count }}">
+                <button type="button" class="rf-reaction" data-reaction="{{ reaction.value }}" data-label="{{ reaction.label }}" aria-label="{{ reaction.label }}: {{ reaction.count }}; show usernames" aria-describedby="rf-tooltip" aria-expanded="false">
                     <span class="rf-emoji" aria-hidden="true">{% if reaction.value == 'care' %}<img class="care-icon" src="/static/social/care.svg" alt="Care">{% else %}{{ reaction.emoji }}{% endif %}</span><span class="rf-count" aria-hidden="true">{{ reaction.count }}</span>
-                </span>
+                    <span class="rf-reactor-list" hidden>{% for reactor in reaction.reactors %}<span class="rf-tooltip-name">{{ reactor }}</span>{% endfor %}</span>
+                </button>
                 {% endfor %}
             </div>
         </article>
@@ -57,7 +63,48 @@
         <div class="rf-actions"><button class="rf-next" type="submit">Next</button></div>
     </div>
 </section>
+<div class="rf-tooltip" id="rf-tooltip" role="tooltip" hidden></div>
 <script>
+    (function () {
+        var tooltip = document.getElementById('rf-tooltip'), active = null, hideTimer;
+        function hide() {
+            clearTimeout(hideTimer);
+            if (active) active.setAttribute('aria-expanded', 'false');
+            tooltip.hidden = true; active = null;
+        }
+        function show(button) {
+            clearTimeout(hideTimer);
+            if (active) active.setAttribute('aria-expanded', 'false');
+            active = button;
+            var heading = document.createElement('strong');
+            heading.textContent = button.dataset.label;
+            tooltip.replaceChildren(heading);
+            button.querySelectorAll('.rf-tooltip-name').forEach(function (name) { tooltip.appendChild(name.cloneNode(true)); });
+            tooltip.hidden = false;
+            button.setAttribute('aria-expanded', 'true');
+            tooltip.style.left = '0px'; tooltip.style.top = '0px';
+            var box = button.getBoundingClientRect(), size = tooltip.getBoundingClientRect();
+            tooltip.style.left = Math.max(8, Math.min(innerWidth - size.width - 8, box.left + box.width / 2 - size.width / 2)) + 'px';
+            var top = box.top - size.height - 8;
+            if (top < 8) top = box.bottom + 8;
+            tooltip.style.top = Math.max(8, Math.min(innerHeight - size.height - 8, top)) + 'px';
+        }
+        document.querySelectorAll('button.rf-reaction').forEach(function (button) {
+            button.addEventListener('pointerenter', function (event) { if (event.pointerType === 'mouse') show(button); });
+            button.addEventListener('pointerleave', function () { hideTimer = setTimeout(hide, 120); });
+            button.addEventListener('focus', function () { show(button); });
+            button.addEventListener('blur', hide);
+            button.addEventListener('click', function () { show(button); });
+        });
+        tooltip.addEventListener('pointerenter', function () { clearTimeout(hideTimer); });
+        tooltip.addEventListener('pointerleave', hide);
+        document.querySelector('.rf-sidebar').addEventListener('scroll', hide);
+        window.addEventListener('resize', hide);
+        document.addEventListener('keydown', function (event) { if (event.key === 'Escape') hide(); });
+        document.addEventListener('click', function (event) {
+            if (!event.target.closest('.rf-reaction') && !tooltip.contains(event.target)) hide();
+        });
+    })();
     document.querySelectorAll('.rf-time').forEach(function (el) {
         var time = new Date(el.getAttribute('datetime'));
         if (!isNaN(time.getTime())) el.textContent = '· ' + time.toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'});

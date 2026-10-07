@@ -1254,6 +1254,9 @@ def reaction_feedback_messages(player):
                     timestamp = next((e.get('time', '') for e in reversed(history) if e.get('event') == 'compose_next'), '')
                 except (ValueError, TypeError, AttributeError):
                     timestamp = ''
+            # Normalize the displayed wording for earlier preview sessions too;
+            # retain the original stored text as part of their historical data.
+            own_text = f"I got {source.field_maybe_none('report_number')} out of 5 correct."
             candidates.append((f'block-{source.round_number}', name, own_text, timestamp, True))
         peer_text = source.field_maybe_none('received_signal_text')
         peer_name = source.field_maybe_none('received_signal_name')
@@ -1277,6 +1280,17 @@ def reaction_feedback_messages(player):
             for reaction in all_reactions:
                 if reaction['value'] == viewer_reaction:
                     reaction['count'] += 1
+            viewer_name = player.participant.vars.get('display_name', '')
+            name_rng = random.Random(f'{player.participant.code}-reaction-names-{key}')
+            pool = [f'PreviewUser{i:02d}' for i in range(1, 26)
+                    if f'PreviewUser{i:02d}' not in (name, viewer_name)]
+            placeholder_names = iter(name_rng.sample(pool, total))
+            for reaction in all_reactions:
+                is_viewer = reaction['value'] == viewer_reaction
+                reaction['reactors'] = [next(placeholder_names)
+                                        for _ in range(reaction['count'] - int(is_viewer))]
+                if is_viewer:
+                    reaction['reactors'].append(f'{viewer_name} (You)' if viewer_name else 'You')
             messages.append(dict(key=key, name=name, initial=name[:1].upper(), text=content,
                 timestamp=timestamp, is_own=is_own,
                 viewer_reaction=viewer_reaction, synthetic_total=total,
@@ -2585,10 +2599,7 @@ class BlockFeedback(Page):
                 player.report_emoji = None
                 n = player.field_maybe_none('report_number')
                 if n is not None:
-                    construct = TASK_CONSTRUCT.get(spec['task'], 'these')
-                    player.report_message = (
-                        f"I got {n} out of 5 {construct} questions in this block correct."
-                    )
+                    player.report_message = f"I got {n} out of 5 correct."
         else:
             # Control: no message composed; keep report fields blank.
             player.report_number = None
@@ -3148,10 +3159,10 @@ class MessageReactionFeedback(Page):
         snapshots = dict(player.participant.vars.get('reaction_feedback_snapshots', {}))
         # A separate key prevents old preview caches from replaying IQ messages
         # while retaining the original snapshots as a record of past exposure.
-        key = f'{period}:ranked_blocks_v6'
+        key = f'{period}:ranked_blocks_v7'
         if key not in snapshots:
             snapshots[key] = dict(
-                source='synthetic_preview', count_model='sparse_0_to_6_unrestricted_plus_viewer_reaction',
+                source='synthetic_preview', reactor_names_source='placeholder_peers_and_viewer', count_model='sparse_0_to_6_unrestricted_plus_viewer_reaction',
                 treatment=True, assignment_source='like_treatment', period=period,
                 shown_at=datetime.now(timezone.utc).isoformat(),
                 messages=reaction_feedback_messages(player),
@@ -3791,7 +3802,7 @@ def custom_export(players):
         period = period_of_round(player.round_number)
         snapshots = player.participant.vars.get('reaction_feedback_snapshots', {})
         snapshot = next((snapshots[key] for key in (
-            f'{period}:ranked_blocks_v6', f'{period}:ranked_blocks_v5', f'{period}:ranked_blocks_v4', f'{period}:ranked_blocks_v3',
+            f'{period}:ranked_blocks_v7', f'{period}:ranked_blocks_v6', f'{period}:ranked_blocks_v5', f'{period}:ranked_blocks_v4', f'{period}:ranked_blocks_v3',
             f'{period}:ranked_blocks_v2', f'{period}:ranked_blocks_v1',
             f'{period}:sent_blocks', str(period)) if key in snapshots), None)
         yield [player.participant.code, period, get_condition(player),
