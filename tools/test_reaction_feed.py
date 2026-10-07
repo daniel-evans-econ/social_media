@@ -48,9 +48,18 @@ def main():
     assert survey.own_avatar(player) == survey.avatar_for_name('Me')
     player.participant.vars['avatar_choice'] = 'neutral-3'
     first = survey.reaction_feedback_messages(player)
+    assert all(0 <= m['total'] <= 6 and len(m['reactions']) <= 2 for m in first)
     assert first == survey.reaction_feedback_messages(player)
     assert [m['total'] for m in first] == sorted((m['total'] for m in first), reverse=True)
     assert all([r['count'] for r in m['reactions']] == sorted((r['count'] for r in m['reactions']), reverse=True) for m in first)
+    totals = []
+    for seed in range(1000):
+        player.participant.code = f'sparse-qa-{seed}'
+        for message in survey.reaction_feedback_messages(player):
+            assert 0 <= message['total'] <= 6 and len(message['reactions']) <= 2
+            totals.append(message['total'])
+    assert 2.8 < sum(totals) / len(totals) < 3.2
+    print(f"Synthetic counts: mean {sum(totals) / len(totals):.2f}, range {min(totals)}–{max(totals)}, across {len(totals)} messages.")
     print('Passed: membership, zero-count messages and badges, stable ties, timestamps, avatars, and ranking.')
 
 

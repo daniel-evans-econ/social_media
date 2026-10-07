@@ -1262,7 +1262,14 @@ def reaction_feedback_messages(player):
                                received_times.get(str(source.round_number), ''), False))
         for key, name, content, timestamp, is_own in candidates:
             rng = random.Random(f'{player.participant.code}-reaction-counts-{key}')
-            all_reactions = [dict(option, count=rng.randint(0, 9)) for option in REACTION_OPTIONS]
+            # Preview only: about 3 reactions per message (previously 31.5),
+            # concentrated in at most two emoji types rather than all seven.
+            all_reactions = [dict(option, count=0) for option in REACTION_OPTIONS]
+            total = rng.randint(0, 6)
+            primary, secondary = rng.sample(range(len(REACTION_OPTIONS)), 2)
+            for _ in range(total):
+                index = primary if rng.random() < 0.85 else secondary
+                all_reactions[index]['count'] += 1
             messages.append(dict(key=key, name=name, initial=name[:1].upper(), text=content,
                 timestamp=timestamp, is_own=is_own,
                 avatar=own_avatar(player) if is_own else None,
@@ -3133,10 +3140,11 @@ class MessageReactionFeedback(Page):
         snapshots = dict(player.participant.vars.get('reaction_feedback_snapshots', {}))
         # A separate key prevents old preview caches from replaying IQ messages
         # while retaining the original snapshots as a record of past exposure.
-        key = f'{period}:ranked_blocks_v3'
+        key = f'{period}:ranked_blocks_v4'
         if key not in snapshots:
             snapshots[key] = dict(
-                source='synthetic_preview', treatment=True, assignment_source='like_treatment', period=period,
+                source='synthetic_preview', count_model='sparse_0_to_6_max_two_emojis',
+                treatment=True, assignment_source='like_treatment', period=period,
                 shown_at=datetime.now(timezone.utc).isoformat(),
                 messages=reaction_feedback_messages(player),
             )
@@ -3774,7 +3782,10 @@ def custom_export(players):
             continue
         period = period_of_round(player.round_number)
         snapshots = player.participant.vars.get('reaction_feedback_snapshots', {})
-        snapshot = snapshots.get(f'{period}:ranked_blocks_v3', snapshots.get(f'{period}:ranked_blocks_v2', snapshots.get(f'{period}:ranked_blocks_v1', snapshots.get(f'{period}:sent_blocks', snapshots.get(str(period))))))
+        snapshot = next((snapshots[key] for key in (
+            f'{period}:ranked_blocks_v4', f'{period}:ranked_blocks_v3',
+            f'{period}:ranked_blocks_v2', f'{period}:ranked_blocks_v1',
+            f'{period}:sent_blocks', str(period)) if key in snapshots), None)
         yield [player.participant.code, period, get_condition(player),
                reaction_feedback_enabled(player), like_button_enabled(player),
                json.dumps(snapshot, ensure_ascii=False) if snapshot else '', own_avatar(player)]

@@ -47,16 +47,40 @@ def main():
         def load(name):
             page.goto(f'http://127.0.0.1:8765/qa/{name}.html', wait_until='load')
 
+        if '--feed-only' in sys.argv:
+            load('MessageReactionFeedback')
+            assert 'Below you can read the messages you sent and received in this period. You can also see how other people reacted to the messages written in this period.' in page.locator('.rf-body').inner_text()
+            totals = []
+            for post in page.locator('.rf-post').all():
+                counts = [int(value) for value in post.locator('.rf-count').all_text_contents()]
+                total = int(post.get_attribute('data-total'))
+                assert len(counts) <= 2 and all(count > 0 for count in counts)
+                assert sum(counts) == total and 0 <= total <= 6
+                assert counts == sorted(counts, reverse=True)
+                totals.append(total)
+            assert totals == sorted(totals, reverse=True)
+            for width in (1280, 390, 320):
+                page.set_viewport_size({'width': width, 'height': 900})
+                page.wait_for_timeout(400)
+                assert page.locator('.rf-sidebar').evaluate('(el) => el.scrollWidth <= el.clientWidth + 1')
+                page.screenshot(path=str(screenshots / f'sparse_reactions_{width}.png'))
+            page.reload()
+            assert totals == page.locator('.rf-post').evaluate_all('(els) => els.map(el => Number(el.dataset.total))')
+            assert not errors, errors
+            browser.close()
+            print('Passed: exact wording, sparse reaction totals and badges, sorting, refresh stability, and three screen widths.')
+            return
+
         if '--colours-only' in sys.argv:
             page.set_viewport_size({'width': 390, 'height': 900})
             for name in ('BlockFeedback', 'IQFeedback', 'GlobalIQFeedback'):
                 load(name + '_qualitative_social')
                 page.locator('.emoji-compose-trigger').wait_for(state='visible')
                 assert page.locator('.fb-compose').evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(255, 255, 255)'
-                assert page.locator('.fb-preview').first.evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(247, 250, 255)'
+                assert page.locator('.fb-preview').first.evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(251, 253, 255)'
                 page.locator('.fb-compose').screenshot(path=str(screenshots / (name + '_blue_message.png')))
             load('MessageReactionFeedback')
-            assert page.locator('.rf-own').first.evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(247, 250, 255)'
+            assert page.locator('.rf-own').first.evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(251, 253, 255)'
             assert not errors, errors
             browser.close()
             print('Passed: white outer boxes and lighter blue own-message bubbles on all four pages.')
@@ -104,7 +128,7 @@ def main():
                 load(name + '_qualitative_social')
                 page.locator('.emoji-compose-trigger').wait_for(state='visible')
                 assert page.locator('.fb-compose').evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(255, 255, 255)'
-                assert page.locator('.fb-preview').first.evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(247, 250, 255)'
+                assert page.locator('.fb-preview').first.evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(251, 253, 255)'
                 page.locator('.fb-compose').screenshot(path=str(screenshots / (name + '_white_composer.png')))
             assert not errors, errors
             browser.close()
@@ -127,6 +151,9 @@ def main():
             choices = page.locator('[name="avatar_picker"]')
             assert choices.count() == 18
             assert page.locator('.avatar-trigger').inner_text() == '?'
+            assert page.locator('.avatar-trigger').bounding_box()['width'] == 40
+            assert page.locator('.avatar-control').evaluate('(el) => getComputedStyle(el).borderRadius') == '12px'
+            page.locator('.avatar-control').screenshot(path=str(screenshots / 'avatar_question_button.png'))
             assert page.locator('.avatar-picker').get_by_text('Feminine', exact=True).count() == 0
             page.locator('.avatar-trigger').hover()
             assert page.locator('.avatar-options:visible').count() == 1

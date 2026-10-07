@@ -183,6 +183,7 @@ class PlayerBot(Bot):
                 assert [m['total'] for m in messages] == sorted((m['total'] for m in messages), reverse=True)
                 assert all(m['key'].startswith(('block-', 'received-')) and 'out of 5' in m['text'] for m in messages)
                 assert all(len(m['all_reactions']) == 7 for m in messages)
+                assert all(0 <= m['total'] <= 6 and len(m['reactions']) <= 2 for m in messages)
                 assert all(all(r['count'] > 0 for r in m['reactions']) for m in messages)
                 assert all([r['count'] for r in m['reactions']] == sorted((r['count'] for r in m['reactions']), reverse=True) for m in messages)
                 assert all(m['name'] == 'Bot' and m['avatar'] == 'neutral-3' for m in messages if m['is_own'])
@@ -191,7 +192,7 @@ class PlayerBot(Bot):
                 yield Submission(MessageReactionFeedback, {}, check_html=False)
                 db.expire_all()
                 p = self.player
-                snapshot = p.participant.vars['reaction_feedback_snapshots'][f'{(p.round_number - 1) // 15 + 1}:ranked_blocks_v3']
+                snapshot = p.participant.vars['reaction_feedback_snapshots'][f'{(p.round_number - 1) // 15 + 1}:ranked_blocks_v4']
                 assert snapshot['source'] == 'synthetic_preview'
                 assert snapshot['assignment_source'] == 'like_treatment'
                 assert snapshot['messages'] == messages
