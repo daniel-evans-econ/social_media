@@ -47,6 +47,21 @@ def main():
         def load(name):
             page.goto(f'http://127.0.0.1:8765/qa/{name}.html', wait_until='load')
 
+        if '--colours-only' in sys.argv:
+            page.set_viewport_size({'width': 390, 'height': 900})
+            for name in ('BlockFeedback', 'IQFeedback', 'GlobalIQFeedback'):
+                load(name + '_qualitative_social')
+                page.locator('.emoji-compose-trigger').wait_for(state='visible')
+                assert page.locator('.fb-compose').evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(255, 255, 255)'
+                assert page.locator('.fb-preview').first.evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(240, 246, 255)'
+                page.locator('.fb-compose').screenshot(path=str(screenshots / (name + '_blue_message.png')))
+            load('MessageReactionFeedback')
+            assert page.locator('.rf-own').first.evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(240, 246, 255)'
+            assert not errors, errors
+            browser.close()
+            print('Passed: white outer boxes and original light-blue own-message bubbles on all four pages.')
+            return
+
         if '--reactions-only' in sys.argv:
             load('BlockFeedbackReactions')
             field = page.locator('#id_received_reaction')
@@ -89,11 +104,11 @@ def main():
                 load(name + '_qualitative_social')
                 page.locator('.emoji-compose-trigger').wait_for(state='visible')
                 assert page.locator('.fb-compose').evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(255, 255, 255)'
-                assert page.locator('.fb-preview').first.evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(238, 248, 239)'
+                assert page.locator('.fb-preview').first.evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(240, 246, 255)'
                 page.locator('.fb-compose').screenshot(path=str(screenshots / (name + '_white_composer.png')))
             assert not errors, errors
             browser.close()
-            print('Passed: direct toggle of all seven reactions, same-emoji toggle, hover switching, keyboard removal, refresh persistence, mobile layouts, and white/green message boxes.')
+            print('Passed: direct toggle of all seven reactions, same-emoji toggle, hover switching, keyboard removal, refresh persistence, mobile layouts, and white/blue message boxes.')
             return
 
         if '--avatars-only' in sys.argv:
