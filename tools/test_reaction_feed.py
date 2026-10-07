@@ -48,16 +48,39 @@ def main():
     assert survey.own_avatar(player) == survey.avatar_for_name('Me')
     player.participant.vars['avatar_choice'] = 'neutral-3'
     first = survey.reaction_feedback_messages(player)
-    assert all(0 <= m['total'] <= 6 and len(m['reactions']) <= 2 for m in first)
+    assert all(0 <= m['total'] <= 6 and len(m['reactions']) <= min(7, m['total']) for m in first)
     assert first == survey.reaction_feedback_messages(player)
+    baseline = {m['key']: m for m in first}
+    base_counts = {r['value']: r['count'] for r in baseline['received-5']['all_reactions']}
+    for option in survey.REACTION_OPTIONS:
+        rounds[0].fields['received_reaction'] = option['value']
+        updated = {m['key']: m for m in survey.reaction_feedback_messages(player)}
+        assert updated['block-5'] == baseline['block-5']
+        peer = updated['received-5']
+        assert peer['viewer_reaction'] == option['value']
+        assert peer['total'] == baseline['received-5']['total'] + 1
+        assert {r['value']: r['count'] for r in peer['all_reactions']} == {
+            value: count + int(value == option['value']) for value, count in base_counts.items()}
+        assert updated == {m['key']: m for m in survey.reaction_feedback_messages(player)}
+    rounds[0].fields['received_reaction'] = 'none'
+    assert survey.reaction_feedback_messages(player) == first
+    with patch.object(survey.random.Random, 'randint', return_value=0):
+        rounds[0].fields['received_reaction'] = 'love'
+        peer = next(m for m in survey.reaction_feedback_messages(player) if not m['is_own'])
+        assert peer['synthetic_total'] == 0 and peer['total'] == 1
+        assert [(r['value'], r['count']) for r in peer['reactions']] == [('love', 1)]
+    rounds[0].fields['received_reaction'] = 'none'
     assert [m['total'] for m in first] == sorted((m['total'] for m in first), reverse=True)
     assert all([r['count'] for r in m['reactions']] == sorted((r['count'] for r in m['reactions']), reverse=True) for m in first)
     totals = []
+    distinct_types = set()
     for seed in range(1000):
         player.participant.code = f'sparse-qa-{seed}'
         for message in survey.reaction_feedback_messages(player):
-            assert 0 <= message['total'] <= 6 and len(message['reactions']) <= 2
+            assert 0 <= message['total'] <= 6 and len(message['reactions']) <= min(7, message['total'])
             totals.append(message['total'])
+            distinct_types.add(len(message['reactions']))
+    assert max(distinct_types) > 2
     assert 2.8 < sum(totals) / len(totals) < 3.2
     print(f"Synthetic counts: mean {sum(totals) / len(totals):.2f}, range {min(totals)}–{max(totals)}, across {len(totals)} messages.")
     print('Passed: membership, zero-count messages and badges, stable ties, timestamps, avatars, and ranking.')

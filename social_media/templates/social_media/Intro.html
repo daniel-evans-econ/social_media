@@ -22,6 +22,14 @@
     We <strong style="color:darkred;">do not verify the truthfulness</strong> of the messages
     you send.{% endif %}
 </p>
+<p style="margin-top:1em;">
+    What <strong style="color:darkred;">username</strong> do you want to use when sending messages
+    to other participants?
+</p>
+<input type="text" name="display_name" id="id_display_name" maxlength="60" autocomplete="nickname"
+       style="width:100%; max-width:420px; padding:10px; font-size:1em;
+              border:1px solid #b9d4ff; border-radius:6px; box-sizing:border-box;">
+{% include "social_media/AvatarPicker.html" %}
 {% if receives_messages and like_treatment %}
 <p style="margin-top:1em;">
     You can also <strong style="color:darkred;">react</strong> to any message you receive using the emojis
@@ -32,14 +40,7 @@
     <strong style="color:darkred;">how many of each type of reaction</strong> the messages that you wrote received.
 </p>
 {% endif %}
-<p style="margin-top:1em;">
-    What <strong style="color:darkred;">username</strong> do you want to use when sending messages
-    to other participants?
-</p>
-<input type="text" name="display_name" id="id_display_name" maxlength="60" autocomplete="nickname"
-       style="width:100%; max-width:420px; padding:10px; font-size:1em;
-              border:1px solid #b9d4ff; border-radius:6px; box-sizing:border-box;">
-{% include "social_media/AvatarPicker.html" %}
+
 <p>
     {% if has_optional_third %}After completing both periods of the IQ task, you will have the
     opportunity to complete an additional IQ task in an

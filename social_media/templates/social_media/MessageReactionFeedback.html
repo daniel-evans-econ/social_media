@@ -18,7 +18,7 @@
     .rf-text { margin: 6px 0 0 46px; font-style: italic; color: #555; overflow-wrap: anywhere; }
     .rf-reactions { position: absolute; left: 8px; right: 8px; bottom: 0; transform: translateY(50%); display: flex; gap: 3px; }
     .rf-reaction { flex: 0 1 34px; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 2px; height: 30px; border: 2px solid #e2e6eb; border-radius: 999px; background: white; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
-    .rf-own { background: #fbfdff; border-color: #e4eefc; }
+    .rf-own { background: #f7faff; border-color: #d6e6fc; }
     .rf-you { color: #1a4998; }
     .care-icon { width: 1.3em; height: 1.3em; vertical-align: middle; }
     .rf-count { font-size: 11px; color: #555; font-variant-numeric: tabular-nums; }
@@ -36,7 +36,7 @@
         {% if messages %}
         <p>Below you can read the messages you sent and received in this period. You can also see how other people reacted to the messages written in this period.</p>
         {% for message in messages %}
-        <article class="rf-post{% if message.is_own %} rf-own{% endif %}" data-total="{{ message.total }}" data-message-key="{{ message.key }}">
+        <article class="rf-post{% if message.is_own %} rf-own{% endif %}" data-total="{{ message.total }}" data-synthetic-total="{{ message.synthetic_total }}" data-viewer-reaction="{{ message.viewer_reaction }}" data-message-key="{{ message.key }}">
             <div class="rf-post-head">
                 {% if message.is_own %}<img class="rf-avatar" src="/static/social/avatars/{{ message.avatar }}.svg" alt="">{% else %}<div class="rf-avatar" aria-hidden="true">{{ message.initial }}</div>{% endif %}
                 <div><span class="rf-name">{{ message.name }}</span>{% if message.is_own %} <small class="rf-you">You</small>{% endif %} <time class="rf-time" datetime="{{ message.timestamp }}">Earlier this period</time></div>
@@ -44,7 +44,7 @@
             <p class="rf-text">{{ message.text }}</p>
             <div class="rf-reactions" aria-label="Reaction counts">
                 {% for reaction in message.reactions %}
-                <span class="rf-reaction" title="{{ reaction.label }}: {{ reaction.count }}" aria-label="{{ reaction.label }}: {{ reaction.count }}">
+                <span class="rf-reaction" data-reaction="{{ reaction.value }}" title="{{ reaction.label }}: {{ reaction.count }}" aria-label="{{ reaction.label }}: {{ reaction.count }}">
                     <span class="rf-emoji" aria-hidden="true">{% if reaction.value == 'care' %}<img class="care-icon" src="/static/social/care.svg" alt="Care">{% else %}{{ reaction.emoji }}{% endif %}</span><span class="rf-count" aria-hidden="true">{{ reaction.count }}</span>
                 </span>
                 {% endfor %}

@@ -247,7 +247,7 @@
                                 <div id="composer-palette" class="fb-row fb-emoji composer-palette" hidden>
                                     {% for option in reaction_options %}<label><input type="radio" name="iq_report_emoji" value="{{ option.emoji }}" aria-label="{{ option.label }}"><span>{% include "social_media/EmojiIcon.html" %}</span></label>{% endfor %}
                                 </div>
-                                <textarea name="iq_report_message" id="id_report_message" minlength="5" maxlength="140"></textarea>
+                                <textarea name="iq_report_message" id="id_report_message" minlength="5" maxlength="140" rows="1"></textarea>
                             </div>
                         {% endif %}
 

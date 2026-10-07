@@ -1,9 +1,9 @@
 <style>
 .care-icon { width: 1.3em; height: 1.3em; vertical-align: middle; }
-.fb-preview { background: #fbfdff; border-color: #e4eefc; }
+.fb-preview { background: #f7faff; border-color: #d6e6fc; }
 .emoji-compose-wrap { position: relative; }
-.fb-compose .emoji-compose-wrap textarea { padding-left: 42px; }
-.emoji-compose-trigger { position: absolute; left: 4px; top: 5px; width: 34px; height: 34px; border: 0; border-radius: 50%; background: white; font-size: 25px; color: #65686c; cursor: pointer; }
+.fb-compose .emoji-compose-wrap textarea { display: block; box-sizing: border-box; height: 36px; min-height: 36px; padding: 6px 8px 6px 34px; line-height: 22px; overflow-y: hidden; resize: none; }
+.emoji-compose-trigger { position: absolute; left: 1px; top: 3px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 50%; background: white; font-size: 25px; line-height: 1; color: #65686c; cursor: pointer; }
 .fb-row.composer-palette { position: absolute; left: 0; bottom: calc(100% - 4px); z-index: 3; padding: 8px; border: 1px solid #ddd; border-radius: 22px; background: white; box-shadow: 0 3px 12px #0002; flex-wrap: nowrap; }
 .composer-palette[hidden] { display: none; }
 .fb-row.composer-palette input[type=radio] { display: block; position: absolute; opacity: 0; width: 1px; height: 1px; }
@@ -25,6 +25,14 @@ window.renderMessageEmoji = function (element, message, emoji) {
     var trigger = document.querySelector('.emoji-compose-trigger');
     var palette = document.querySelector('.composer-palette');
     if (!trigger || !palette) return;
+    var textarea = document.querySelector('.emoji-compose-wrap textarea');
+    function resizeMessage() {
+        textarea.style.height = '36px';
+        textarea.style.height = Math.min(120, Math.max(36, textarea.scrollHeight + 2)) + 'px';
+        textarea.style.overflowY = textarea.scrollHeight > 118 ? 'auto' : 'hidden';
+    }
+    textarea.addEventListener('input', resizeMessage);
+    resizeMessage();
     function setOpen(open) { palette.hidden = !open; trigger.setAttribute('aria-expanded', String(open)); }
     trigger.addEventListener('click', function () { setOpen(palette.hidden); });
     palette.addEventListener('change', function () { setOpen(false); trigger.focus(); });

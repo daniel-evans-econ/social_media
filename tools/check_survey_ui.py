@@ -47,6 +47,36 @@ def main():
         def load(name):
             page.goto(f'http://127.0.0.1:8765/qa/{name}.html', wait_until='load')
 
+        if '--composer-only' in sys.argv:
+            load('IntroReactions')
+            assert page.locator('.avatar-picker').evaluate('''(el) => {
+                const username = document.querySelector('#id_display_name');
+                const explanation = [...document.querySelectorAll('p')].find(p => p.textContent.includes('You can also'));
+                return (username.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING)
+                    && (el.compareDocumentPosition(explanation) & Node.DOCUMENT_POSITION_FOLLOWING);
+            }''')
+            for name in ('BlockFeedback', 'IQFeedback', 'GlobalIQFeedback'):
+                load(name + '_qualitative_social')
+                page.locator('.emoji-compose-trigger').wait_for(state='visible')
+                for width in (1280, 390, 320):
+                    page.set_viewport_size({'width': width, 'height': 900})
+                    textarea = page.locator('.emoji-compose-wrap textarea')
+                    textarea.fill('')
+                    field_box = textarea.bounding_box()
+                    button_box = page.locator('.emoji-compose-trigger').bounding_box()
+                    assert field_box['height'] == 36 and button_box['height'] == 30
+                    assert abs(button_box['x'] - field_box['x'] - 1) < 1
+                    page.locator('.fb-compose').screenshot(path=str(screenshots / f'{name}_short_input_{width}.png'))
+                    message = ('This is a longer message about how I did on this task. ' * 3)[:140]
+                    textarea.fill(message)
+                    assert 36 < textarea.bounding_box()['height'] <= 120
+                    assert message == textarea.input_value()
+                    assert page.locator('.fb-sidebar').evaluate('(el) => el.scrollWidth <= el.clientWidth + 1')
+            assert not errors, errors
+            browser.close()
+            print('Passed: username/avatar order, 36px writing fields, left-aligned 30px emoji buttons, and text growth on all three message pages at three widths.')
+            return
+
         if '--feed-only' in sys.argv:
             load('MessageReactionFeedback')
             assert 'Below you can read the messages you sent and received in this period. You can also see how other people reacted to the messages written in this period.' in page.locator('.rf-body').inner_text()
@@ -54,8 +84,14 @@ def main():
             for post in page.locator('.rf-post').all():
                 counts = [int(value) for value in post.locator('.rf-count').all_text_contents()]
                 total = int(post.get_attribute('data-total'))
-                assert len(counts) <= 2 and all(count > 0 for count in counts)
-                assert sum(counts) == total and 0 <= total <= 6
+                assert len(counts) <= 7 and all(count > 0 for count in counts)
+                own_reaction = post.get_attribute('data-viewer-reaction')
+                synthetic_total = int(post.get_attribute('data-synthetic-total'))
+                assert 0 <= synthetic_total <= 6
+                assert sum(counts) == total == synthetic_total + int(own_reaction != 'none')
+                if own_reaction != 'none':
+                    badge = post.locator('.rf-reaction[data-reaction="' + own_reaction + '"]')
+                    assert badge.count() == 1 and int(badge.locator('.rf-count').inner_text()) >= 1
                 assert counts == sorted(counts, reverse=True)
                 totals.append(total)
             assert totals == sorted(totals, reverse=True)
@@ -77,10 +113,10 @@ def main():
                 load(name + '_qualitative_social')
                 page.locator('.emoji-compose-trigger').wait_for(state='visible')
                 assert page.locator('.fb-compose').evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(255, 255, 255)'
-                assert page.locator('.fb-preview').first.evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(251, 253, 255)'
+                assert page.locator('.fb-preview').first.evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(247, 250, 255)'
                 page.locator('.fb-compose').screenshot(path=str(screenshots / (name + '_blue_message.png')))
             load('MessageReactionFeedback')
-            assert page.locator('.rf-own').first.evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(251, 253, 255)'
+            assert page.locator('.rf-own').first.evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(247, 250, 255)'
             assert not errors, errors
             browser.close()
             print('Passed: white outer boxes and lighter blue own-message bubbles on all four pages.')
@@ -128,7 +164,7 @@ def main():
                 load(name + '_qualitative_social')
                 page.locator('.emoji-compose-trigger').wait_for(state='visible')
                 assert page.locator('.fb-compose').evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(255, 255, 255)'
-                assert page.locator('.fb-preview').first.evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(251, 253, 255)'
+                assert page.locator('.fb-preview').first.evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(247, 250, 255)'
                 page.locator('.fb-compose').screenshot(path=str(screenshots / (name + '_white_composer.png')))
             assert not errors, errors
             browser.close()

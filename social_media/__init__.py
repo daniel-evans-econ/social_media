@@ -1262,16 +1262,24 @@ def reaction_feedback_messages(player):
                                received_times.get(str(source.round_number), ''), False))
         for key, name, content, timestamp, is_own in candidates:
             rng = random.Random(f'{player.participant.code}-reaction-counts-{key}')
-            # Preview only: about 3 reactions per message (previously 31.5),
-            # concentrated in at most two emoji types rather than all seven.
+            # Preview only: about 3 reactions per message (previously 31.5).
+            # Each reaction can independently be any of the seven emoji types.
             all_reactions = [dict(option, count=0) for option in REACTION_OPTIONS]
             total = rng.randint(0, 6)
-            primary, secondary = rng.sample(range(len(REACTION_OPTIONS)), 2)
             for _ in range(total):
-                index = primary if rng.random() < 0.85 else secondary
+                index = rng.randrange(len(REACTION_OPTIONS))
                 all_reactions[index]['count'] += 1
+            # The simulated counts represent other viewers. Add this viewer's
+            # final saved reaction exactly once, independently of the random draw.
+            viewer_reaction = source.field_maybe_none('received_reaction') if not is_own else 'none'
+            if viewer_reaction not in REACTION_VALUES:
+                viewer_reaction = 'none'
+            for reaction in all_reactions:
+                if reaction['value'] == viewer_reaction:
+                    reaction['count'] += 1
             messages.append(dict(key=key, name=name, initial=name[:1].upper(), text=content,
                 timestamp=timestamp, is_own=is_own,
+                viewer_reaction=viewer_reaction, synthetic_total=total,
                 avatar=own_avatar(player) if is_own else None,
                 total=sum(r['count'] for r in all_reactions), all_reactions=all_reactions,
                 reactions=sorted((r for r in all_reactions if r['count']), key=lambda r: -r['count'])))
@@ -3140,10 +3148,10 @@ class MessageReactionFeedback(Page):
         snapshots = dict(player.participant.vars.get('reaction_feedback_snapshots', {}))
         # A separate key prevents old preview caches from replaying IQ messages
         # while retaining the original snapshots as a record of past exposure.
-        key = f'{period}:ranked_blocks_v4'
+        key = f'{period}:ranked_blocks_v6'
         if key not in snapshots:
             snapshots[key] = dict(
-                source='synthetic_preview', count_model='sparse_0_to_6_max_two_emojis',
+                source='synthetic_preview', count_model='sparse_0_to_6_unrestricted_plus_viewer_reaction',
                 treatment=True, assignment_source='like_treatment', period=period,
                 shown_at=datetime.now(timezone.utc).isoformat(),
                 messages=reaction_feedback_messages(player),
@@ -3783,7 +3791,7 @@ def custom_export(players):
         period = period_of_round(player.round_number)
         snapshots = player.participant.vars.get('reaction_feedback_snapshots', {})
         snapshot = next((snapshots[key] for key in (
-            f'{period}:ranked_blocks_v4', f'{period}:ranked_blocks_v3',
+            f'{period}:ranked_blocks_v6', f'{period}:ranked_blocks_v5', f'{period}:ranked_blocks_v4', f'{period}:ranked_blocks_v3',
             f'{period}:ranked_blocks_v2', f'{period}:ranked_blocks_v1',
             f'{period}:sent_blocks', str(period)) if key in snapshots), None)
         yield [player.participant.code, period, get_condition(player),
