@@ -302,7 +302,7 @@ def main():
             assert half.evaluate('(el) => getComputedStyle(el).color') == 'rgb(139, 0, 0)'
         load('IntroReactions')
         intro = page.locator('body').inner_text()
-        assert 'Other participants can also react to any message you send using the same emojis.' in intro
+        assert 'Other participants can react to any message you send using the same emojis.' in intro
         assert page.locator('img.care-icon').count() == 1
         assert ', and 😡' in ' '.join(intro.split())
         assert 'let you know' in intro
@@ -311,12 +311,12 @@ def main():
         assert 'likes and dislikes' not in intro
         load('IntroNoReactions')
         assert 'You can also react' not in page.locator('body').inner_text()
-        assert 'Other participants can also react' not in page.locator('body').inner_text()
+        assert 'Other participants can react' not in page.locator('body').inner_text()
         for format in ('quantitative_social', 'qualitative_social'):
             for reactions in (False, True):
                 load('Intro_' + format + ('_reactions' if reactions else '_no_reactions'))
                 text = ' '.join(page.locator('body').inner_text().split())
-                assert ('Other participants can also react' in text) == reactions
+                assert ('Other participants can react' in text) == reactions
                 assert 'After each period with social interactions' not in text
                 assert 'Your messages will' not in text
                 assert page.locator('.avatar-option').count() == 18

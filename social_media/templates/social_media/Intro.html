@@ -34,7 +34,7 @@
 <p style="margin-top:1em;">
     You can also <strong style="color:darkred;">react</strong> to any message you receive using the emojis
     {% for option in reaction_options %}{% if option.value != 'like' %}, {% if option.value == 'angry' %}and {% endif %}{% endif %}<span title="{{ option.label }}" aria-label="{{ option.label }}">{% include "social_media/EmojiIcon.html" %}</span>{% endfor %}.
-    Other participants can also react to any message you send using the same emojis.
+    Other participants can react to any message you send using the same emojis.
     We will share the messages you send with other participants and
     <strong style="color:darkred;">let you know</strong>
     <strong style="color:darkred;">how many of each type of reaction</strong> the messages that you wrote received.
