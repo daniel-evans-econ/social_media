@@ -82,7 +82,7 @@ class PlayerBot(Bot):
             self.capture_page('Intro_' + p.participant.vars['social_type'] + ('_reactions' if like_button_enabled(p) else '_no_reactions'))
             assert Intro.error_message(p, dict(display_name='Bot')) == 'Please choose an avatar.'
             assert Intro.live_method(p, dict(avatar='invalid')) is None
-            assert Intro.live_method(p, dict(avatar='fox')) == {p.id_in_group: dict(avatar='fox')}
+            assert Intro.live_method(p, dict(avatar='neutral-3')) == {p.id_in_group: dict(avatar='neutral-3')}
             yield Submission(Intro, dict(display_name='Bot'), check_html=False)
             # The intro writes participant.vars; refresh before the bot changes
             # the example gate so it cannot overwrite the saved username.
@@ -185,12 +185,12 @@ class PlayerBot(Bot):
                 assert all(len(m['all_reactions']) == 7 for m in messages)
                 assert all(all(r['count'] > 0 for r in m['reactions']) for m in messages)
                 assert all([r['count'] for r in m['reactions']] == sorted((r['count'] for r in m['reactions']), reverse=True) for m in messages)
-                assert all(m['name'] == 'Bot' and m['avatar'] == 'fox' for m in messages if m['is_own'])
+                assert all(m['name'] == 'Bot' and m['avatar'] == 'neutral-3' for m in messages if m['is_own'])
                 self.capture_page('MessageReactionFeedback' if expected_count else 'MessageReactionFeedbackEmpty')
                 yield Submission(MessageReactionFeedback, {}, check_html=False)
                 db.expire_all()
                 p = self.player
-                snapshot = p.participant.vars['reaction_feedback_snapshots'][f'{(p.round_number - 1) // 15 + 1}:ranked_blocks_v1']
+                snapshot = p.participant.vars['reaction_feedback_snapshots'][f'{(p.round_number - 1) // 15 + 1}:ranked_blocks_v2']
                 assert snapshot['source'] == 'synthetic_preview'
                 assert snapshot['assignment_source'] == 'like_treatment'
                 assert snapshot['messages'] == messages

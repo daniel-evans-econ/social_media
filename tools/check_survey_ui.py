@@ -47,6 +47,43 @@ def main():
         def load(name):
             page.goto(f'http://127.0.0.1:8765/qa/{name}.html', wait_until='load')
 
+        if '--avatars-only' in sys.argv:
+            load('IntroReactions')
+            emphasis = page.locator('.avatar-picker legend strong')
+            assert emphasis.inner_text() == 'avatar'
+            assert emphasis.evaluate('(el) => getComputedStyle(el).color') == 'rgb(139, 0, 0)'
+            assert int(emphasis.evaluate('(el) => getComputedStyle(el).fontWeight')) >= 600
+            prompt_gap = page.locator('#id_display_name').evaluate('(el) => parseFloat(getComputedStyle(el.previousElementSibling).marginTop)')
+            avatar_gap = page.locator('.avatar-picker').evaluate('(el) => parseFloat(getComputedStyle(el).marginTop)')
+            assert abs(prompt_gap - avatar_gap) < 1
+            page.evaluate('window.liveSend = data => window.liveRecv(data)')
+            choices = page.locator('[name="avatar_picker"]')
+            assert choices.count() == 18
+            assert page.locator('.avatar-group-label').all_text_contents() == ['Feminine', 'Masculine', 'Gender-neutral']
+            for choice in choices.all():
+                choice.locator('..').click()
+                assert choice.is_checked()
+                assert page.locator('#avatar-status').inner_text() == ''
+            page.get_by_role('radio', name='Gender-neutral, skin tone 3', exact=True).focus()
+            page.keyboard.press('ArrowRight')
+            assert page.get_by_role('radio', name='Gender-neutral, skin tone 4', exact=True).is_checked()
+            for width in (1280, 390, 320):
+                page.set_viewport_size({'width': width, 'height': 900})
+                assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 2')
+                assert page.locator('.avatar-option img').evaluate_all('(els) => els.every(el => el.complete && el.naturalWidth > 0)')
+                page.locator('fieldset').screenshot(path=str(screenshots / f'human_avatars_{width}.png'))
+            for name in ('BlockFeedback_qualitative_social', 'MessageReactionFeedback'):
+                load(name)
+                avatars = page.locator('img[src*="/avatars/"]')
+                assert avatars.count() > 0
+                assert avatars.evaluate_all('(els) => els.every(el => /\\/(feminine|masculine|neutral)-[1-6]\\.svg$/.test(el.src) && el.complete && el.naturalWidth > 0)')
+                if name.startswith('BlockFeedback'):
+                    assert page.locator('.fb-preview-avatar').first.get_attribute('src').endswith('/neutral-3.svg')
+            assert not errors, errors
+            browser.close()
+            print(json.dumps({'passed': '18 human avatar selections, keyboard navigation, images at three widths, own and peer message avatars', 'screenshots': str(screenshots)}))
+            return
+
         if (fixtures / 'MessageReactionFeedback.html').exists():
             load('MessageReactionFeedback')
             assert page.locator('.rf-post').count() == 5
@@ -111,10 +148,10 @@ def main():
                 assert ('Other participants can also react' in text) == reactions
                 assert 'After each period with social interactions' not in text
                 assert 'Your messages will' not in text
-                assert page.locator('.avatar-option').count() == 6
+                assert page.locator('.avatar-option').count() == 18
                 page.evaluate('window.liveSend = data => window.liveRecv(data)')
-                page.get_by_role('radio', name='Panda', exact=True).locator('..').click()
-                assert page.get_by_role('radio', name='Panda', exact=True).is_checked()
+                page.get_by_role('radio', name='Gender-neutral, skin tone 3', exact=True).locator('..').click()
+                assert page.get_by_role('radio', name='Gender-neutral, skin tone 3', exact=True).is_checked()
                 assert page.locator('#avatar-status').inner_text() == ''
         for asked in (0, 1):
             for accepted in (0, 1):

@@ -439,13 +439,22 @@ REACTION_OPTIONS = [
     dict(value='sad', label='Sad', emoji='\U0001f622'),
     dict(value='angry', label='Angry', emoji='\U0001f621'),
 ]
-AVATAR_OPTIONS = [dict(value=name, label=name.title()) for name in ('fox', 'cat', 'bear', 'rabbit', 'owl', 'panda')]
+AVATAR_GROUPS = [
+    dict(label=label, options=[dict(value=f'{style}-{tone}', label=f'{label}, skin tone {tone}')
+                              for tone in range(1, 7)])
+    for style, label in [('feminine', 'Feminine'), ('masculine', 'Masculine'), ('neutral', 'Gender-neutral')]
+]
+AVATAR_OPTIONS = [option for group in AVATAR_GROUPS for option in group['options']]
 
 def avatar_for_name(name):
     return random.Random('avatar-' + name).choice(AVATAR_OPTIONS)['value']
 
 def own_avatar(player):
-    return player.participant.vars.get('avatar_choice') or avatar_for_name(player.participant.vars.get('display_name', ''))
+    selected = player.participant.vars.get('avatar_choice')
+    if selected in [option['value'] for option in AVATAR_OPTIONS]:
+        return selected
+    # Earlier preview participants may have selected an animal; use a stable human fallback.
+    return avatar_for_name(player.participant.vars.get('display_name', ''))
 
 REACTION_VALUES = ['none'] + [option['value'] for option in REACTION_OPTIONS]
 QUAL_EMOJIS = [option['emoji'] for option in REACTION_OPTIONS]
@@ -2206,7 +2215,7 @@ class Intro(Page):
             has_optional_third=CFG['use_wta'],
             receives_messages=CFG['received_message_source'] is not None,
             like_treatment=like_button_enabled(player),
-            reaction_options=REACTION_OPTIONS, avatar_options=AVATAR_OPTIONS,
+            reaction_options=REACTION_OPTIONS, avatar_groups=AVATAR_GROUPS,
             selected_avatar=player.participant.vars.get('avatar_choice', ''),
             is_quantitative=player.participant.vars.get('social_type') == 'quantitative_social',
             show_reaction_counts=(like_button_enabled(player)
@@ -3126,7 +3135,7 @@ class MessageReactionFeedback(Page):
         snapshots = dict(player.participant.vars.get('reaction_feedback_snapshots', {}))
         # A separate key prevents old preview caches from replaying IQ messages
         # while retaining the original snapshots as a record of past exposure.
-        key = f'{period}:ranked_blocks_v1'
+        key = f'{period}:ranked_blocks_v2'
         if key not in snapshots:
             snapshots[key] = dict(
                 source='synthetic_preview', treatment=True, assignment_source='like_treatment', period=period,
@@ -3767,7 +3776,7 @@ def custom_export(players):
             continue
         period = period_of_round(player.round_number)
         snapshots = player.participant.vars.get('reaction_feedback_snapshots', {})
-        snapshot = snapshots.get(f'{period}:ranked_blocks_v1', snapshots.get(f'{period}:sent_blocks', snapshots.get(str(period))))
+        snapshot = snapshots.get(f'{period}:ranked_blocks_v2', snapshots.get(f'{period}:ranked_blocks_v1', snapshots.get(f'{period}:sent_blocks', snapshots.get(str(period)))))
         yield [player.participant.code, period, get_condition(player),
                reaction_feedback_enabled(player), like_button_enabled(player),
                json.dumps(snapshot, ensure_ascii=False) if snapshot else '', own_avatar(player)]

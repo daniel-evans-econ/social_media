@@ -1,19 +1,24 @@
 <style>
 .care-icon { width: 1.3em; height: 1.3em; vertical-align: middle; }
-.avatar-options { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0 22px; }
+.avatar-picker { margin-top: 1em; }
+.avatar-options { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; max-width: 440px; margin: 8px 0 18px; }
+.avatar-group-label { font-size: .9em; margin: 12px 0 0; font-weight: 600; }
 .avatar-option { position: relative; padding: 5px; border: 2px solid #ddd; border-radius: 50%; cursor: pointer; }
-.avatar-option img { width: 52px; height: 52px; }
+.avatar-option img { width: 100%; height: auto; display: block; }
 .avatar-option input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .avatar-option:has(input:checked) { border-color: #1877f2; background: #e8f0ff; }
 .avatar-option:focus-within { outline: 2px solid #222; }
+@media (max-width: 460px) { .avatar-options { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 260px; } }
 </style>
-<fieldset><legend style="font-size:1em">Choose an avatar to appear beside your messages.</legend>
-<div class="avatar-options">
-{% for avatar in avatar_options %}<label class="avatar-option" title="{{ avatar.label }}">
+<fieldset class="avatar-picker"><legend style="font-size:1em">Choose an <strong style="color:darkred;">avatar</strong> to appear beside your messages.</legend>
+{% for group in avatar_groups %}
+<p class="avatar-group-label">{{ group.label }}</p>
+<div class="avatar-options" role="group" aria-label="{{ group.label }} avatars">
+{% for avatar in group.options %}<label class="avatar-option" title="{{ avatar.label }}">
 <input type="radio" name="avatar_picker" value="{{ avatar.value }}" aria-label="{{ avatar.label }}" {% if selected_avatar == avatar.value %}checked{% endif %}>
 <img src="/static/social/avatars/{{ avatar.value }}.svg" alt="">
 </label>{% endfor %}
-</div></fieldset>
+</div>{% endfor %}</fieldset>
 <p id="avatar-status" role="status" style="font-size:.9em"></p>
 <script>
 (function () {

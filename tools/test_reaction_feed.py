@@ -28,7 +28,7 @@ def main():
         Round(15, report_shared=False, iq_report_shared=True, iq_report_message='IQ MUST NOT APPEAR'),
     ]
     player = SimpleNamespace(round_number=15, participant=SimpleNamespace(code='qa', vars={
-        'display_name': 'Me', 'avatar_choice': 'fox',
+        'display_name': 'Me', 'avatar_choice': 'neutral-3',
         'sent_message_times': {'block-5': '2026-10-06T12:00:00Z'},
         'received_message_times': {'5': '2026-10-06T11:59:00Z'},
     }), in_rounds=lambda start, end: rounds)
@@ -37,10 +37,15 @@ def main():
     assert [m['key'] for m in messages] == ['block-5', 'received-5']
     assert all(m['total'] == 0 and m['reactions'] == [] for m in messages)
     assert all(len(m['all_reactions']) == 7 for m in messages)
-    assert messages[0]['avatar'] == 'fox'
+    assert messages[0]['avatar'] == 'neutral-3'
     assert messages[1]['avatar'] == survey.avatar_for_name('Peer')
     assert messages[0]['timestamp'] == '2026-10-06T12:00:00Z'
     assert messages[1]['timestamp'] == '2026-10-06T11:59:00Z'
+    assert len(survey.AVATAR_OPTIONS) == 18
+    player.participant.vars['avatar_choice'] = 'fox'
+    assert survey.own_avatar(player) in [option['value'] for option in survey.AVATAR_OPTIONS]
+    assert survey.own_avatar(player) == survey.avatar_for_name('Me')
+    player.participant.vars['avatar_choice'] = 'neutral-3'
     first = survey.reaction_feedback_messages(player)
     assert first == survey.reaction_feedback_messages(player)
     assert [m['total'] for m in first] == sorted((m['total'] for m in first), reverse=True)
