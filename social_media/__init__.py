@@ -435,23 +435,25 @@ REACTION_OPTIONS = [
     dict(value='love', label='Love', emoji='\u2764\ufe0f'),
     dict(value='care', label='Care', emoji='\U0001f917'),
     dict(value='haha', label='Haha', emoji='\U0001f606'),
-    dict(value='wow', label='Wow', emoji='\U0001f62e'),
     dict(value='sad', label='Sad', emoji='\U0001f622'),
     dict(value='angry', label='Angry', emoji='\U0001f621'),
 ]
 AVATAR_GROUPS = [
-    dict(label=label, options=[dict(value=f'{style}-{tone}', label=f'{label}, skin tone {tone}')
-                              for tone in range(1, 7)])
-    for style, label in [('feminine', 'Feminine'), ('masculine', 'Masculine'), ('neutral', 'Gender-neutral')]
+    dict(label=label, options=[dict(value=f'{style}-v2-{portrait}', label=f'Portrait {portrait}')
+                              for portrait in range(1, 6)])
+    for style, label in [('feminine', 'Feminine'), ('masculine', 'Masculine')]
 ]
 AVATAR_OPTIONS = [option for group in AVATAR_GROUPS for option in group['options']]
+# Retain existing selections and assets; only the new picker is restricted to ten.
+LEGACY_HUMAN_AVATARS = {f'{style}-{tone}' for style in ('feminine', 'masculine', 'neutral')
+                       for tone in range(1, 7)}
 
 def avatar_for_name(name):
     return random.Random('avatar-' + name).choice(AVATAR_OPTIONS)['value']
 
 def own_avatar(player):
     selected = player.participant.vars.get('avatar_choice')
-    if selected in [option['value'] for option in AVATAR_OPTIONS]:
+    if selected in [option['value'] for option in AVATAR_OPTIONS] or selected in LEGACY_HUMAN_AVATARS:
         return selected
     # Earlier preview participants may have selected an animal; use a stable human fallback.
     return avatar_for_name(player.participant.vars.get('display_name', ''))
@@ -1266,7 +1268,7 @@ def reaction_feedback_messages(player):
         for key, name, content, timestamp, is_own in candidates:
             rng = random.Random(f'{player.participant.code}-reaction-counts-{key}')
             # Preview only: about 3 reactions per message (previously 31.5).
-            # Each reaction can independently be any of the seven emoji types.
+            # Each reaction can independently be any of the available emoji types.
             all_reactions = [dict(option, count=0) for option in REACTION_OPTIONS]
             total = rng.randint(0, 6)
             for _ in range(total):
@@ -3157,9 +3159,8 @@ class MessageReactionFeedback(Page):
     def vars_for_template(player):
         period = period_of_round(player.round_number)
         snapshots = dict(player.participant.vars.get('reaction_feedback_snapshots', {}))
-        # A separate key prevents old preview caches from replaying IQ messages
-        # while retaining the original snapshots as a record of past exposure.
-        key = f'{period}:ranked_blocks_v7'
+        # Version the six-reaction menu; preserve earlier snapshots as exposure records.
+        key = f'{period}:ranked_blocks_v8'
         if key not in snapshots:
             snapshots[key] = dict(
                 source='synthetic_preview', reactor_names_source='placeholder_peers_and_viewer', count_model='sparse_0_to_6_unrestricted_plus_viewer_reaction',
@@ -3802,7 +3803,7 @@ def custom_export(players):
         period = period_of_round(player.round_number)
         snapshots = player.participant.vars.get('reaction_feedback_snapshots', {})
         snapshot = next((snapshots[key] for key in (
-            f'{period}:ranked_blocks_v7', f'{period}:ranked_blocks_v6', f'{period}:ranked_blocks_v5', f'{period}:ranked_blocks_v4', f'{period}:ranked_blocks_v3',
+            f'{period}:ranked_blocks_v8', f'{period}:ranked_blocks_v7', f'{period}:ranked_blocks_v6', f'{period}:ranked_blocks_v5', f'{period}:ranked_blocks_v4', f'{period}:ranked_blocks_v3',
             f'{period}:ranked_blocks_v2', f'{period}:ranked_blocks_v1',
             f'{period}:sent_blocks', str(period)) if key in snapshots), None)
         yield [player.participant.code, period, get_condition(player),

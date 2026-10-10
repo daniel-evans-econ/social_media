@@ -47,6 +47,21 @@ def main():
         def load(name):
             page.goto(f'http://127.0.0.1:8765/qa/{name}.html', wait_until='load')
 
+        if '--question-heading-only' in sys.argv:
+            load('Question_working_memory')
+            heading = page.locator('.q-wrap > h3')
+            initial = heading.bounding_box()
+            page.locator('#wm-stimulus').wait_for(state='visible')
+            stimulus = heading.bounding_box()
+            page.locator('#wm-answer-wrap').wait_for(state='visible')
+            answer = heading.bounding_box()
+            assert all(abs(box[key] - initial[key]) < 0.1
+                       for box in (stimulus, answer) for key in ('x', 'y'))
+            assert not errors, errors
+            browser.close()
+            print('Passed: working-memory heading stays fixed through ready, stimulus and answer stages.')
+            return
+
         if '--composer-only' in sys.argv:
             load('IntroReactions')
             assert page.locator('.avatar-picker').evaluate('''(el) => {
@@ -84,7 +99,7 @@ def main():
             for post in page.locator('.rf-post').all():
                 counts = [int(value) for value in post.locator('.rf-count').all_text_contents()]
                 total = int(post.get_attribute('data-total'))
-                assert len(counts) <= 7 and all(count > 0 for count in counts)
+                assert len(counts) <= 6 and all(count > 0 for count in counts)
                 own_reaction = post.get_attribute('data-viewer-reaction')
                 synthetic_total = int(post.get_attribute('data-synthetic-total'))
                 assert 0 <= synthetic_total <= 6
@@ -92,6 +107,11 @@ def main():
                 if own_reaction != 'none':
                     badge = post.locator('.rf-reaction[data-reaction="' + own_reaction + '"]')
                     assert badge.count() == 1 and int(badge.locator('.rf-count').inner_text()) >= 1
+                    assert post.locator('.rf-selected').count() == 1
+                    assert badge.evaluate('(el) => getComputedStyle(el).borderColor') == 'rgb(24, 119, 242)'
+                    assert 'includes your reaction' in badge.get_attribute('aria-label')
+                else:
+                    assert post.locator('.rf-selected').count() == 0
                 assert counts == sorted(counts, reverse=True)
                 for badge in post.locator('.rf-reaction').all():
                     assert badge.get_attribute('type') == 'button'
@@ -166,7 +186,8 @@ def main():
             field = page.locator('#id_received_reaction')
             trigger = page.locator('.reaction-trigger')
             assert page.get_by_role('button', name='Remove reaction', exact=True).count() == 0
-            for value in ('like', 'love', 'care', 'haha', 'wow', 'sad', 'angry'):
+            assert page.locator('[data-reaction="wow"]').count() == 0
+            for value in ('like', 'love', 'care', 'haha', 'sad', 'angry'):
                 trigger.click()
                 page.locator('[data-reaction="' + value + '"]').click()
                 assert field.input_value() == value
@@ -184,8 +205,8 @@ def main():
             trigger.click()
             page.locator('[data-reaction="care"]').click()
             trigger.hover()
-            page.locator('[data-reaction="wow"]').click()
-            assert field.input_value() == 'wow'
+            page.locator('[data-reaction="sad"]').click()
+            assert field.input_value() == 'sad'
             for width in (1280, 390, 320):
                 page.set_viewport_size({'width': width, 'height': 900})
                 trigger.press('ArrowDown')
@@ -207,12 +228,12 @@ def main():
                 page.locator('.fb-compose').screenshot(path=str(screenshots / (name + '_white_composer.png')))
             assert not errors, errors
             browser.close()
-            print('Passed: direct toggle of all seven reactions, same-emoji toggle, hover switching, keyboard removal, refresh persistence, mobile layouts, and white/blue message boxes.')
+            print('Passed: direct toggle of all six reactions, same-emoji toggle, hover switching, keyboard removal, refresh persistence, mobile layouts, and white/blue message boxes.')
             return
 
         if '--avatars-only' in sys.argv:
             # Reproduce the server-rendered checked input for a returning participant.
-            saved_html = (fixtures / 'IntroReactions.html').read_text(encoding='utf-8').replace('value="neutral-4"', 'value="neutral-4" checked')
+            saved_html = (fixtures / 'IntroReactions.html').read_text(encoding='utf-8').replace('value="masculine-v2-4"', 'value="masculine-v2-4" checked')
             (fixtures / 'IntroAvatarSaved.html').write_text(saved_html, encoding='utf-8')
             load('IntroReactions')
             emphasis = page.locator('.avatar-picker legend strong')
@@ -224,7 +245,7 @@ def main():
             assert abs(prompt_gap - avatar_gap) < 1
             page.evaluate('window.liveSend = data => window.liveRecv(data)')
             choices = page.locator('[name="avatar_picker"]')
-            assert choices.count() == 18
+            assert choices.count() == 10
             assert page.locator('.avatar-trigger').inner_text() == '?'
             assert page.locator('.avatar-trigger').bounding_box()['width'] == 40
             assert page.locator('.avatar-control').evaluate('(el) => getComputedStyle(el).borderRadius') == '12px'
@@ -245,9 +266,9 @@ def main():
                 assert page.locator('.avatar-trigger.selected img').get_attribute('src').endswith('/' + choice.input_value() + '.svg')
             page.locator('.avatar-trigger').focus()
             page.keyboard.press('ArrowDown')
-            page.get_by_role('radio', name='Avatar 15', exact=True).focus()
+            page.get_by_role('radio', name='Avatar 8', exact=True).focus()
             page.keyboard.press('ArrowRight')
-            assert page.locator('[name="avatar_picker"][value="neutral-4"]').is_checked()
+            assert page.locator('[name="avatar_picker"][value="masculine-v2-4"]').is_checked()
             assert page.locator('.avatar-options:visible').count() == 0
             for width in (1280, 390, 320):
                 page.set_viewport_size({'width': width, 'height': 900})
@@ -263,8 +284,8 @@ def main():
                 page.keyboard.press('Escape')
                 assert page.locator('.avatar-options:visible').count() == 0
             load('IntroAvatarSaved')
-            assert page.locator('[name="avatar_picker"][value="neutral-4"]').is_checked()
-            assert page.locator('.avatar-trigger.selected img').get_attribute('src').endswith('/neutral-4.svg')
+            assert page.locator('[name="avatar_picker"][value="masculine-v2-4"]').is_checked()
+            assert page.locator('.avatar-trigger.selected img').get_attribute('src').endswith('/masculine-v2-4.svg')
             assert page.locator('.avatar-options:visible').count() == 0
             touch_context = browser.new_context(viewport={'width': 390, 'height': 844}, has_touch=True, is_mobile=True)
             touch_context.route('**/*', serve)
@@ -273,17 +294,17 @@ def main():
             touch_page.evaluate('window.liveSend = data => window.liveRecv(data)')
             touch_page.locator('.avatar-trigger').tap()
             assert touch_page.locator('.avatar-options').is_visible()
-            touch_page.locator('[name=avatar_picker][value="neutral-6"]').locator('..').tap()
-            assert touch_page.locator('.avatar-trigger img').get_attribute('src').endswith('/neutral-6.svg')
+            touch_page.locator('[name=avatar_picker][value="masculine-v2-5"]').locator('..').tap()
+            assert touch_page.locator('.avatar-trigger img').get_attribute('src').endswith('/masculine-v2-5.svg')
             assert touch_page.locator('.avatar-options').is_hidden()
             touch_context.close()
             for name in ('BlockFeedback_qualitative_social', 'MessageReactionFeedback'):
                 load(name)
                 avatars = page.locator('img[src*="/avatars/"]')
                 assert avatars.count() > 0
-                assert avatars.evaluate_all('(els) => els.every(el => /\\/(feminine|masculine|neutral)-[1-6]\\.svg$/.test(el.src) && el.complete && el.naturalWidth > 0)')
+                assert avatars.evaluate_all('(els) => els.every(el => /\\/(feminine|masculine)-v2-[1-5]\\.svg$/.test(el.src) && el.complete && el.naturalWidth > 0)')
                 if name.startswith('BlockFeedback'):
-                    assert page.locator('.fb-preview-avatar').first.get_attribute('src').endswith('/neutral-3.svg')
+                    assert page.locator('.fb-preview-avatar').first.get_attribute('src').endswith('/feminine-v2-3.svg')
                     assert page.locator('.fb-received img.fb-avatar').count() == 0
                     assert len(page.locator('.fb-received .fb-avatar').inner_text()) == 1
                 else:
@@ -291,7 +312,7 @@ def main():
                     assert all(len(value) == 1 for value in page.locator('.rf-post:not(.rf-own) .rf-avatar').all_text_contents())
             assert not errors, errors
             browser.close()
-            print(json.dumps({'passed': '18 human avatar selections, keyboard navigation, images at three widths, own and peer message avatars', 'screenshots': str(screenshots)}))
+            print(json.dumps({'passed': '10 human avatar selections, keyboard navigation, images at three widths, own and peer message avatars', 'screenshots': str(screenshots)}))
             return
 
         if (fixtures / 'MessageReactionFeedback.html').exists():
@@ -299,7 +320,7 @@ def main():
             assert page.locator('.rf-post').count() == 5
             assert page.locator('.rf-own').count() == 2
             assert page.locator('.rf-own .rf-name').all_text_contents() == ['Bot'] * 2
-            assert 0 < page.locator('.rf-reaction').count() <= 35
+            assert 0 < page.locator('.rf-reaction').count() <= 30
             totals = page.locator('.rf-post').evaluate_all('(els) => els.map(el => Number(el.dataset.total))')
             assert totals == sorted(totals, reverse=True)
             assert all('out of 5' in text for text in page.locator('.rf-text').all_text_contents())
@@ -358,11 +379,11 @@ def main():
                 assert ('Other participants can react' in text) == reactions
                 assert 'After each period with social interactions' not in text
                 assert 'Your messages will' not in text
-                assert page.locator('.avatar-option').count() == 18
+                assert page.locator('.avatar-option').count() == 10
                 page.evaluate('window.liveSend = data => window.liveRecv(data)')
                 page.locator('.avatar-trigger').click()
-                page.get_by_role('radio', name='Avatar 15', exact=True).locator('..').click()
-                assert page.locator('[name="avatar_picker"][value="neutral-3"]').is_checked()
+                page.get_by_role('radio', name='Avatar 3', exact=True).locator('..').click()
+                assert page.locator('[name="avatar_picker"][value="feminine-v2-3"]').is_checked()
                 assert page.locator('#avatar-status').inner_text() == ''
         for asked in (0, 1):
             for accepted in (0, 1):
@@ -387,9 +408,9 @@ def main():
         checked.append('introduction and writing wording')
 
         load('BlockFeedbackReactions')
-        palette = [('Like', 'like', '👍'), ('Love', 'love', '❤️'), ('Care', 'care', '🤗'), ('Haha', 'haha', '😆'), ('Wow', 'wow', '😮'), ('Sad', 'sad', '😢'), ('Angry', 'angry', '😡')]
+        palette = [('Like', 'like', '👍'), ('Love', 'love', '❤️'), ('Care', 'care', '🤗'), ('Haha', 'haha', '😆'), ('Sad', 'sad', '😢'), ('Angry', 'angry', '😡')]
         buttons = [page.get_by_role('button', name=name, exact=True) for name, _, _ in palette]
-        assert page.locator('[data-reaction]').count() == 7
+        assert page.locator('[data-reaction]').count() == 6
         assert page.get_by_role('button', name='Dislike', exact=True).count() == 0
         field = page.locator('#id_received_reaction')
         page.evaluate('sessionStorage.clear()')
@@ -440,14 +461,14 @@ def main():
         load('BlockFeedbackNoReactions')
         assert page.locator('[data-reaction]').count() == 0
         assert field.input_value() == 'none'
-        checked.append('all seven reactions, switch/remove/refresh, no dislike, and untreated arm')
+        checked.append('all six reactions, switch/remove/refresh, no dislike, and untreated arm')
 
         load('BlockFeedback_quantitative_social')
         assert page.locator('.fb-emoji').count() == 0
         assert page.locator('input[name="report_number"]').count() == 1
         load('BlockFeedback_qualitative_social')
         choices = page.locator('.fb-emoji input[type="radio"]')
-        assert choices.count() == 7
+        assert choices.count() == 6
         assert choices.evaluate_all('(els) => els.map(el => el.value)') == [emoji for _, _, emoji in palette]
         for width in (1280, 390, 320):
             page.set_viewport_size({'width': width, 'height': 900})

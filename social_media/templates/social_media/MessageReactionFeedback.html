@@ -24,6 +24,8 @@
     .rf-count { font-size: 11px; color: #555; font-variant-numeric: tabular-nums; }
     .rf-emoji { font-size: 15px; }
     button.rf-reaction { padding: 0; color: inherit; cursor: pointer; }
+    button.rf-reaction.rf-selected { border-color: #1877f2; background: #e7f1ff; box-shadow: 0 0 0 1px #1877f2; }
+    .rf-selected .rf-count { color: #1458b3; font-weight: 700; }
     button.rf-reaction:focus-visible { outline: 2px solid #1877f2; outline-offset: 2px; }
     .rf-tooltip { position: fixed; z-index: 10001; max-width: min(240px, calc(100vw - 16px)); padding: 8px 10px; border-radius: 8px; background: #333; color: white; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; box-shadow: 0 3px 10px #0003; }
     .rf-tooltip[hidden] { display: none; }
@@ -49,7 +51,7 @@
             <p class="rf-text">{{ message.text }}</p>
             <div class="rf-reactions" aria-label="Reaction counts">
                 {% for reaction in message.reactions %}
-                <button type="button" class="rf-reaction" data-reaction="{{ reaction.value }}" data-label="{{ reaction.label }}" aria-label="{{ reaction.label }}: {{ reaction.count }}; show usernames" aria-describedby="rf-tooltip" aria-expanded="false">
+                <button type="button" class="rf-reaction{% if reaction.value == message.viewer_reaction %} rf-selected{% endif %}" data-reaction="{{ reaction.value }}" data-label="{{ reaction.label }}" aria-label="{{ reaction.label }}: {{ reaction.count }}{% if reaction.value == message.viewer_reaction %}; includes your reaction{% endif %}; show usernames" aria-describedby="rf-tooltip" aria-expanded="false">
                     <span class="rf-emoji" aria-hidden="true">{% if reaction.value == 'care' %}<img class="care-icon" src="/static/social/care.svg" alt="Care">{% else %}{{ reaction.emoji }}{% endif %}</span><span class="rf-count" aria-hidden="true">{{ reaction.count }}</span>
                     <span class="rf-reactor-list" hidden>{% for reactor in reaction.reactors %}<span class="rf-tooltip-name">{{ reactor }}</span>{% endfor %}</span>
                 </button>

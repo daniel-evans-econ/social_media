@@ -28,7 +28,7 @@ def main():
         Round(15, report_shared=False, iq_report_shared=True, iq_report_message='IQ MUST NOT APPEAR'),
     ]
     player = SimpleNamespace(round_number=15, participant=SimpleNamespace(code='qa', vars={
-        'display_name': 'Me', 'avatar_choice': 'neutral-3',
+        'display_name': 'Me', 'avatar_choice': 'feminine-v2-3',
         'sent_message_times': {'block-5': '2026-10-06T12:00:00Z'},
         'received_message_times': {'5': '2026-10-06T11:59:00Z'},
     }), in_rounds=lambda start, end: rounds)
@@ -36,20 +36,24 @@ def main():
         messages = survey.reaction_feedback_messages(player)
     assert [m['key'] for m in messages] == ['block-5', 'received-5']
     assert all(m['total'] == 0 and m['reactions'] == [] for m in messages)
-    assert all(len(m['all_reactions']) == 7 for m in messages)
-    assert messages[0]['avatar'] == 'neutral-3'
+    assert all(len(m['all_reactions']) == 6 for m in messages)
+    assert messages[0]['avatar'] == 'feminine-v2-3'
     assert messages[0]['text'] == 'I got 3 out of 5 correct.'
     assert messages[1]['avatar'] is None
     assert messages[1]['initial'] == 'P'
     assert messages[0]['timestamp'] == '2026-10-06T12:00:00Z'
     assert messages[1]['timestamp'] == '2026-10-06T11:59:00Z'
-    assert len(survey.AVATAR_OPTIONS) == 18
+    assert len(survey.AVATAR_OPTIONS) == 10
+    assert 'wow' not in survey.REACTION_VALUES
+    assert all('neutral' not in option['value'] for option in survey.AVATAR_OPTIONS)
+    player.participant.vars['avatar_choice'] = 'neutral-3'
+    assert survey.own_avatar(player) == 'neutral-3'  # Preserve historical selections.
     player.participant.vars['avatar_choice'] = 'fox'
     assert survey.own_avatar(player) in [option['value'] for option in survey.AVATAR_OPTIONS]
     assert survey.own_avatar(player) == survey.avatar_for_name('Me')
-    player.participant.vars['avatar_choice'] = 'neutral-3'
+    player.participant.vars['avatar_choice'] = 'feminine-v2-3'
     first = survey.reaction_feedback_messages(player)
-    assert all(0 <= m['total'] <= 6 and len(m['reactions']) <= min(7, m['total']) for m in first)
+    assert all(0 <= m['total'] <= 6 and len(m['reactions']) <= min(6, m['total']) for m in first)
     assert first == survey.reaction_feedback_messages(player)
     baseline = {m['key']: m for m in first}
     base_counts = {r['value']: r['count'] for r in baseline['received-5']['all_reactions']}
@@ -83,7 +87,7 @@ def main():
     for seed in range(1000):
         player.participant.code = f'sparse-qa-{seed}'
         for message in survey.reaction_feedback_messages(player):
-            assert 0 <= message['total'] <= 6 and len(message['reactions']) <= min(7, message['total'])
+            assert 0 <= message['total'] <= 6 and len(message['reactions']) <= min(6, message['total'])
             names = [name for reaction in message['all_reactions'] for name in reaction['reactors']]
             assert len(names) == len(set(names)) == message['total']
             assert all(len(r['reactors']) == r['count'] for r in message['all_reactions'])

@@ -82,7 +82,7 @@ class PlayerBot(Bot):
             self.capture_page('Intro_' + p.participant.vars['social_type'] + ('_reactions' if like_button_enabled(p) else '_no_reactions'))
             assert Intro.error_message(p, dict(display_name='Bot')) == 'Please choose an avatar.'
             assert Intro.live_method(p, dict(avatar='invalid')) is None
-            assert Intro.live_method(p, dict(avatar='neutral-3')) == {p.id_in_group: dict(avatar='neutral-3')}
+            assert Intro.live_method(p, dict(avatar='feminine-v2-3')) == {p.id_in_group: dict(avatar='feminine-v2-3')}
             yield Submission(Intro, dict(display_name='Bot'), check_html=False)
             # The intro writes participant.vars; refresh before the bot changes
             # the example gate so it cannot overwrite the saved username.
@@ -95,6 +95,7 @@ class PlayerBot(Bot):
             p.participant.vars['task_intro_checked'] = True
             yield Submission(TaskIntro, dict(), check_html=False)
         if plays_question:
+            self.capture_page('Question_' + round_spec(p)['task'])
             # Exercise the timed-out feedback-round path on the first feedback
             # round: leave the 5th question unanswered and let the 60s timer
             # expire. BlockFeedback must still show afterwards (it is gated only
@@ -183,8 +184,8 @@ class PlayerBot(Bot):
                 assert sum(not m['is_own'] for m in messages) == expected_received
                 assert [m['total'] for m in messages] == sorted((m['total'] for m in messages), reverse=True)
                 assert all(m['key'].startswith(('block-', 'received-')) and 'out of 5' in m['text'] for m in messages)
-                assert all(len(m['all_reactions']) == 7 for m in messages)
-                assert all(0 <= m['synthetic_total'] <= 6 and len(m['reactions']) <= 7 for m in messages)
+                assert all(len(m['all_reactions']) == 6 for m in messages)
+                assert all(0 <= m['synthetic_total'] <= 6 and len(m['reactions']) <= 6 for m in messages)
                 for message in messages:
                     expected = p.in_round(int(message['key'].split('-')[1])).field_maybe_none('received_reaction') if not message['is_own'] else 'none'
                     assert message['viewer_reaction'] == (expected or 'none')
@@ -193,13 +194,13 @@ class PlayerBot(Bot):
                         assert next(r['count'] for r in message['reactions'] if r['value'] == message['viewer_reaction']) >= 1
                 assert all(all(r['count'] > 0 for r in m['reactions']) for m in messages)
                 assert all([r['count'] for r in m['reactions']] == sorted((r['count'] for r in m['reactions']), reverse=True) for m in messages)
-                assert all(m['name'] == 'Bot' and m['avatar'] == 'neutral-3' for m in messages if m['is_own'])
+                assert all(m['name'] == 'Bot' and m['avatar'] == 'feminine-v2-3' for m in messages if m['is_own'])
                 assert all(m['avatar'] is None and m['initial'] == m['name'][:1].upper() for m in messages if not m['is_own'])
                 self.capture_page('MessageReactionFeedback' if expected_count else 'MessageReactionFeedbackEmpty')
                 yield Submission(MessageReactionFeedback, {}, check_html=False)
                 db.expire_all()
                 p = self.player
-                snapshot = p.participant.vars['reaction_feedback_snapshots'][f'{(p.round_number - 1) // 15 + 1}:ranked_blocks_v7']
+                snapshot = p.participant.vars['reaction_feedback_snapshots'][f'{(p.round_number - 1) // 15 + 1}:ranked_blocks_v8']
                 assert snapshot['source'] == 'synthetic_preview'
                 assert snapshot['assignment_source'] == 'like_treatment'
                 assert snapshot['messages'] == messages
@@ -256,6 +257,7 @@ class PlayerBot(Bot):
                 concern['care_about_iq_score'] = 2
             yield Submission(OutcomeConcern, concern, check_html=False)
             yield Submission(PlatformUsage, dict(sm_instagram=True, social_media_hours=2.0), check_html=False)
+            self.capture_page('RealismQuestion')
             yield Submission(RealismQuestion, dict(
                 realism_feedback='The social feedback felt fairly realistic to me overall, thanks.',
                 realism_behavior='I pushed a bit harder after reading how the others had done here.',
