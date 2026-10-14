@@ -7,7 +7,7 @@ from pathlib import Path
 
 OUT = Path(__file__).resolve().parents[1] / '_static/social/avatars'
 PALETTES = [
-    ('#f5d8c4', '#b36a3f', '#bd9553'),
+    ('#f5d8c4', '#a98252', '#a98252'),
     ('#cf9b76', '#593526', '#493026'),
     ('#e8bd97', '#242326', '#242326'),
     ('#79503b', '#211c1b', '#211c1b'),
