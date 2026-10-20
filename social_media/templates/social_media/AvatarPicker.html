@@ -8,7 +8,7 @@
 .avatar-trigger:focus-visible, .avatar-option:focus-within { outline: 2px solid #222; outline-offset: 2px; }
 .avatar-options { position: absolute; z-index: 10; top: 100%; left: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); width: min(280px, calc(100vw - 48px)); box-sizing: border-box; gap: 4px; padding: 8px; margin: 0; border: 1px solid #ddd; border-radius: 16px; background: white; box-shadow: 0 3px 14px #0002; }
 .avatar-options[hidden] { display: none; }
-.avatar-option { position: relative; padding: 2px; margin: 0; border: 2px solid transparent; border-radius: 8px; cursor: pointer; font-size:10px; text-align:center; line-height:1.2; }
+.avatar-option { position: relative; padding: 2px; margin: 0; border: 2px solid transparent; border-radius: 8px; cursor: pointer; }
 .avatar-option img { width: 100%; height: auto; display: block; }
 .avatar-option input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .avatar-option:has(input:checked) { border-color: #1877f2; background: #e8f0ff; }
@@ -18,9 +18,8 @@
 <button type="button" class="avatar-trigger" aria-label="Choose an avatar" aria-expanded="false" aria-controls="avatar-options"><span aria-hidden="true">?</span></button>
 <div id="avatar-options" class="avatar-options" role="group" aria-label="Avatar choices" hidden>
 {% for avatar in avatar_options %}<label class="avatar-option">
-<input type="radio" name="avatar_picker" value="{{ avatar.value }}" aria-label="{{ avatar.label }}" {% if selected_avatar == avatar.value %}checked{% endif %}>
+<input type="radio" name="avatar_picker" value="{{ avatar.value }}" aria-label="Avatar {{ forloop.counter }}" {% if selected_avatar == avatar.value %}checked{% endif %}>
 <img src="/static/social/avatars/{{ avatar.value }}.svg" alt="">
-<span>{{ avatar.label }}</span>
 </label>{% endfor %}
 </div></div></fieldset>
 <p id="avatar-status" role="status" style="font-size:.9em"></p>

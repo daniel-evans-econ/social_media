@@ -62,7 +62,7 @@ with sync_playwright() as pw:
     page.locator('#id_display_name').fill('Preview user')
     page.locator('.avatar-trigger').hover()
     assert page.locator('[name=avatar_picker]').count()==10
-    page.get_by_label('White female',exact=True).check()
+    page.get_by_label('Avatar 1',exact=True).check()
     assert 'feminine-v2-1.svg' in page.locator('#identity-preview-image').get_attribute('src')
     assert page.locator('#identity-preview-name').inner_text()=='Preview user'
     page.locator('.avatar-trigger').hover()
