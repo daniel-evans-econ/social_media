@@ -1,0 +1,23 @@
+{% extends "global/Page.html" %}
+{% block content %}
+<h2 style="color:darkred">Your photograph</h2>
+<p>Please take a photograph of yourself using your camera. It will be blurred on your device.
+You can review the blurred photograph and retake it before confirming.</p>
+<style>
+.selfie-camera, .selfie-result { width: min(360px, 100%); aspect-ratio: 1; object-fit: cover; border-radius: 12px; }
+.selfie-camera { transform: scaleX(-1); }
+.selfie-actions { display:flex; flex-wrap:wrap; gap:12px; margin:16px 0; }
+.selfie-actions button { padding:10px 16px; border:1px solid #b9c9dc; border-radius:8px; }
+[hidden] { display:none!important; }
+</style>
+<video id="selfie-camera" class="selfie-camera" autoplay playsinline muted hidden></video>
+<img id="selfie-result" class="selfie-result" alt="Your blurred photograph" hidden>
+<div class="selfie-actions">
+<button type="button" id="selfie-open">Open camera</button>
+<button type="button" id="selfie-take" hidden>Take photograph</button>
+<button type="button" id="selfie-retake" hidden>Retake photograph</button>
+<button type="button" id="selfie-confirm" hidden>Use this photograph and continue</button>
+</div>
+<p id="selfie-status" role="status"></p>
+<script src="/static/social/selfie-capture.js"></script>
+{% endblock %}

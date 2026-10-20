@@ -33,6 +33,7 @@ from . import (
     experience_page_order, ToolsUsed,
     SurveyReliabilityOverall, Comments, FinalResults,
 )
+from .new_pages import SelfieCapture, AverageBeliefs, AverageTruth, AverageOutcomes, average_rows, completed_periods
 
 
 def _correct_answer(player):
@@ -58,6 +59,8 @@ class PlayerBot(Bot):
         p = self.player
 
         if self.round_number == 1:
+            p.participant.vars['image_treatment'] = 'selfie' if p.id_in_group % 4 in (1, 0) else 'avatar'
+            p.participant.vars['reveal_truth'] = p.id_in_group <= 4
             # Exercise both reaction arms deterministically in bot sessions.
             p.participant.vars['like_treatment'] = p.id_in_group % 2 == 0
             # Obsolete preview assignment must have no effect on the unified arm.
@@ -72,6 +75,16 @@ class PlayerBot(Bot):
             yield Submission(Consent, dict(
                 consent=True, llm_rule_confirm=True, honeypot_intro_response='',
             ), check_html=False)
+            import base64
+            import io
+            from PIL import Image
+            photo = io.BytesIO()
+            Image.new('RGB', (512, 512), '#9ab5ce').save(photo, format='JPEG')
+            self.capture_page('SelfieCapture')
+            assert SelfieCapture.error_message(p, {})
+            assert 'error' in SelfieCapture.live_method(p, {'action':'confirm','image':'invalid'})[p.id_in_group]
+            assert SelfieCapture.live_method(p, {'action':'confirm','image':'data:image/jpeg;base64,'+base64.b64encode(photo.getvalue()).decode()})[p.id_in_group]['saved']
+            yield Submission(SelfieCapture, {}, check_html=False)
             yield Submission(ProlificID, dict(prolific_id='abcdefghijklmnopqrstuvwx'), check_html=False)
             self.capture_page('IQReferencePoint')
             if p.participant.vars.get('iq_reference_asked', False):
@@ -80,7 +93,9 @@ class PlayerBot(Bot):
                 yield Submission(IQReferencePoint, dict(), check_html=False)
             self.capture_page('IntroReactions' if like_button_enabled(p) else 'IntroNoReactions')
             self.capture_page('Intro_' + p.participant.vars['social_type'] + ('_reactions' if like_button_enabled(p) else '_no_reactions'))
-            assert Intro.error_message(p, dict(display_name='Bot')) == 'Please choose an avatar.'
+            self.capture_page('IntroImage_' + p.participant.vars['image_treatment'])
+            if p.participant.vars['image_treatment'] == 'avatar':
+                assert Intro.error_message(p, dict(display_name='Bot')) == 'Please choose an avatar.'
             assert Intro.live_method(p, dict(avatar='invalid')) is None
             assert Intro.live_method(p, dict(avatar='feminine-v2-3')) == {p.id_in_group: dict(avatar='feminine-v2-3')}
             yield Submission(Intro, dict(display_name='Bot'), check_html=False)
@@ -195,7 +210,7 @@ class PlayerBot(Bot):
                 assert all(all(r['count'] > 0 for r in m['reactions']) for m in messages)
                 assert all([r['count'] for r in m['reactions']] == sorted((r['count'] for r in m['reactions']), reverse=True) for m in messages)
                 assert all(m['name'] == 'Bot' and m['avatar'] == 'feminine-v2-3' for m in messages if m['is_own'])
-                assert all(m['avatar'] is None and m['initial'] == m['name'][:1].upper() for m in messages if not m['is_own'])
+                assert all(m['avatar'] and m['initial'] == m['name'][:1].upper() for m in messages if not m['is_own'])
                 self.capture_page('MessageReactionFeedback' if expected_count else 'MessageReactionFeedbackEmpty')
                 yield Submission(MessageReactionFeedback, {}, check_html=False)
                 db.expire_all()
@@ -211,6 +226,8 @@ class PlayerBot(Bot):
             )
             if CFG['show_iq']:
                 eop['iq_perception_change'] = 3
+            self.capture_page('EndOfPeriodSurvey')
+            EndOfPeriodSurvey.live_method(p, {'difficulty':3})
             yield Submission(EndOfPeriodSurvey, eop, check_html=False)
 
         if CFG['use_wta'] and self.round_number == 2 * C.PERIOD_LENGTH:
@@ -317,6 +334,18 @@ class PlayerBot(Bot):
                 tool_none=False,
             ), check_html=False)
             yield Submission(SurveyReliabilityOverall, dict(survey_reliability=7), check_html=False)
+            if AverageBeliefs.is_displayed(p):
+                self.capture_page('AverageBeliefs_' + p.participant.vars['social_type'])
+                answers = {str(row['period']): (50 if row['kind']=='happy' else 7.5) for row in average_rows(p) if row['available']}
+                assert AverageBeliefs.live_method(p, answers)[p.id_in_group]['saved']
+                yield Submission(AverageBeliefs, {}, check_html=False)
+                if AverageTruth.is_displayed(p):
+                    self.capture_page('AverageTruth_' + p.participant.vars['social_type'])
+                    yield Submission(AverageTruth, {}, check_html=False)
+                self.capture_page('AverageOutcomes')
+                answers = {'mood':3, **{f'satisfaction_{period}':3 for period in completed_periods(p)}}
+                assert AverageOutcomes.live_method(p, answers)[p.id_in_group]['saved']
+                yield Submission(AverageOutcomes, {}, check_html=False)
             yield Submission(Comments, dict(comments='Great study, no issues.'), check_html=False)
             accepted = third_period_played(p)
             asked = p.participant.vars['iq_reference_asked']

@@ -8,7 +8,7 @@ from pathlib import Path
 OUT = Path(__file__).resolve().parents[1] / '_static/social/avatars'
 PALETTES = [
     ('#f5d8c4', '#a98252', '#a98252'),
-    ('#cf9b76', '#593526', '#493026'),
+    ('#cf9b76', '#593526', '#593526'),
     ('#e8bd97', '#242326', '#242326'),
     ('#79503b', '#211c1b', '#211c1b'),
     ('#b9825d', '#302421', '#302421'),
@@ -18,8 +18,8 @@ PALETTES = [
 def portrait(style, number):
     skin, feminine_hair, masculine_hair = PALETTES[number - 1]
     hair = feminine_hair if style == 'feminine' else masculine_hair
-    curly = number == 4
-    straight = number == 3
+    curly = False
+    straight = False
     back = ''
     if style == 'feminine':
         back = f'<path d="M21 76V36C21 7 75 7 75 36v40l-16-3H37Z" fill="{hair}"/>'
@@ -37,9 +37,9 @@ def portrait(style, number):
     if curly:
         front = 'M26 43l-4-12c-7-5-5-15 3-17 1-8 10-10 16-6 6-7 16-5 19 0 11-2 18 7 14 15 5 6 1 13-6 18l-2-15c-11 4-22 2-32 1Z'
     eyes = ('<path d="M35 43q4-3 8 0m10 0q4-3 8 0" fill="none" stroke-width="1.5"/>'
-            '<path d="M39 42.5v1m18-1v1" stroke-width="2.2"/>' if straight else
+            '<path d="M39 42.5v1m18-1v1" stroke-width="2.2"/>' if number == 3 else
             '<path d="M39 43v1m18-1v1" stroke-width="2.7"/>')
-    nose = 'm47 45-2 7q3 2 6 0' if curly else 'm48 45-2 7h4'
+    nose = 'm47 45-2 7q3 2 6 0' if number == 4 else 'm48 45-2 7h4'
     return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><defs><clipPath id="circle"><circle cx="48" cy="48" r="47"/></clipPath></defs><g clip-path="url(#circle)"><path fill="#e8eef5" d="M0 0h96v96H0z"/>{back}<path d="M12 97c1-19 13-27 28-28h16c15 1 27 9 28 28" fill="#557b9e"/><path d="M39 57h18v16c-5 8-13 8-18 0Z" fill="{skin}"/><path d="M39 59h18v8c-6 4-12 3-18 0Z" fill="#33201b" opacity=".13"/><ellipse cx="28" cy="43" rx="4" ry="7" fill="{skin}"/><ellipse cx="68" cy="43" rx="4" ry="7" fill="{skin}"/><path d="{face}" fill="{skin}"/><path d="{front}" fill="{hair}"/><g stroke="#352a29" stroke-linecap="round"><path d="M35 38q5-3 9-1m9 0q5-2 9 1" fill="none" stroke-width="1.6"/>{eyes}<path d="{nose}" fill="none" stroke-width="1.3" opacity=".45"/><path d="M42 57q6 5 12 0" fill="none" stroke-width="1.7"/></g><path d="M30 96V84m36 12V84" stroke="#416681" stroke-width="1.5"/></g><circle cx="48" cy="48" r="47" fill="none" stroke="#d5dfe9"/></svg>
 '''
 

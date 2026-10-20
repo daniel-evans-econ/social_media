@@ -28,6 +28,8 @@ ROOMS = [
 ]
 
 SESSION_CONFIG_DEFAULTS = dict(
+    image_treatment_enabled=True,
+    linked_peer_groups=True,
     # Preview treatment: set ENABLE_REACTION_FEEDBACK=0 to restore the old flow.
     reaction_feedback_enabled=environ.get('ENABLE_REACTION_FEEDBACK', '1') == '1',
     real_world_currency_per_point=1.00,

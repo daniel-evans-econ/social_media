@@ -198,7 +198,7 @@
                 </p>
                 <div class="fb-post fb-received{% if show_like_button %} fb-has-reactions{% endif %}">
                     <div class="fb-post-head">
-                        <div class="fb-avatar">{{ signal_initial }}</div>
+                        <img class="fb-avatar" src="/static/social/avatars/{{ peer_avatar }}.svg" alt="">
                         <div>
                             <div class="fb-post-name">
                                 {{ signal.name }}
@@ -255,7 +255,7 @@
                             <div class="fb-yourmsg-title">Your message</div>
                             <div class="fb-post fb-preview">
                                 <div class="fb-post-head">
-                                    <img class="fb-avatar fb-preview-avatar" src="/static/social/avatars/{{ avatar_choice }}.svg" alt="">
+                                    <img class="fb-avatar fb-preview-avatar" src="{{ own_image_url }}" alt="">
                                     <div>
                                         <div class="fb-post-name">
                                             <span class="fb-preview-name">Your name</span>
@@ -281,7 +281,7 @@
                         <div class="fb-yourmsg-title">Your message</div>
                         <div class="fb-post fb-preview">
                             <div class="fb-post-head">
-                                <img class="fb-avatar fb-preview-avatar" src="/static/social/avatars/{{ avatar_choice }}.svg" alt="">
+                                <img class="fb-avatar fb-preview-avatar" src="{{ own_image_url }}" alt="">
                                 <div>
                                     <div class="fb-post-name">
                                         <span class="fb-preview-name">Your name</span>
@@ -308,7 +308,7 @@
                         <div class="fb-yourmsg-title">Your message</div>
                         <div class="fb-post fb-preview">
                             <div class="fb-post-head">
-                                <img class="fb-avatar fb-preview-avatar" src="/static/social/avatars/{{ avatar_choice }}.svg" alt="">
+                                <img class="fb-avatar fb-preview-avatar" src="{{ own_image_url }}" alt="">
                                 <div>
                                     <div class="fb-post-name">
                                         <span class="fb-preview-name">Your name</span>

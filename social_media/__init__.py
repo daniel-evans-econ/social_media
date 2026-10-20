@@ -7,6 +7,8 @@ from pathlib import Path
 from statistics import NormalDist
 
 from . import questions_data as QD
+from .peer_groups import group_for, message_for, reference
+from .new_pages import SelfieCapture, AverageBeliefs, AverageTruth, AverageOutcomes, image_url
 from .message_vocab import is_task_specific
 
 
@@ -410,7 +412,8 @@ def iq_noise_offset(player, component: str, score: int) -> int:
     if len(sample) < IQ_COMPARISON_GROUP:
         return 0
     rng = random.Random(f"{player.participant.code}-iqnoise-{component}")
-    group = rng.sample(sample, IQ_COMPARISON_GROUP)
+    linked = group_for(player)
+    group = linked['scores'] if linked else rng.sample(sample, IQ_COMPARISON_GROUP)
     offset = _percentile_iq(group, score) - _percentile_iq(sample, score)
     return int(offset + 0.5) if offset >= 0 else -int(-offset + 0.5)
 
@@ -439,9 +442,9 @@ REACTION_OPTIONS = [
     dict(value='angry', label='Angry', emoji='\U0001f621'),
 ]
 AVATAR_GROUPS = [
-    dict(label=label, options=[dict(value=f'{style}-v2-{portrait}', label=f'Portrait {portrait}')
-                              for portrait in range(1, 6)])
-    for style, label in [('feminine', 'Feminine'), ('masculine', 'Masculine')]
+    dict(label=label, options=[dict(value=f'{style}-v2-{portrait}', label=f'{race} {label.lower()}')
+        for portrait, race in [(1, 'White'), (3, 'Asian'), (2, 'Latino'), (5, 'Indian'), (4, 'Black')]])
+    for style, label in [('feminine', 'Female'), ('masculine', 'Male')]
 ]
 AVATAR_OPTIONS = [option for group in AVATAR_GROUPS for option in group['options']]
 # Retain existing selections and assets; only the new picker is restricted to ten.
@@ -449,7 +452,13 @@ LEGACY_HUMAN_AVATARS = {f'{style}-{tone}' for style in ('feminine', 'masculine',
                        for tone in range(1, 7)}
 
 def avatar_for_name(name):
-    return random.Random('avatar-' + name).choice(AVATAR_OPTIONS)['value']
+    import re
+    parts = re.findall(r'[a-z]+', re.sub(r'([a-z])([A-Z])', r'\1 \2', name).lower())
+    female = {'mary','jane','sarah','sara','anna','anne','emma','emily','jessica','lisa','susan','jennifer','laura','maria','elizabeth','alice','sophie','sophia','rachel','rebecca','linda','michelle'}
+    male = {'john','james','david','daniel','michael','mike','robert','peter','paul','thomas','tom','william','richard','joseph','joshua','matthew','christopher','steven','kevin','mark','andrew'}
+    style = 'feminine' if set(parts) & female and not set(parts) & male else ('masculine' if set(parts) & male and not set(parts) & female else None)
+    options = [o for o in AVATAR_OPTIONS if not style or o['value'].startswith(style)]
+    return random.Random('avatar-' + name).choice(options)['value']
 
 def own_avatar(player):
     selected = player.participant.vars.get('avatar_choice')
@@ -1136,6 +1145,11 @@ def creating_session(subsession: Subsession):
                 TASK_LABELS.get(t, t) for t in period_tasks
             )
             part.vars['stroop_plan'] = _stroop_plan(part)
+            if subsession.session.config.get('image_treatment_enabled', True):
+                part.vars['image_treatment'] = ('selfie' if random.Random(f'{part.code}-image').random() < .5 else 'avatar')
+            part.vars['linked_peer_groups'] = bool(subsession.session.config.get('linked_peer_groups', True)
+                                                   and reference(CFG['iq_distribution_source']))
+            part.vars['reveal_truth'] = random.Random(f'{part.code}-truth').random() < .5
 
             # Randomized (50/50) reference-point treatment: only this subgroup is
             # asked their self-perceived IQ score before starting. Seeded per
@@ -1296,7 +1310,7 @@ def reaction_feedback_messages(player):
             messages.append(dict(key=key, name=name, initial=name[:1].upper(), text=content,
                 timestamp=timestamp, is_own=is_own,
                 viewer_reaction=viewer_reaction, synthetic_total=total,
-                avatar=own_avatar(player) if is_own else None,
+                avatar=own_avatar(player) if is_own else avatar_for_name(name),
                 total=sum(r['count'] for r in all_reactions), all_reactions=all_reactions,
                 reactions=sorted((r for r in all_reactions if r['count']), key=lambda r: -r['count'])))
     return sorted(messages, key=lambda message: -message['total'])
@@ -1471,6 +1485,8 @@ def _peer_message_plan(participant_code: str, kind: str) -> list:
 
 
 def _peer_message_for_round(player: Player, kind: str):
+    if player.participant.vars.get('linked_peer_groups'):
+        return message_for(player, kind)
     """The peer message this participant receives on the current block."""
     plan = _peer_message_plan(player.participant.code, kind)
     if not plan:
@@ -1509,6 +1525,8 @@ def pilot_feedback_signals(player: Player):
                         source_task=e.get('source_task'),
                         source_set_id=e.get('source_set_id'),
                         time=e.get('time') or _peer_message_time(rng))
+        if player.participant.vars.get('linked_peer_groups'):
+            return dict(type='none', name=None)
         return dict(type='quantitative', name=name, number=rng.randint(0, 5),
                     simulated=True,
                     time=_peer_message_time(rng))
@@ -1521,6 +1539,8 @@ def pilot_feedback_signals(player: Player):
                     source_task=e.get('source_task'),
                     source_set_id=e.get('source_set_id'),
                     time=e.get('time') or _peer_message_time(rng))
+    if player.participant.vars.get('linked_peer_groups'):
+        return dict(type='none', name=None)
     # Simulated fallback.
     emoji = rng.choice(LEGACY_QUAL_EMOJIS)
     if emoji == QUAL_EMOJI_SMILE:
@@ -2248,6 +2268,8 @@ class Intro(Page):
             like_treatment=like_button_enabled(player),
             reaction_options=REACTION_OPTIONS, avatar_options=AVATAR_OPTIONS,
             selected_avatar=player.participant.vars.get('avatar_choice', ''),
+            uses_selfie=player.participant.vars.get('image_treatment') == 'selfie',
+            own_image_url=image_url(player),
             is_quantitative=player.participant.vars.get('social_type') == 'quantitative_social',
             show_reaction_counts=(like_button_enabled(player)
                                   and reaction_feedback_enabled(player)
@@ -2268,7 +2290,7 @@ class Intro(Page):
     def error_message(player: Player, values):
         if not (values.get('display_name') or '').strip():
             return "Please enter the username you want to use."
-        if player.participant.vars.get('avatar_choice') not in [option['value'] for option in AVATAR_OPTIONS]:
+        if player.participant.vars.get('image_treatment') != 'selfie' and player.participant.vars.get('avatar_choice') not in [option['value'] for option in AVATAR_OPTIONS]:
             return "Please choose an avatar."
 
     @staticmethod
@@ -2524,10 +2546,10 @@ class BlockFeedback(Page):
             block_score=block_correct(player),
             report_options=list(range(6)),
             display_name=player.participant.vars.get('display_name', ''),
-            avatar_choice=own_avatar(player),
+            avatar_choice=own_avatar(player), own_image_url=image_url(player),
             signal=signal,
             received_timestamp=player.participant.vars.get('received_message_times', {}).get(str(player.round_number), ''),
-            signal_initial=signal_initial,
+            signal_initial=signal_initial, peer_avatar=avatar_for_name(signal_name),
             qual_emojis=QUAL_EMOJIS,
             reaction_options=REACTION_OPTIONS,
             in_treatment=cond in ('quantitative_social', 'qualitative_social'),
@@ -2696,9 +2718,9 @@ class IQFeedback(Page):
             n_correct=n_correct,
             iq=iq,
             display_name=player.participant.vars.get('display_name', ''),
-            avatar_choice=own_avatar(player),
+            avatar_choice=own_avatar(player), own_image_url=image_url(player),
             signal=signal,
-            signal_initial=signal_initial,
+            signal_initial=signal_initial, peer_avatar=avatar_for_name(signal_name),
             qual_emojis=QUAL_EMOJIS,
             reaction_options=REACTION_OPTIONS,
             in_treatment=cond in ('quantitative_social', 'qualitative_social'),
@@ -2849,7 +2871,7 @@ class GlobalIQFeedback(Page):
             n_correct=None,
             iq=iq,
             display_name=player.participant.vars.get('display_name', ''),
-            avatar_choice=own_avatar(player),
+            avatar_choice=own_avatar(player), own_image_url=image_url(player),
             signal=signal,
             signal_initial='?',
             qual_emojis=QUAL_EMOJIS,
@@ -3169,7 +3191,9 @@ class MessageReactionFeedback(Page):
                 messages=reaction_feedback_messages(player),
             )
             player.participant.vars['reaction_feedback_snapshots'] = snapshots
-        return dict(period=period, messages=snapshots[key]['messages'])
+        display_messages = [dict(message, avatar=message.get('avatar') or avatar_for_name(message['name']))
+                            for message in snapshots[key]['messages']]
+        return dict(period=period, messages=display_messages, own_image_url=image_url(player))
 
 
 class EndOfPeriodSurvey(Page):
@@ -3222,10 +3246,24 @@ class EndOfPeriodSurvey(Page):
             switched_subtracted=f"{subtracted:.2f}",
             task_construct=TASK_CONSTRUCT.get(task, "task"),
             question_order=question_keys,
+            collect_difficulty=player.participant.vars.get('image_treatment') is not None,
+            difficulty_choices=LIKERT_CHOICES,
         )
 
     @staticmethod
+    def live_method(player, data):
+        value = data.get('difficulty') if isinstance(data, dict) else None
+        if type(value) is int and value in range(1, 6):
+            answers = dict(player.participant.vars.get('difficulty', {}))
+            answers[str(period_of_round(player.round_number))] = value
+            player.participant.vars['difficulty'] = answers
+            return {player.id_in_group: dict(difficulty_saved=value)}
+
+    @staticmethod
     def error_message(player: Player, values):
+        if player.participant.vars.get('image_treatment') is not None and str(period_of_round(player.round_number)) not in player.participant.vars.get('difficulty', {}):
+            return "Please indicate how difficult you found the questions."
+
         if (values.get('mood') is None
                 or values.get('performance_satisfaction') is None
                 or values.get('task_enjoyment') is None
@@ -3760,6 +3798,7 @@ class ProlificCompletion(Page):
 page_sequence = [
     BotCheck,
     Consent,
+    SelfieCapture,
     ProlificID,
     IQReferencePoint,
     Intro,
@@ -3788,6 +3827,9 @@ page_sequence = [
     ExperienceChecklist3,
     ToolsUsed,
     SurveyReliabilityOverall,
+    AverageBeliefs,
+    AverageTruth,
+    AverageOutcomes,
     Comments,
     FinalResults,
 ]
@@ -3796,7 +3838,10 @@ page_sequence = [
 def custom_export(players):
     """Export assignment and exactly displayed synthetic counts without schema changes."""
     yield ['participant_code', 'period', 'condition', 'reaction_feedback_enabled_at_export',
-           'reaction_treatment', 'feedback_snapshot_json', 'avatar_choice']
+           'reaction_treatment', 'feedback_snapshot_json', 'avatar_choice',
+           'image_treatment', 'selfie_confirmed_at', 'difficulty', 'peer_group_json',
+           'truth_treatment', 'average_feedback_json', 'average_beliefs_json', 'average_outcomes_json',
+           'linked_message_plan_json']
     for player in players:
         if player.round_number not in (15, 30, 45):
             continue
@@ -3808,4 +3853,13 @@ def custom_export(players):
             f'{period}:sent_blocks', str(period)) if key in snapshots), None)
         yield [player.participant.code, period, get_condition(player),
                reaction_feedback_enabled(player), like_button_enabled(player),
-               json.dumps(snapshot, ensure_ascii=False) if snapshot else '', own_avatar(player)]
+               json.dumps(snapshot, ensure_ascii=False) if snapshot else '', own_avatar(player),
+               player.participant.vars.get('image_treatment', ''),
+               player.participant.vars.get('selfie', {}).get('confirmed_at', ''),
+               player.participant.vars.get('difficulty', {}).get(str(period), ''),
+               json.dumps(player.participant.vars.get('peer_groups', {}).get(str(period), {})),
+               player.participant.vars.get('reveal_truth', ''),
+               json.dumps(player.participant.vars.get('average_feedback', [])),
+               json.dumps(player.participant.vars.get('average_beliefs', {})),
+               json.dumps(player.participant.vars.get('average_outcomes', {})),
+               json.dumps(player.participant.vars.get('linked_message_plan', {}), ensure_ascii=False)]

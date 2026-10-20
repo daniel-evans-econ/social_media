@@ -29,7 +29,25 @@
 <input type="text" name="display_name" id="id_display_name" maxlength="60" autocomplete="nickname"
        style="width:100%; max-width:420px; padding:10px; font-size:1em;
               border:1px solid #b9d4ff; border-radius:6px; box-sizing:border-box;">
-{% include "social_media/AvatarPicker.html" %}
+{% if not uses_selfie %}{% include "social_media/AvatarPicker.html" %}{% else %}
+<p>Your confirmed blurred photograph will appear beside your messages.</p>
+{% endif %}
+<div style="position:relative;border:1px solid #e2e6eb;border-radius:12px;padding:12px;margin:20px 0;max-width:420px;box-shadow:0 1px 3px #0001">
+    <div style="display:flex;gap:10px;align-items:center">
+        <img id="identity-preview-image" src="{{ own_image_url }}" alt="Your message image" style="width:36px;height:36px;border-radius:50%">
+        <span id="identity-preview-name" style="font-weight:600">Your username</span>
+    </div>
+    <p style="margin:6px 0 0 46px;color:#555;font-style:italic">Your message will appear here.</p>
+</div>
+<script>
+(() => {
+    const input=document.getElementById('id_display_name'), name=document.getElementById('identity-preview-name');
+    input.addEventListener('input',()=>{name.textContent=input.value.trim()||'Your username';});
+    document.querySelectorAll('[name=avatar_picker]').forEach(radio=>radio.addEventListener('change',()=>{
+        document.getElementById('identity-preview-image').src='/static/social/avatars/'+radio.value+'.svg';
+    }));
+})();
+</script>
 {% if receives_messages and like_treatment %}
 <p style="margin-top:1em;">
     You can also <strong style="color:darkred;">react</strong> to any message you receive using the emojis

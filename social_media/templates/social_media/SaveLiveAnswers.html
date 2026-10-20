@@ -1,0 +1,22 @@
+<p id="answer-status" role="status"></p>
+<script>
+(() => {
+    const form = document.querySelector('form'), status = document.getElementById('answer-status');
+    let saved = false, pending = false;
+    form.addEventListener('submit', event => {
+        if (saved) return;
+        event.preventDefault();
+        if (pending || !form.reportValidity()) return;
+        const answers = {};
+        form.querySelectorAll('[data-answer]').forEach(input => {
+            if (input.type !== 'radio' || input.checked) answers[input.dataset.answer] = input.value;
+        });
+        pending = true; status.textContent = 'Saving…'; liveSend(answers);
+    });
+    window.liveRecv = data => {
+        pending = false;
+        if (data.saved) { saved = true; form.requestSubmit(); }
+        else status.textContent = data.error || 'Please try again.';
+    };
+})();
+</script>

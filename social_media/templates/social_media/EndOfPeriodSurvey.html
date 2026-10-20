@@ -61,5 +61,35 @@
     {% endif %}
 {% endfor %}
 
+{% if collect_difficulty %}
+<fieldset class="form-group">
+<legend style="font-size:1em">How <strong style="color:darkred">difficult</strong> did you find the questions in Period {{ period }}?</legend>
+{% for value,label in difficulty_choices %}
+<label style="display:inline-block;margin:8px 14px 0 0"><input type="radio" name="task_difficulty_response" value="{{ value }}" required> {{ label }}</label>
+{% endfor %}
+</fieldset>
+<p id="difficulty-status" role="status"></p>
+<script>
+(() => {
+    let saved=null, pending=false, submitted=false;
+    const form=document.querySelector('form'), status=document.getElementById('difficulty-status');
+    form.addEventListener('submit',event=>{
+        const checked=document.querySelector('[name=task_difficulty_response]:checked');
+        if (checked && saved===Number(checked.value)) return;
+        event.preventDefault();
+        if (!checked || pending) return;
+        pending=true; submitted=true; status.textContent='Saving…';
+        liveSend({difficulty:Number(checked.value)});
+    });
+    window.liveRecv=data=>{
+        pending=false;
+        if (data.difficulty_saved) {
+            saved=data.difficulty_saved;status.textContent='';
+            if (submitted) form.requestSubmit();
+        }
+    };
+})();
+</script>
+{% endif %}
 {{ next_button }}
 {% endblock %}

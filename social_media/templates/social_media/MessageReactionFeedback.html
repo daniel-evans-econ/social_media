@@ -45,7 +45,7 @@
         {% for message in messages %}
         <article class="rf-post{% if message.is_own %} rf-own{% endif %}" data-total="{{ message.total }}" data-synthetic-total="{{ message.synthetic_total }}" data-viewer-reaction="{{ message.viewer_reaction }}" data-message-key="{{ message.key }}">
             <div class="rf-post-head">
-                {% if message.is_own %}<img class="rf-avatar" src="/static/social/avatars/{{ message.avatar }}.svg" alt="">{% else %}<div class="rf-avatar" aria-hidden="true">{{ message.initial }}</div>{% endif %}
+                {% if message.is_own %}<img class="rf-avatar" src="{{ own_image_url }}" alt="">{% else %}<img class="rf-avatar" src="/static/social/avatars/{{ message.avatar }}.svg" alt="">{% endif %}
                 <div><span class="rf-name">{{ message.name }}</span>{% if message.is_own %} <small class="rf-you">You</small>{% endif %} <time class="rf-time" datetime="{{ message.timestamp }}">Earlier this period</time></div>
             </div>
             <p class="rf-text">{{ message.text }}</p>

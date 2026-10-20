@@ -39,7 +39,7 @@ def main():
     assert all(len(m['all_reactions']) == 6 for m in messages)
     assert messages[0]['avatar'] == 'feminine-v2-3'
     assert messages[0]['text'] == 'I got 3 out of 5 correct.'
-    assert messages[1]['avatar'] is None
+    assert messages[1]['avatar'] == survey.avatar_for_name('Peer')
     assert messages[1]['initial'] == 'P'
     assert messages[0]['timestamp'] == '2026-10-06T12:00:00Z'
     assert messages[1]['timestamp'] == '2026-10-06T11:59:00Z'

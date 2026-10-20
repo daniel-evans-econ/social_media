@@ -1,0 +1,32 @@
+{% extends "global/Page.html" %}
+{% block content %}
+<h2 style="color:darkred">Messages and actual performance</h2>
+{% if qualitative %}
+<p>The earlier study used three emojis: happy 😃, neutral 😐, and unhappy 😞.
+Below, “happy” means the happy emoji 😃. The percentages describe messages, not necessarily how people actually felt.</p>
+{% else %}
+<p>For each task, we calculated the average numerical report in messages sent by the numerical-reporting members of your comparison group.
+Their messages reported scores out of 5; we multiplied the average by 3 to express it out of 15.
+These respondents completed tasks in an earlier study.</p>
+{% endif %}
+{% for row in rows %}
+<section style="border:1px solid #dde3eb;border-radius:10px;padding:20px;margin:20px 0">
+<h4>Period {{ row.period }}: {{ row.task_label }}</h4>
+{% if row.available %}
+{% if qualitative %}
+<p>Among the qualitative messages sent by members of your comparison group, <strong>{{ row.reported_text }}%</strong> contained the happy emoji.</p>
+<label for="guess-{{ row.period }}">What percentage of <strong>all qualitative messages they wrote</strong>, including those they chose not to send, do you think contained the happy emoji?</label>
+<p><input id="guess-{{ row.period }}" data-answer="{{ row.period }}" type="number" min="0" max="100" step="0.1" required aria-label="Period {{ row.period }} percentage estimate"> % (0–100)</p>
+{% else %}
+<p>The reported average was <strong>{{ row.reported_text }} out of 15</strong>.</p>
+<label for="guess-{{ row.period }}">What do you think the actual average score was across all 20 comparison draws, including respondents who did not send numerical messages?</label>
+<p><input id="guess-{{ row.period }}" data-answer="{{ row.period }}" type="number" min="0" max="15" step="0.1" required aria-label="Period {{ row.period }} actual average estimate"> out of 15</p>
+{% endif %}
+{% else %}
+<p>There were not enough relevant messages in this comparison group to calculate a reported average. There is no estimate to provide for this period.</p>
+{% endif %}
+</section>
+{% endfor %}
+{{ next_button }}
+{% include "social_media/SaveLiveAnswers.html" %}
+{% endblock %}

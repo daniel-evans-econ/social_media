@@ -3,3 +3,5 @@ __pycache__/
 db.sqlite3
 .env
 *.db
+qa_oct20/
+social_media/data/peer_reference_*.json

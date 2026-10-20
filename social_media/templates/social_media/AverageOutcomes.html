@@ -1,0 +1,14 @@
+{% extends "global/Page.html" %}
+{% block content %}
+<h2 style="color:darkred">A few final questions about the tasks</h2>
+<fieldset><legend style="font-size:1.1em">How is your mood right now?</legend>
+{% for value,label in mood_choices %}<label style="display:inline-block;margin:8px 14px 18px 0"><input type="radio" name="final_mood" data-answer="mood" value="{{ value }}" required> {{ label }}</label>{% endfor %}
+</fieldset>
+{% for row in rows %}
+<fieldset><legend style="font-size:1.1em">How satisfied are you with your performance on the {{ row.task_label }} task in Period {{ row.period }}?</legend>
+{% for value,label in satisfaction_choices %}<label style="display:inline-block;margin:8px 14px 18px 0"><input type="radio" name="satisfaction_{{ row.period }}" data-answer="satisfaction_{{ row.period }}" value="{{ value }}" required> {{ label }}</label>{% endfor %}
+</fieldset>
+{% endfor %}
+{{ next_button }}
+{% include "social_media/SaveLiveAnswers.html" %}
+{% endblock %}
