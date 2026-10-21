@@ -56,7 +56,7 @@ with sync_playwright() as pw:
         selfie_box.check()
         page.evaluate('liveRecv({selfie_consent_saved:true,request_id:3})')
         assert next_button.is_enabled()
-        for phrase in ('upload a selfie','blurred version'):
+        for phrase in ('upload a photograph of myself','blurred version'):
             emphasis = page.locator('strong').filter(has_text=phrase)
             assert emphasis.count()==1
             assert emphasis.evaluate("el=>getComputedStyle(el).color")=='rgb(139, 0, 0)'
