@@ -30,9 +30,8 @@
 <input type="text" name="display_name" id="id_display_name" maxlength="60" autocomplete="nickname"
        style="width:100%; max-width:420px; padding:10px; font-size:1em;
               border:1px solid #b9d4ff; border-radius:6px; box-sizing:border-box;">
-{% if not uses_selfie %}{% include "social_media/AvatarPicker.html" %}{% else %}
-<p>Your confirmed blurred photograph will appear beside your messages.</p>
-{% endif %}
+{% if not uses_selfie %}{% include "social_media/AvatarPicker.html" %}{% endif %}
+<p style="margin-top:1em;">Here is a preview of what your messages will look like:</p>
 <div style="position:relative;border:1px solid #e2e6eb;border-radius:12px;padding:12px;margin:20px 0;max-width:420px;box-shadow:0 1px 3px #0001">
     <div style="display:flex;gap:10px;align-items:center">
         <img id="identity-preview-image" src="{{ own_image_url }}" alt="Your message image" style="width:36px;height:36px;border-radius:50%">
