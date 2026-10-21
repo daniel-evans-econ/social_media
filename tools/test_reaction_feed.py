@@ -39,7 +39,7 @@ def main():
     assert all(len(m['all_reactions']) == 6 for m in messages)
     assert messages[0]['avatar'] == 'feminine-v2-3'
     assert messages[0]['text'] == 'I got 3 out of 5 correct.'
-    assert messages[1]['avatar'] == survey.avatar_for_name('Peer')
+    assert messages[1]['avatar'] is None  # Unknown source demographics: use initials.
     assert messages[1]['initial'] == 'P'
     assert messages[0]['timestamp'] == '2026-10-06T12:00:00Z'
     assert messages[1]['timestamp'] == '2026-10-06T11:59:00Z'
@@ -50,8 +50,16 @@ def main():
     assert survey.own_avatar(player) == 'neutral-3'  # Preserve historical selections.
     player.participant.vars['avatar_choice'] = 'fox'
     assert survey.own_avatar(player) in [option['value'] for option in survey.AVATAR_OPTIONS]
-    assert survey.own_avatar(player) == survey.avatar_for_name('Me')
+    assert survey.own_avatar(player) == survey.own_avatar(player)
     player.participant.vars['avatar_choice'] = 'feminine-v2-3'
+    cached = [dict(key='received-5', name='mousegirl', is_own=False, avatar='masculine-v2-1'),
+              dict(key='block-5', name='Me', is_own=True, avatar='feminine-v2-3')]
+    player.participant.vars['reaction_feedback_snapshots'] = {'1:ranked_blocks_v8': {'messages': cached}}
+    with patch.object(survey, 'reference_avatar', return_value='feminine-v2-2'):
+        rendered = survey.MessageReactionFeedback.vars_for_template(player)['messages']
+    assert rendered[0]['avatar'].startswith('feminine')
+    assert rendered[1]['avatar']=='feminine-v2-3'
+    assert cached[0]['avatar']=='masculine-v2-1'  # Preserve the historical exposure record.
     first = survey.reaction_feedback_messages(player)
     assert all(0 <= m['total'] <= 6 and len(m['reactions']) <= min(6, m['total']) for m in first)
     assert first == survey.reaction_feedback_messages(player)

@@ -58,16 +58,17 @@
             </p>
             {{ formfield player.iq_perception_change }}
         </div>
+    {% elif key == 'difficulty' %}
+        <fieldset class="form-group">
+        <legend style="font-size:1em">How <strong style="color:darkred">difficult</strong> did you find the questions in Period {{ period }}?</legend>
+        {% for value,label in difficulty_choices %}
+        <label style="display:inline-block;margin:8px 14px 0 0"><input type="radio" name="task_difficulty_response" value="{{ value }}" required> {{ label }}</label>
+        {% endfor %}
+        </fieldset>
     {% endif %}
 {% endfor %}
 
 {% if collect_difficulty %}
-<fieldset class="form-group">
-<legend style="font-size:1em">How <strong style="color:darkred">difficult</strong> did you find the questions in Period {{ period }}?</legend>
-{% for value,label in difficulty_choices %}
-<label style="display:inline-block;margin:8px 14px 0 0"><input type="radio" name="task_difficulty_response" value="{{ value }}" required> {{ label }}</label>
-{% endfor %}
-</fieldset>
 <p id="difficulty-status" role="status"></p>
 <script>
 (() => {

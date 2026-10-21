@@ -8,7 +8,7 @@ from pathlib import Path
 from statistics import NormalDist
 
 from . import questions_data as QD
-from .peer_groups import group_for, message_for, reference
+from .peer_groups import group_for, message_for, reference, reference_avatar
 from .new_pages import SelfieCapture, AverageBeliefs, AverageTruth, AverageOutcomes, image_url
 from .message_vocab import is_task_specific
 
@@ -452,21 +452,19 @@ AVATAR_OPTIONS = [option for group in AVATAR_GROUPS for option in group['options
 LEGACY_HUMAN_AVATARS = {f'{style}-{tone}' for style in ('feminine', 'masculine', 'neutral')
                        for tone in range(1, 7)}
 
-def avatar_for_name(name):
-    import re
-    parts = re.findall(r'[a-z]+', re.sub(r'([a-z])([A-Z])', r'\1 \2', name).lower())
-    female = {'mary','jane','sarah','sara','anna','anne','emma','emily','jessica','lisa','susan','jennifer','laura','maria','elizabeth','alice','sophie','sophia','rachel','rebecca','linda','michelle'}
-    male = {'john','james','david','daniel','michael','mike','robert','peter','paul','thomas','tom','william','richard','joseph','joshua','matthew','christopher','steven','kevin','mark','andrew','seb','sebastian'}
-    style = 'feminine' if set(parts) & female and not set(parts) & male else ('masculine' if set(parts) & male and not set(parts) & female else None)
-    options = [o for o in AVATAR_OPTIONS if not style or o['value'].startswith(style)]
-    return random.Random('avatar-' + name).choice(options)['value']
+def peer_avatar_for_round(player, name, round_number=None):
+    message = player.participant.vars.get('linked_message_plan', {}).get(
+        str(round_number or player.round_number))
+    message_id = message.get('id') if message and message.get('name') == name else None
+    return reference_avatar(CFG['received_message_source'], message_id=message_id, name=name or '')
+
 
 def own_avatar(player):
     selected = player.participant.vars.get('avatar_choice')
     if selected in [option['value'] for option in AVATAR_OPTIONS] or selected in LEGACY_HUMAN_AVATARS:
         return selected
     # Earlier preview participants may have selected an animal; use a stable human fallback.
-    return avatar_for_name(player.participant.vars.get('display_name', ''))
+    return random.Random('avatar-' + player.participant.code).choice(AVATAR_OPTIONS)['value']
 
 REACTION_VALUES = ['none'] + [option['value'] for option in REACTION_OPTIONS]
 QUAL_EMOJIS = [option['emoji'] for option in REACTION_OPTIONS]
@@ -1311,7 +1309,7 @@ def reaction_feedback_messages(player):
             messages.append(dict(key=key, name=name, initial=name[:1].upper(), text=content,
                 timestamp=timestamp, is_own=is_own,
                 viewer_reaction=viewer_reaction, synthetic_total=total,
-                avatar=own_avatar(player) if is_own else avatar_for_name(name),
+                avatar=own_avatar(player) if is_own else peer_avatar_for_round(player, name, source.round_number),
                 total=sum(r['count'] for r in all_reactions), all_reactions=all_reactions,
                 reactions=sorted((r for r in all_reactions if r['count']), key=lambda r: -r['count'])))
     return sorted(messages, key=lambda message: -message['total'])
@@ -2568,7 +2566,7 @@ class BlockFeedback(Page):
             avatar_choice=own_avatar(player), own_image_url=image_url(player),
             signal=signal,
             received_timestamp=player.participant.vars.get('received_message_times', {}).get(str(player.round_number), ''),
-            signal_initial=signal_initial, peer_avatar=avatar_for_name(signal_name),
+            signal_initial=signal_initial, peer_avatar=peer_avatar_for_round(player, signal_name),
             qual_emojis=QUAL_EMOJIS,
             reaction_options=REACTION_OPTIONS,
             in_treatment=cond in ('quantitative_social', 'qualitative_social'),
@@ -2739,7 +2737,7 @@ class IQFeedback(Page):
             display_name=player.participant.vars.get('display_name', ''),
             avatar_choice=own_avatar(player), own_image_url=image_url(player),
             signal=signal,
-            signal_initial=signal_initial, peer_avatar=avatar_for_name(signal_name),
+            signal_initial=signal_initial, peer_avatar=peer_avatar_for_round(player, signal_name),
             qual_emojis=QUAL_EMOJIS,
             reaction_options=REACTION_OPTIONS,
             in_treatment=cond in ('quantitative_social', 'qualitative_social'),
@@ -3210,7 +3208,11 @@ class MessageReactionFeedback(Page):
                 messages=reaction_feedback_messages(player),
             )
             player.participant.vars['reaction_feedback_snapshots'] = snapshots
-        display_messages = [dict(message, avatar=message.get('avatar') or avatar_for_name(message['name']))
+        # Replace earlier guessed peer avatars using reported demographics.
+        # Preserve the sender's own selection and historical exposure records.
+        display_messages = [dict(message, avatar=(message.get('avatar') or own_avatar(player))
+                                 if message['is_own'] else peer_avatar_for_round(
+                                     player, message['name'], int(message['key'].split('-')[-1])))
                             for message in snapshots[key]['messages']]
         return dict(period=period, messages=display_messages, own_image_url=image_url(player))
 
@@ -3256,6 +3258,8 @@ class EndOfPeriodSurvey(Page):
                     'task_enjoyment']
         if CFG['show_iq']:
             eop_keys.append('iq_perception_change')
+        if player.participant.vars.get('image_treatment') is not None:
+            eop_keys.append('difficulty')
         question_keys = _stable_shuffled(player, f'eop-survey-{period}', eop_keys)
 
         return dict(

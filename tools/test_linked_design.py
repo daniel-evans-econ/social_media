@@ -76,11 +76,19 @@ with patch.dict(os.environ, {'ENABLE_REACTION_FEEDBACK':'1'}):
     assert survey.reaction_feedback_enabled(toggle_player)
     toggle_player.session.config['reaction_feedback_enabled']=False
     assert not survey.reaction_feedback_enabled(toggle_player)
-assert survey.avatar_for_name('Sarah23').startswith('feminine')
-assert survey.avatar_for_name('JohnSmith').startswith('masculine')
-for name in ('Seb', 'seb', 'SEB', 'Seb123', 'Seb_Smith', 'Sebastian'):
-    assert survey.avatar_for_name(name).startswith('masculine'), name
-assert survey.avatar_for_name('user82')==survey.avatar_for_name('user82')
+for show_iq in (False,True):
+    positions=set()
+    with patch.dict(survey.CFG,show_iq=show_iq), patch.object(survey,'period_correct',return_value=3), patch.object(survey,'switched_disqualified_count',return_value=0), patch.object(survey,'round_spec',return_value={'task':'sequences'}):
+        for i in range(60):
+            p=player('order-'+str(i));p.round_number=15 if i%2 else 30
+            context=survey.EndOfPeriodSurvey.vars_for_template(p)
+            order=context['question_order']
+            assert order.count('difficulty')==1
+            assert order==survey.EndOfPeriodSurvey.vars_for_template(p)['question_order']
+            positions.add(order.index('difficulty'))
+        assert positions==set(range(6 if show_iq else 5)),positions
+        p.participant.vars.pop('image_treatment')
+        assert 'difficulty' not in survey.EndOfPeriodSurvey.vars_for_template(p)['question_order']
 for kind in ('qualitative_social','quantitative_social'):
     p=player('belief',kind)
     with patch('social_media.new_pages.completed_periods',return_value=[1,2]):

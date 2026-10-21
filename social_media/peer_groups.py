@@ -19,6 +19,31 @@ def reference(source):
     return json.loads(Fernet(key.encode()).decrypt(path.read_bytes()).decode('utf-8'))
 
 
+@lru_cache()
+def _avatar_index(source):
+    by_id, by_name = {}, {}
+    for rows in reference(source).values():
+        for row in rows:
+            for message in row['messages']:
+                avatar = message.get('avatar')
+                by_id[message['id']] = avatar
+                by_name.setdefault(message['name'].strip().casefold(), set()).add(avatar)
+    return by_id, by_name
+
+
+def reference_avatar(source, message_id=None, name=''):
+    """Read demographics-derived assignments; a username is only a lookup key.
+
+    Legacy messages lacking IDs can use an unambiguous exact username match.
+    Missing demographics/ambiguous matches get initials, not a guessed gender.
+    """
+    by_id, by_name = _avatar_index(source)
+    if message_id is not None:
+        return by_id.get(message_id)
+    avatars = by_name.get(name.strip().casefold(), set())
+    return next(iter(avatars)) if len(avatars) == 1 else None
+
+
 def group_for(player, period=None):
     from . import CFG
     if not player.participant.vars.get('linked_peer_groups'):
@@ -66,7 +91,9 @@ def message_for(player, kind):
     plans = dict(player.participant.vars.get('linked_message_plan', {}))
     key = str(player.round_number)
     if key in plans:
-        return plans[key]
+        message = plans[key]
+        return dict(message, avatar=reference_avatar(group_for(player)['reference_source'],
+                    message_id=message['id'])) if message else None
     # Only reserve messages actually encountered, not messages for control or
     # unplayed periods. Preserve the earlier no-repeat-sender rule as well.
     period = (player.round_number - 1)//15 + 1

@@ -6,6 +6,7 @@ fixed question set. Keep this distinction in participant-facing descriptions.
 import csv
 import hashlib
 import json
+import random
 from pathlib import Path
 from tools.exclude_test_participants import exclude_test_rows, is_test_row
 
@@ -15,6 +16,13 @@ def build(root):
         with (root / name).open(encoding='utf-8-sig', newline='') as stream:
             return list(csv.DictReader(stream))
     blocks = read('block_level.csv')
+    # Assign once per sender from reported demographics, never from usernames.
+    avatars = {}
+    for participant in read('participant_level.csv'):
+        style = {'woman': 'feminine', 'man': 'masculine'}.get(participant['gender'].strip().lower())
+        avatars[participant['pcode']] = (
+            random.Random('peer-avatar-' + participant['pcode']).choice(
+                [f'{style}-v2-{i}' for i in (1, 3, 2, 5, 4)]) if style else None)
     excluded = {r['pcode'] for r in blocks if is_test_row(r)}
     notes = {(r['pcode'], r['block_global']): r for r in read('notes_coded.csv')}
     periods = exclude_test_rows(read('period_level.csv'))
@@ -36,6 +44,7 @@ def build(root):
             if not shared:
                 continue
             message = dict(id=key + '-' + row['block_global'], name=row['username'],
+                           avatar=avatars.get(period['pcode']),
                            source_task=period['task'], source_set_id=row['set_id'])
             if numeric:
                 message.update(kind='quantitative', number=number)

@@ -35,6 +35,18 @@ them as tasks in an earlier study, not the exact same fifteen questions.
 
 ## End-of-survey averages
 
+Period-end difficulty is shuffled with the other subjective questions using the
+same stable participant/period seed. It is no longer fixed at the bottom.
+
+Historical peer avatars are randomly assigned within each sender's reported
+`gender` from participant_level.csv (woman/man). A stable sender-specific seed
+keeps the same portrait across messages and periods. Only the derived avatar
+assignment enters the encrypted reference file, not the raw demographic field.
+Missing/unsupported demographics and ambiguous legacy username lookups show
+initials. There is no username-based gender inference. Received messages and
+cached reaction feeds use the same demographics-derived assignment; chosen own
+avatars and historical exposure snapshots are preserved.
+
 Quantitative: mean of sent numerical block reports multiplied by three (/15).
 The target is the mean actual period score over all 20 reference draws. The
 decomposition distinguishes selective sending, numerical misreporting, and

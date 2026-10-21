@@ -118,6 +118,20 @@ with sync_playwright() as pw:
                 for answer in page.locator('[data-answer]').all(): answer.fill('5')
                 page.locator('.otree-btn-next').click()
                 assert len(page.evaluate('window.sent'))==1
+            if name=='EndOfPeriodSurvey':
+                assert page.locator('fieldset [name=task_difficulty_response]').count()==5
+                page.evaluate("""() => {
+                    window.sent=[];window.liveSend=data=>window.sent.push(data);
+                    const names=new Set();
+                    document.querySelectorAll('input[type=radio]').forEach(el=>{
+                        if (!names.has(el.name)) { el.checked=true; names.add(el.name); }
+                    });
+                    document.querySelector('form').requestSubmit=()=>{window.resubmitted=true;};
+                }""")
+                page.locator('.otree-btn-next').click()
+                assert page.evaluate('window.sent')==[{'difficulty':1}]
+                page.evaluate('liveRecv({difficulty_saved:1})')
+                assert page.evaluate('window.resubmitted')
             if name in ('AverageTruth_qualitative_social','IntroImage_selfie','EndOfPeriodSurvey'):
                 page.screenshot(path=str(shots/f'{name}_{width}.png'),full_page=True)
     assert not errors,errors

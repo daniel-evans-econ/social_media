@@ -198,7 +198,7 @@
                 </p>
                 <div class="fb-post fb-received{% if show_like_button %} fb-has-reactions{% endif %}">
                     <div class="fb-post-head">
-                        <img class="fb-avatar" src="/static/social/avatars/{{ peer_avatar }}.svg" alt="">
+                        {% if peer_avatar %}<img class="fb-avatar" src="/static/social/avatars/{{ peer_avatar }}.svg" alt="">{% else %}<span class="fb-avatar">{{ signal_initial }}</span>{% endif %}
                         <div>
                             <div class="fb-post-name">
                                 {{ signal.name }}
