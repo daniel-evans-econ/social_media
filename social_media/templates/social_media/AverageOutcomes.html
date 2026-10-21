@@ -1,12 +1,13 @@
 {% extends "global/Page.html" %}
 {% block content %}
-<h2 style="color:darkred">A few final questions about the tasks</h2>
-<fieldset><legend style="font-size:1.1em">How is your mood right now?</legend>
-{% for value,label in mood_choices %}<label style="display:inline-block;margin:8px 14px 18px 0"><input type="radio" name="final_mood" data-answer="mood" value="{{ value }}" required> {{ label }}</label>{% endfor %}
+{% include "social_media/AveragePageStyle.html" %}
+<h2 class="average-page-title">A few final questions about the tasks</h2>
+<fieldset class="average-outcome"><legend>How is your <strong class="average-emphasis">mood</strong> right now?</legend>
+{% for value,label in mood_choices %}<label class="average-option"><input type="radio" name="final_mood" data-answer="mood" value="{{ value }}" required> <span>{{ label }}</span></label>{% endfor %}
 </fieldset>
 {% for row in rows %}
-<fieldset><legend style="font-size:1.1em">How satisfied are you with your performance on the {{ row.task_label }} task in Period {{ row.period }}?</legend>
-{% for value,label in satisfaction_choices %}<label style="display:inline-block;margin:8px 14px 18px 0"><input type="radio" name="satisfaction_{{ row.period }}" data-answer="satisfaction_{{ row.period }}" value="{{ value }}" required> {{ label }}</label>{% endfor %}
+<fieldset class="average-outcome"><legend>How <strong class="average-emphasis">satisfied</strong> are you with your performance on the <strong class="average-emphasis">{{ row.task_label }} task</strong> in Period {{ row.period }}?</legend>
+{% for value,label in satisfaction_choices %}<label class="average-option"><input type="radio" name="satisfaction_{{ row.period }}" data-answer="satisfaction_{{ row.period }}" value="{{ value }}" required> <span>{{ label }}</span></label>{% endfor %}
 </fieldset>
 {% endfor %}
 {{ next_button }}

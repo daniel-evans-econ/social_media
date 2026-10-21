@@ -1,18 +1,19 @@
 {% extends "global/Page.html" %}
 {% block content %}
-<h2 style="color:darkred">The comparison-group results</h2>
+{% include "social_media/AveragePageStyle.html" %}
+<h2 class="average-page-title">The comparison-group results</h2>
 {% for row in rows %}
-<section style="border:1px solid #dde3eb;border-radius:10px;padding:20px;margin:20px 0">
+<section class="average-section">
 <h4>Period {{ row.period }}: {{ row.task_label }}</h4>
 {% if row.available %}
 {% if qualitative %}
 <p>Happy emojis among sent qualitative messages: {{ row.reported_text }}%.</p>
 <p>Your estimate for all composed qualitative messages: {{ row.guess }}%.</p>
-<p>The actual percentage among <strong>all composed qualitative messages, including unsent messages, was {{ row.actual_text }}%</strong>.</p>
+<p>The <strong class="average-emphasis">actual percentage</strong> among all messages they wrote, including unsent messages, was <strong class="average-emphasis">{{ row.actual_text }}%</strong>.</p>
 <p>The difference reflects which messages were sent. It does not establish whether the emojis truthfully described how their writers felt.</p>
 {% else %}
 <p>Reported average: {{ row.reported_text }} out of 15. Your estimate of the actual average: {{ row.guess }} out of 15.</p>
-<p>The <strong>actual average was {{ row.actual_text }} out of 15</strong>.</p>
+<p>The <strong class="average-emphasis">actual average</strong> was <strong class="average-emphasis">{{ row.actual_text }} questions out of 15 correct</strong>.</p>
 <p>The difference between the reported and actual averages has these components, in questions out of 15. Positive values raise the reported average relative to the actual average; negative values lower it.</p>
 <ul>{% for component in row.components %}<li>{{ component.label }}: {{ component.value }}</li>{% endfor %}</ul>
 {% endif %}

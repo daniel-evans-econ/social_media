@@ -282,6 +282,18 @@ class PlayerBot(Bot):
                 concern['care_about_iq_score'] = 2
             yield Submission(OutcomeConcern, concern, check_html=False)
             yield Submission(PlatformUsage, dict(sm_instagram=True, social_media_hours=2.0), check_html=False)
+            if AverageBeliefs.is_displayed(p):
+                self.capture_page('AverageBeliefs_' + p.participant.vars['social_type'])
+                answers = {str(row['period']): (50 if row['kind']=='happy' else 7.5) for row in average_rows(p) if row['available']}
+                assert AverageBeliefs.live_method(p, answers)[p.id_in_group]['saved']
+                yield Submission(AverageBeliefs, {}, check_html=False)
+                if AverageTruth.is_displayed(p):
+                    self.capture_page('AverageTruth_' + p.participant.vars['social_type'])
+                    yield Submission(AverageTruth, {}, check_html=False)
+                self.capture_page('AverageOutcomes')
+                answers = {'mood':3, **{f'satisfaction_{period}':3 for period in completed_periods(p)}}
+                assert AverageOutcomes.live_method(p, answers)[p.id_in_group]['saved']
+                yield Submission(AverageOutcomes, {}, check_html=False)
             self.capture_page('RealismQuestion')
             yield Submission(RealismQuestion, dict(
                 realism_feedback='The social feedback felt fairly realistic to me overall, thanks.',
@@ -342,18 +354,6 @@ class PlayerBot(Bot):
                 tool_none=False,
             ), check_html=False)
             yield Submission(SurveyReliabilityOverall, dict(survey_reliability=7), check_html=False)
-            if AverageBeliefs.is_displayed(p):
-                self.capture_page('AverageBeliefs_' + p.participant.vars['social_type'])
-                answers = {str(row['period']): (50 if row['kind']=='happy' else 7.5) for row in average_rows(p) if row['available']}
-                assert AverageBeliefs.live_method(p, answers)[p.id_in_group]['saved']
-                yield Submission(AverageBeliefs, {}, check_html=False)
-                if AverageTruth.is_displayed(p):
-                    self.capture_page('AverageTruth_' + p.participant.vars['social_type'])
-                    yield Submission(AverageTruth, {}, check_html=False)
-                self.capture_page('AverageOutcomes')
-                answers = {'mood':3, **{f'satisfaction_{period}':3 for period in completed_periods(p)}}
-                assert AverageOutcomes.live_method(p, answers)[p.id_in_group]['saved']
-                yield Submission(AverageOutcomes, {}, check_html=False)
             yield Submission(Comments, dict(comments='Great study, no issues.'), check_html=False)
             accepted = third_period_played(p)
             asked = p.participant.vars['iq_reference_asked']

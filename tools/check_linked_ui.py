@@ -118,6 +118,24 @@ with sync_playwright() as pw:
                 for answer in page.locator('[data-answer]').all(): answer.fill('5')
                 page.locator('.otree-btn-next').click()
                 assert len(page.evaluate('window.sent'))==1
+            if name.startswith('Average'):
+                assert page.locator('.average-page-title').evaluate("el => Number(getComputedStyle(el).fontWeight) >= 700")
+                page.screenshot(path=str(shots/f'{name}_{width}.png'),full_page=True)
+            if name=='AverageOutcomes':
+                page.evaluate("""() => {
+                    window.sent=[];window.liveSend=data=>window.sent.push(data);
+                    document.querySelector('form').requestSubmit=()=>{window.resubmitted=true;};
+                }""")
+                for fieldset in page.locator('fieldset').all():
+                    options=fieldset.locator('label')
+                    bounds=[option.bounding_box() for option in options.all()]
+                    assert all(b['y'] >= a['y']+a['height'] for a,b in zip(bounds,bounds[1:]))
+                    fieldset.locator('input').first.check()
+                page.locator('.otree-btn-next').click()
+                sent=page.evaluate('window.sent')
+                assert len(sent)==1 and sent[0]['mood']=='1' and len(sent[0])==page.locator('fieldset').count()
+                page.evaluate('liveRecv({saved:true})')
+                assert page.evaluate('window.resubmitted')
             if name=='EndOfPeriodSurvey':
                 assert page.locator('fieldset [name=task_difficulty_response]').count()==5
                 page.evaluate("""() => {
