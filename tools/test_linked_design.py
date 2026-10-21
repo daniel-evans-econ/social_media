@@ -13,7 +13,7 @@ os.environ['OTREE_IN_MEMORY'] = '1'
 from PIL import Image
 import social_media as survey
 from social_media.peer_groups import group_for, records_for, message_for, averages
-from social_media.new_pages import SelfieCapture, AverageBeliefs
+from social_media.new_pages import SelfieCapture, AverageBeliefs, AverageTruth
 
 
 def player(code, kind='quantitative_social'):
@@ -97,4 +97,16 @@ for kind in ('qualitative_social','quantitative_social'):
         assert 'error' in AverageBeliefs.live_method(p,{'1':'nan','2':'nan'})[1]
         assert 'error' in AverageBeliefs.live_method(p,{'1':'','2':''})[1]
         assert AverageBeliefs.live_method(p,{'1':5,'2':5})[1]['saved']
-print(f'Passed 400 participant plans / 1,200 groups; {unavailable} groups lacked a sent report and were explicitly marked unavailable.')
+# The displayed gap includes composition as well as sending and misreporting.
+# Its sending share must not silently use a different denominator or be capped.
+for reported, actual, selection, expected in [
+    (12, 8, 2, '50'), (8, 12, -2, '50'),
+    (10, 8, 3, '150'), (10, 8, -1, '-50'), (8, 8, 1, ''),
+]:
+    row = dict(period=1, kind='score', available=True, reported=reported, actual=actual,
+               selection=selection, misreporting=1, reporting_subset=reported-actual-selection-1)
+    with patch('social_media.new_pages.average_rows', return_value=[row]):
+        result = AverageTruth.vars_for_template(player('correction'))['rows'][0]
+    assert result['selection_percent'] == expected
+    assert result['has_gap'] == (reported != actual)
+print(f'Passed 400 participant plans / 1,200 groups; {unavailable} groups lacked a sent report and were explicitly marked unavailable. Correction percentages passed, including zero and offsetting gaps.')

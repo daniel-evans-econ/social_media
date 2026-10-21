@@ -1,21 +1,25 @@
 {% extends "global/Page.html" %}
 {% block content %}
 {% include "social_media/AveragePageStyle.html" %}
-<h2 class="average-page-title">The comparison-group results</h2>
+<h2 class="average-page-title">Reported vs. actual results</h2>
 {% for row in rows %}
 <section class="average-section">
 <h4>Period {{ row.period }}: {{ row.task_label }}</h4>
 {% if row.available %}
 {% if qualitative %}
-<p>Happy emojis among sent qualitative messages: {{ row.reported_text }}%.</p>
-<p>Your estimate for all composed qualitative messages: {{ row.guess }}%.</p>
-<p>The <strong class="average-emphasis">actual percentage</strong> among all messages they wrote, including unsent messages, was <strong class="average-emphasis">{{ row.actual_text }}%</strong>.</p>
-<p>The difference reflects which messages were sent. It does not establish whether the emojis truthfully described how their writers felt.</p>
+<p>The <strong class="average-emphasis">reported percentage</strong> was {{ row.reported_text }}%: this was the share of messages sent by people in your comparison group that contained a happy emoji 😃.</p>
+<p>Your estimate of the actual percentage: {{ row.guess }}%.</p>
+<p>The <strong class="average-emphasis">actual percentage</strong> was {{ row.actual_text }}% among all messages they wrote, including messages they did not send.</p>
+<p>This gap reflects which messages people chose to send.</p>
 {% else %}
-<p>Reported average: {{ row.reported_text }} out of 15. Your estimate of the actual average: {{ row.guess }} out of 15.</p>
-<p>The <strong class="average-emphasis">actual average</strong> was <strong class="average-emphasis">{{ row.actual_text }} questions out of 15 correct</strong>.</p>
-<p>The difference between the reported and actual averages has these components, in questions out of 15. Positive values raise the reported average relative to the actual average; negative values lower it.</p>
-<ul>{% for component in row.components %}<li>{{ component.label }}: {{ component.value }}</li>{% endfor %}</ul>
+<p>The <strong class="average-emphasis">reported average</strong> was {{ row.reported_text }} questions out of 15 correct in the messages from the 20 other participants in your comparison group.</p>
+<p>Your estimate of the actual average: {{ row.guess }} questions out of 15 correct.</p>
+<p>The <strong class="average-emphasis">actual average</strong> was {{ row.actual_text }} questions out of 15 correct.</p>
+{% if row.has_gap %}
+<p>{{ row.selection_percent }}% of the gap between the reported and the actual average comes from people choosing not to send messages, rather than misreporting the number they answered correctly.</p>
+{% else %}
+<p>There is no gap between the reported and actual averages.</p>
+{% endif %}
 {% endif %}
 {% else %}<p>No comparison is available for this period.</p>{% endif %}
 </section>

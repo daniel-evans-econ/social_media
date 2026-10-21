@@ -120,13 +120,14 @@ class AverageTruth(Page):
         for row in rows:
             row['guess'] = player.participant.vars.get('average_beliefs', {}).get(str(row['period']), '')
             if row['kind'] == 'score' and row['available']:
-                # Never call this a complete two-part decomposition: the numeric
-                # reporting subset can differ from the entire comparison group.
-                row['components'] = [
-                    dict(label='Selective sending within the numerical-reporting group', value=f"{row['selection']:+.1f}"),
-                    dict(label='Differences between reported and actual scores in sent messages', value=f"{row['misreporting']:+.1f}"),
-                    dict(label='Differences between numerical reporters and the whole comparison group', value=f"{row['reporting_subset']:+.1f}"),
-                ]
+                gap = row['reported'] - row['actual']
+                row['has_gap'] = not math.isclose(gap, 0, abs_tol=1e-10)
+                # Use the full displayed comparison as the denominator, not
+                # selection + misreporting: reporting-subset composition is a
+                # third component. Preserve signed contributions; do not clamp
+                # to 0-100 when components offset one another.
+                row['selection_percent'] = (
+                    str(round(100 * row['selection'] / gap)) if row['has_gap'] else '')
         return dict(rows=rows, qualitative=player.participant.vars['social_type'] == 'qualitative_social')
 
 

@@ -1,13 +1,32 @@
 {% extends "global/Page.html" %}
 {% block content %}
-{% include "social_media/AveragePageStyle.html" %}
-<h2 class="average-page-title">A few final questions about the tasks</h2>
+<style>
+    .average-page-title, .average-emphasis { color: darkred; font-weight: bold; }
+    .average-outcome { margin-bottom: 1.4em; }
+    .average-outcome legend { font-size: 1em; margin-bottom: 6px; }
+</style>
+<h3 class="average-page-title">A few final questions about the tasks</h3>
+<br>
 <fieldset class="average-outcome"><legend>How is your <strong class="average-emphasis">mood</strong> right now?</legend>
-{% for value,label in mood_choices %}<label class="average-option"><input type="radio" name="final_mood" data-answer="mood" value="{{ value }}" required> <span>{{ label }}</span></label>{% endfor %}
+<div class="controls">
+{% for value,label in mood_choices %}
+<div class="form-check form-check-inline">
+    <input class="form-check-input" id="final-mood-{{ value }}" type="radio" name="final_mood" data-answer="mood" value="{{ value }}" required>
+    <label class="form-check-label" for="final-mood-{{ value }}">{{ label }}</label>
+</div>
+{% endfor %}
+</div>
 </fieldset>
 {% for row in rows %}
 <fieldset class="average-outcome"><legend>How <strong class="average-emphasis">satisfied</strong> are you with your performance on the <strong class="average-emphasis">{{ row.task_label }} task</strong> in Period {{ row.period }}?</legend>
-{% for value,label in satisfaction_choices %}<label class="average-option"><input type="radio" name="satisfaction_{{ row.period }}" data-answer="satisfaction_{{ row.period }}" value="{{ value }}" required> <span>{{ label }}</span></label>{% endfor %}
+<div class="controls">
+{% for value,label in satisfaction_choices %}
+<div class="form-check form-check-inline">
+    <input class="form-check-input" id="satisfaction-{{ row.period }}-{{ value }}" type="radio" name="satisfaction_{{ row.period }}" data-answer="satisfaction_{{ row.period }}" value="{{ value }}" required>
+    <label class="form-check-label" for="satisfaction-{{ row.period }}-{{ value }}">{{ label }}</label>
+</div>
+{% endfor %}
+</div>
 </fieldset>
 {% endfor %}
 {{ next_button }}

@@ -129,7 +129,8 @@ with sync_playwright() as pw:
                 for fieldset in page.locator('fieldset').all():
                     options=fieldset.locator('label')
                     bounds=[option.bounding_box() for option in options.all()]
-                    assert all(b['y'] >= a['y']+a['height'] for a,b in zip(bounds,bounds[1:]))
+                    if width == 1200:
+                        assert all(abs(b['y']-bounds[0]['y']) < 1 for b in bounds)
                     fieldset.locator('input').first.check()
                 page.locator('.otree-btn-next').click()
                 sent=page.evaluate('window.sent')
