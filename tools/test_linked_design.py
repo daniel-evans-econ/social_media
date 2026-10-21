@@ -78,6 +78,8 @@ with patch.dict(os.environ, {'ENABLE_REACTION_FEEDBACK':'1'}):
     assert not survey.reaction_feedback_enabled(toggle_player)
 assert survey.avatar_for_name('Sarah23').startswith('feminine')
 assert survey.avatar_for_name('JohnSmith').startswith('masculine')
+for name in ('Seb', 'seb', 'SEB', 'Seb123', 'Seb_Smith', 'Sebastian'):
+    assert survey.avatar_for_name(name).startswith('masculine'), name
 assert survey.avatar_for_name('user82')==survey.avatar_for_name('user82')
 for kind in ('qualitative_social','quantitative_social'):
     p=player('belief',kind)

@@ -456,7 +456,7 @@ def avatar_for_name(name):
     import re
     parts = re.findall(r'[a-z]+', re.sub(r'([a-z])([A-Z])', r'\1 \2', name).lower())
     female = {'mary','jane','sarah','sara','anna','anne','emma','emily','jessica','lisa','susan','jennifer','laura','maria','elizabeth','alice','sophie','sophia','rachel','rebecca','linda','michelle'}
-    male = {'john','james','david','daniel','michael','mike','robert','peter','paul','thomas','tom','william','richard','joseph','joshua','matthew','christopher','steven','kevin','mark','andrew'}
+    male = {'john','james','david','daniel','michael','mike','robert','peter','paul','thomas','tom','william','richard','joseph','joshua','matthew','christopher','steven','kevin','mark','andrew','seb','sebastian'}
     style = 'feminine' if set(parts) & female and not set(parts) & male else ('masculine' if set(parts) & male and not set(parts) & female else None)
     options = [o for o in AVATAR_OPTIONS if not style or o['value'].startswith(style)]
     return random.Random('avatar-' + name).choice(options)['value']
