@@ -12,8 +12,8 @@
 <h4>Period {{ row.period }}: {{ row.task_label }}</h4>
 {% if row.available %}
 {% if qualitative %}
-<p>The <strong class="average-emphasis">reported percentage</strong> was {{ row.reported_text }}%: this was the share of messages sent by people in your comparison group that contained a happy emoji 😃.</p>
-<label class="average-question" for="guess-{{ row.period }}">What do you think the <strong class="average-emphasis">actual percentage</strong> was among all messages they wrote, including messages they did not send?</label>
+<p>The <strong class="average-emphasis">reported percentage</strong> of messages with a happy emoji 😃 was {{ row.reported_text }}% among the 20 other participants in your comparison group.</p>
+<label class="average-question" for="guess-{{ row.period }}">What do you think the <strong class="average-emphasis">actual percentage</strong> was, including messages they did not send?</label>
 <p class="average-answer"><input id="guess-{{ row.period }}" data-answer="{{ row.period }}" type="number" min="0" max="100" step="0.1" required aria-label="Period {{ row.period }} percentage estimate"> <span>% (0–100)</span></p>
 {% else %}
 <p>The <strong class="average-emphasis">reported average</strong> was {{ row.reported_text }} questions out of 15 correct among the 20 other participants in your comparison group.</p>
