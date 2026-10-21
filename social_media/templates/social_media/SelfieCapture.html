@@ -1,9 +1,14 @@
 {% extends "global/Page.html" %}
 {% block content %}
-<h2 style="color:darkred">Your selfie</h2>
-<p>Please take a photograph of yourself using your camera. It will be blurred on your device.
-You can review the blurred photograph and retake it before confirming.</p>
+<h2 style="color:darkred;margin-bottom:1.5rem;">Your selfie</h2>
+<div class="selfie-instructions">
+<p>Please take a <strong style="color:darkred;">photograph</strong> of your face using your camera.</p>
+<p>Each photo you take is <strong style="color:darkred;">blurred on your browser</strong> before being displayed below. You can review this blurred version of the photo and retake it before submitting to us. The original, unblurred version of the photo will not be stored and will therefore not be visible to anyone.</p>
+<p>Press "<strong style="color:darkred;">Open camera</strong>" to proceed.</p>
+</div>
 <style>
+.selfie-instructions { margin-bottom: 1.5rem; }
+.selfie-instructions p { margin-bottom: 1rem; }
 .selfie-camera, .selfie-result { width: min(360px, 100%); aspect-ratio: 1; object-fit: cover; border-radius: 12px; }
 .selfie-camera { transform: scaleX(-1); }
 .selfie-actions { display:flex; flex-wrap:wrap; gap:12px; margin:16px 0; }
