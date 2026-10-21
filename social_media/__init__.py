@@ -405,8 +405,8 @@ def iq_noise_offset(player, component: str, score: int) -> int:
     """IQ points this participant gains or loses from their comparison group.
 
     Deterministic given the participant and component, so refreshing the
-    feedback page cannot re-roll the draw. Sample reference observations without
-    replacement; distinct respondents can still have the same raw score.
+    feedback page cannot re-roll the draw. Linked pilot groups use replacement
+    within a performance quintile; the legacy fallback samples without replacement.
     """
     ref = iq_reference_scores() or {}
     sample = ref.get(component) or []
@@ -1148,6 +1148,9 @@ def creating_session(subsession: Subsession):
                 part.vars['image_treatment'] = ('selfie' if random.Random(f'{part.code}-image').random() < .5 else 'avatar')
             part.vars['linked_peer_groups'] = bool(subsession.session.config.get('linked_peer_groups', True)
                                                    and reference(CFG['iq_distribution_source']))
+            # Version the provisional restriction so existing participants retain
+            # their original sampling policy and recorded exposure history.
+            part.vars['peer_group_sampling'] = 'quantitative_only_v1'
             part.vars['reveal_truth'] = random.Random(f'{part.code}-truth').random() < .5
 
             # Randomized (50/50) reference-point treatment: only this subgroup is

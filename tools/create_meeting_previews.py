@@ -42,27 +42,29 @@ def create_previews():
     from otree.session import create_session
     from otree.lookup import _get_session_lookups
     import social_media as survey
-    from social_media.peer_groups import averages
+    from social_media.peer_groups import averages, message_for
     from social_media.new_pages import average_rows
 
     session = create_session('cognitive_tasks', num_participants=2 * len(CASES),
                              label='RESEARCHER PREVIEWS ONLY - meeting page shortcuts')
     participants = session.get_participants()
-    # Choose a common randomly drawn reference group with both report formats
-    # available, and keep it identical across variants for a clean demonstration.
-    for source in participants:
-        source_player = source.get_player('social_media', 45)
-        usable = True
-        for kind in ('quantitative_social', 'qualitative_social'):
+    # Keep comparisons identical WITHIN format; quantitative participants now
+    # require quantitative-only reference groups, while qualitative is unchanged.
+    shared_by_kind = {}
+    for kind in ('quantitative_social', 'qualitative_social'):
+        for source in participants:
+            source.vars.pop('peer_groups', None)
+            source.vars.pop('linked_message_plan', None)
             source.vars['social_type'] = kind
-            usable &= all(averages(source_player, period)['reported'] is not None
-                          for period in (1, 2, 3))
-        if usable:
-            shared = {key: copy.deepcopy(source.vars[key]) for key in
-                      ('period_tasks', 'period_sets', 'round_plan', 'period_task_labels', 'peer_groups')}
-            break
-    else:
-        raise RuntimeError('No complete comparison example; session left labelled as preview only.')
+            source_player = source.get_player('social_media', 45)
+            usable = all(averages(source_player, period)['reported'] is not None for period in (1, 2, 3))
+            usable &= bool(message_for(source.get_player('social_media', 5), kind.removesuffix('_social')))
+            if usable:
+                shared_by_kind[kind] = {key: copy.deepcopy(source.vars[key]) for key in
+                    ('period_tasks', 'period_sets', 'round_plan', 'period_task_labels', 'peer_groups')}
+                break
+        else:
+            raise RuntimeError('No complete comparison example; session left labelled as preview only.')
 
     image = Image.new('RGB', (512, 512), '#cbd6df')
     draw = ImageDraw.Draw(image)
@@ -77,7 +79,8 @@ def create_previews():
             offset = 0 if purpose == 'review' else len(CASES)
             participant = participants[offset + case_number]
             participant.label = f'TestBot-meeting-{purpose}-{key}'
-            participant.vars.update(copy.deepcopy(shared))
+            participant.vars.pop('linked_message_plan', None)
+            participant.vars.update(copy.deepcopy(shared_by_kind[kind + '_social']))
             participant.vars.update(
                 social_type=kind + '_social', image_treatment=image_arm,
                 like_treatment=True, reveal_truth=truth, linked_peer_groups=True,
@@ -119,7 +122,8 @@ def create_previews():
                               message_format=kind, image=image_arm, correction=truth))
     db.commit()
     print(json.dumps(dict(session=session.code, links=links,
-                         comparison_quintiles={p: g['quintile'] for p, g in shared['peer_groups'].items()})))
+                         comparison_quintiles={kind: {p: g['quintile'] for p, g in shared['peer_groups'].items()}
+                                               for kind, shared in shared_by_kind.items()})))
 
 
 if __name__ == '__main__':

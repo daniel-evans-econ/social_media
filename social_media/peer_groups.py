@@ -63,10 +63,22 @@ def group_for(player, period=None):
     rng = random.Random(f'{player.participant.code}-peer-group-{period}-{task}')
     quintile = rng.randrange(5)
     eligible = rows[len(rows)*quintile//5:len(rows)*(quintile+1)//5]
+    quantitative_only = (
+        player.participant.vars.get('peer_group_sampling') == 'quantitative_only_v1'
+        and player.participant.vars['social_type'] == 'quantitative_social')
+    if quantitative_only:
+        # Restrict within the original full-domain quintile, preserving its
+        # boundaries. Numerical reports were elicited before the send decision;
+        # retain non-senders, and require all three reports for a common /15 base.
+        eligible = [r for r in eligible if len(r['blocks']) == 3
+                    and all(b['report'] is not None for b in r['blocks'])]
+        if not eligible:
+            raise ValueError(f'No quantitative respondents in {task} quintile {quintile + 1}')
     # TEMPORARY: replacement accommodates small pilot quintiles. Switch to
     # sample(..., 20) when every domain/quintile contains enough respondents.
     draws = rng.choices(eligible, k=20)
     snapshot = dict(task=task, quintile=quintile+1, replacement=True,
+                    sampling_policy='quantitative_only_v1' if quantitative_only else 'all_message_formats',
                     reference_source=CFG['iq_distribution_source'],
                     draw_ids=[r['id'] for r in draws], scores=[r['score'] for r in draws])
     snapshots[key] = snapshot
@@ -118,7 +130,8 @@ def message_for(player, kind):
 def averages(player, period):
     """Block-weighted reports on a /15 scale, transparently labelled as such.
 
-    Control and qualitative records have no numerical reports. Missing/unsent
+    New quantitative groups contain complete numerical reporters only. Legacy
+    groups can also contain control and qualitative respondents. Missing/unsent
     reports are never coded as zero. Repeated reference draws retain their weight.
     """
     records = records_for(player, period)

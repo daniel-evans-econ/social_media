@@ -122,10 +122,9 @@ class AverageTruth(Page):
             if row['kind'] == 'score' and row['available']:
                 gap = row['reported'] - row['actual']
                 row['has_gap'] = not math.isclose(gap, 0, abs_tol=1e-10)
-                # Use the full displayed comparison as the denominator, not
-                # selection + misreporting: reporting-subset composition is a
-                # third component. Preserve signed contributions; do not clamp
-                # to 0-100 when components offset one another.
+                # New quantitative-only groups have exactly two components.
+                # Keep the displayed gap as denominator for historical groups
+                # too. Do not clamp signed shares when components offset.
                 row['selection_percent'] = (
                     str(round(100 * row['selection'] / gap)) if row['has_gap'] else '')
         return dict(rows=rows, qualitative=player.participant.vars['social_type'] == 'qualitative_social')

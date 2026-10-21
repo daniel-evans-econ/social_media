@@ -21,6 +21,14 @@ For each domain, sort by actual performance with a fixed hashed tie-break and
 partition into five approximately equal strata. Choose one quintile independently
 for each participant-period, then draw 20 observations **with replacement**.
 Duplicate observations retain their weight in IQ feedback and averages.
+As of 21 October, new quantitative participants draw only from respondents with
+three numerical block reports, within the selected full-domain quintile. Reports
+were elicited before the send decision, so this includes non-senders. Quintile
+boundaries remain defined using the full domain sample. The same 20 draws drive
+IQ feedback, incoming-message eligibility, and the end-of-survey averages.
+Qualitative groups retain their existing sampling rule. The participant-level
+`peer_group_sampling` flag and group `sampling_policy` record this provisional
+change. Existing participants and stored group/average snapshots remain intact.
 **Future change:** sample without replacement once every eligible quintile has
 at least 20 respondents. The pilot never substitutes respondents from other
 quintiles to fill a message shortage.
@@ -30,8 +38,8 @@ format, and not repeat a sender or username/content pair across blocks. A repeat
 observation does not cause its message to be repeated. When eligible messages are
 exhausted, no incoming message is shown; there is no simulated fallback.
 
-Historical reference tasks used different item sets. The final pages describe
-them as tasks in an earlier study, not the exact same fifteen questions.
+Historical reference tasks used different item sets; comparisons use those
+pilot observations, not performance on the current fixed fifteen questions.
 
 ## End-of-survey averages
 
@@ -48,9 +56,11 @@ cached reaction feeds use the same demographics-derived assignment; chosen own
 avatars and historical exposure snapshots are preserved.
 
 Quantitative: mean of sent numerical block reports multiplied by three (/15).
-The target is the mean actual period score over all 20 reference draws. The
-decomposition distinguishes selective sending, numerical misreporting, and
-the difference between numerical reporters and the full reference group.
+The target is the mean actual period score over all 20 reference draws. For new
+quantitative-only groups, the reported-minus-actual gap is selective sending
+plus numerical misreporting. The legacy `reporting_subset` export field remains
+for auditing older mixed groups; it is zero (up to floating-point precision) in
+new quantitative-only groups.
 Empty reporting subsets are marked unavailable, not zero.
 
 Qualitative: percentage of happy 😃 emojis among sent qualitative messages;
@@ -58,6 +68,23 @@ the target is the percentage among all composed qualitative messages, including
 unsent ones. This concerns selection, not verified emotional truthfulness.
 All guesses are collected before any revelations. Both revelation arms answer
 the same subsequent mood and period-specific satisfaction questions.
+
+## To do / revisit
+
+- [ ] Revisit the provisional quantitative-only comparison pool after the pilot.
+  Confirm whether to retain it and whether qualitative groups should also be
+  restricted by historical message format. Assess effects on IQ feedback, the
+  comparison-group treatment, and available distinct senders. The full-sample
+  performance-quintile boundaries are currently retained.
+- [ ] Agree the interpretation and wording of the correction percentage. The
+  current quantity is 100 × selective-sending contribution / (reported average
+  − actual group average). Even with just two components, underreporting or
+  other opposing effects can yield negative shares or shares over 100%; a zero
+  gap has no percentage. Do not silently cap these values. A bounded statistic
+  would require a different definition and matching participant-facing wording.
+- [ ] Replace sampling with replacement when every eligible domain/quintile
+  contains at least 20 respondents. Some current quantitative quintiles contain
+  only two eligible respondents; preserve no-repeat rules even when messages run out.
 
 ## Storage and operations
 

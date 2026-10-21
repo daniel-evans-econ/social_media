@@ -2,6 +2,7 @@
 import os
 import sys
 import math
+import hashlib
 import io
 import base64
 from types import SimpleNamespace
@@ -12,7 +13,7 @@ os.environ['EXPERIMENT_PILOT'] = 'iq'
 os.environ['OTREE_IN_MEMORY'] = '1'
 from PIL import Image
 import social_media as survey
-from social_media.peer_groups import group_for, records_for, message_for, averages
+from social_media.peer_groups import group_for, records_for, message_for, averages, reference
 from social_media.new_pages import SelfieCapture, AverageBeliefs, AverageTruth
 
 
@@ -20,7 +21,8 @@ def player(code, kind='quantitative_social'):
     return SimpleNamespace(round_number=5, id_in_group=1,
                            participant=SimpleNamespace(code=code, vars={
                                'linked_peer_groups':True, 'period_tasks':['sequences','working_memory','ravens'],
-                               'social_type':kind, 'image_treatment':'selfie'}))
+                               'social_type':kind, 'image_treatment':'selfie',
+                               'peer_group_sampling':'quantitative_only_v1'}))
 
 
 unavailable = 0
@@ -36,6 +38,17 @@ for kind in ('quantitative_social', 'qualitative_social'):
             assert len(group['draw_ids']) == 20 and group == group_for(p,period)
             records = records_for(p,period)
             assert group['scores'] == [r['score'] for r in records]
+            pool = sorted(reference(group['reference_source'])[group['task']], key=lambda r:
+                          (r['score'], hashlib.sha256((group['task']+r['id']).encode()).hexdigest()))
+            q=group['quintile']-1
+            eligible=pool[len(pool)*q//5:len(pool)*(q+1)//5]
+            assert set(group['draw_ids']) <= {r['id'] for r in eligible}
+            if kind=='quantitative_social':
+                assert group['sampling_policy']=='quantitative_only_v1'
+                assert all(len(r['blocks'])==3 and all(b['report'] is not None for b in r['blocks']) for r in records)
+                assert all(sum(b['score'] for b in r['blocks']) == r['score'] for r in records)
+            else:
+                assert group['sampling_policy']=='all_message_formats'
             for block in range(1,4):
                 p.round_number=(period-1)*15+block*5
                 message=message_for(p, 'quantitative' if kind=='quantitative_social' else 'qualitative')
@@ -50,11 +63,26 @@ for kind in ('quantitative_social', 'qualitative_social'):
             if result['reported'] is None:
                 unavailable+=1
             elif result['kind']=='score':
+                assert result['numeric_blocks']==60
+                assert math.isclose(result['actual'],sum(r['score'] for r in records)/20)
+                assert math.isclose(result['reporting_subset'],0,abs_tol=1e-10)
                 assert math.isclose(result['reported']-result['actual'],
-                                    result['selection']+result['misreporting']+result['reporting_subset'])
+                                    result['selection']+result['misreporting'],abs_tol=1e-10)
             else:
                 assert 0 <= result['reported'] <= 100 and 0 <= result['actual'] <= 100
 assert seen_quintiles == {1,2,3,4,5}
+# Historical sampling and already-recorded groups must not be rewritten.
+p=player('legacy'); p.participant.vars.pop('peer_group_sampling')
+original=group_for(p,1)
+assert original['sampling_policy']=='all_message_formats'
+p.participant.vars['peer_group_sampling']='quantitative_only_v1'
+assert group_for(p,1)==original
+# The IQ adjustment uses the same group scores as the messages/averages.
+p=player('iq-linked'); p.round_number=15
+group=group_for(p,1)
+with patch.object(survey,'_percentile_iq',return_value=100) as percentile:
+    survey.iq_noise_offset(p,survey.TASK_IQ_COMPONENT['sequences'],9)
+    assert percentile.call_args_list[0].args[0]==group['scores']
 p=player('image')
 assert 'error' in SelfieCapture.live_method(p,{'action':'confirm','image':'data:image/jpeg;base64,evil'})[1]
 output=io.BytesIO(); Image.new('RGB',(512,512),'blue').save(output,'JPEG')
