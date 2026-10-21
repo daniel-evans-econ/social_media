@@ -71,7 +71,7 @@
         <p class="ti-body" style="margin-bottom: 14px;">{{ example_note|safe }}</p>
         {% endif %}
         {% if example_image %}
-        <img src="{% static example_image %}" alt="Example"
+        <img src="{% if example_data_uri %}{{ example_data_uri }}{% else %}{% static example_image %}{% endif %}" alt="Example"
              class="{% if big_image %}ti-image-big{% endif %}"
              onerror="this.style.display='none'; document.getElementById('ti-example-fallback').style.display='flex';">
         {% endif %}

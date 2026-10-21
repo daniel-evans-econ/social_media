@@ -1,4 +1,5 @@
 from otree.api import *
+import base64
 import json
 import os
 import random
@@ -2338,6 +2339,12 @@ class TaskIntro(Page):
         if not static_exists(example_image):
             # Real example not dropped in yet: the template shows a placeholder.
             example_image = None
+        # The example stays visible immediately; do not make it compete with
+        # the upcoming task-image preloads for a separate network request.
+        example_data_uri = ''
+        if task == 'working_memory' and example_image:
+            example_data_uri = 'data:image/png;base64,' + base64.b64encode(
+                (STATIC_DIR / example_image).read_bytes()).decode('ascii')
         # Working memory stimuli are only shown for ~1.7 s, so any first-load
         # delay is very visible. Preload every image in the task's pool while
         # the participant reads the example page.
@@ -2357,6 +2364,7 @@ class TaskIntro(Page):
             body_html=intro.get('body_html', ''),
             example_note=intro.get('example_note', ''),
             example_image=example_image,
+            example_data_uri=example_data_uri,
             example_answer=intro.get('example_answer', ''),
             example_prompt=intro.get('example_prompt', ''),
             example_response_type=intro.get('example_response_type', ''),
