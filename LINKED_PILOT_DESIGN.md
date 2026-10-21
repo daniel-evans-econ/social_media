@@ -1,7 +1,7 @@
 # Linked pilot design (October 2026)
 
-New sessions capture a selfie after Consent, before Prolific ID and IQ reference
-point elicitation. All participants capture a photo. The 50/50 image assignment
+New sessions capture a selfie after the IQ explanation/reference-point page and
+before the username/image selection page. All participants capture a photo. The 50/50 image assignment
 only determines whether a confirmed blurred selfie or a chosen avatar accompanies
 their messages. Truth revelation is independently randomized 50/50. Existing
 sessions have no new assignment flags and retain their previous page sequence.

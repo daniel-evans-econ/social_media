@@ -3798,9 +3798,9 @@ class ProlificCompletion(Page):
 page_sequence = [
     BotCheck,
     Consent,
-    SelfieCapture,
     ProlificID,
     IQReferencePoint,
+    SelfieCapture,
     Intro,
     TaskIntro,
     QuestionPage,

@@ -75,6 +75,12 @@ class PlayerBot(Bot):
             yield Submission(Consent, dict(
                 consent=True, llm_rule_confirm=True, honeypot_intro_response='',
             ), check_html=False)
+            yield Submission(ProlificID, dict(prolific_id='abcdefghijklmnopqrstuvwx'), check_html=False)
+            self.capture_page('IQReferencePoint')
+            if p.participant.vars.get('iq_reference_asked', False):
+                yield Submission(IQReferencePoint, dict(iq_reference_score=100), check_html=False)
+            else:
+                yield Submission(IQReferencePoint, dict(), check_html=False)
             import base64
             import io
             from PIL import Image
@@ -85,12 +91,6 @@ class PlayerBot(Bot):
             assert 'error' in SelfieCapture.live_method(p, {'action':'confirm','image':'invalid'})[p.id_in_group]
             assert SelfieCapture.live_method(p, {'action':'confirm','image':'data:image/jpeg;base64,'+base64.b64encode(photo.getvalue()).decode()})[p.id_in_group]['saved']
             yield Submission(SelfieCapture, {}, check_html=False)
-            yield Submission(ProlificID, dict(prolific_id='abcdefghijklmnopqrstuvwx'), check_html=False)
-            self.capture_page('IQReferencePoint')
-            if p.participant.vars.get('iq_reference_asked', False):
-                yield Submission(IQReferencePoint, dict(iq_reference_score=100), check_html=False)
-            else:
-                yield Submission(IQReferencePoint, dict(), check_html=False)
             self.capture_page('IntroReactions' if like_button_enabled(p) else 'IntroNoReactions')
             self.capture_page('Intro_' + p.participant.vars['social_type'] + ('_reactions' if like_button_enabled(p) else '_no_reactions'))
             self.capture_page('IntroImage_' + p.participant.vars['image_treatment'])
