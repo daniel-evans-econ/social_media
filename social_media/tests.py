@@ -72,6 +72,13 @@ class PlayerBot(Bot):
                 turnstile_token='', turnstile_bypass_key='',
                 turnstile_client_host='localhost',
             ), check_html=False)
+            self.capture_page('Consent')
+            assert Consent.error_message(p, dict(consent=True, llm_rule_confirm=True))
+            Consent.live_method(p, dict(selfie_consent=True))
+            Consent.live_method(p, dict(selfie_consent=False))
+            assert Consent.error_message(p, dict(consent=True, llm_rule_confirm=True))
+            Consent.live_method(p, dict(selfie_consent=True))
+            assert p.participant.vars['selfie_consent_at']
             yield Submission(Consent, dict(
                 consent=True, llm_rule_confirm=True, honeypot_intro_response='',
             ), check_html=False)
@@ -94,6 +101,7 @@ class PlayerBot(Bot):
             self.capture_page('IntroReactions' if like_button_enabled(p) else 'IntroNoReactions')
             self.capture_page('Intro_' + p.participant.vars['social_type'] + ('_reactions' if like_button_enabled(p) else '_no_reactions'))
             self.capture_page('IntroImage_' + p.participant.vars['image_treatment'])
+            self.capture_page('IntroImage_' + p.participant.vars['image_treatment'] + ('_reactions' if like_button_enabled(p) else '_no_reactions'))
             if p.participant.vars['image_treatment'] == 'avatar':
                 assert Intro.error_message(p, dict(display_name='Bot')) == 'Please choose an avatar.'
             assert Intro.live_method(p, dict(avatar='invalid')) is None

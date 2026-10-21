@@ -1677,11 +1677,22 @@ class Consent(Page):
         return player.round_number == 1
 
     @staticmethod
+    def live_method(player: Player, data):
+        if not isinstance(data, dict) or type(data.get('selfie_consent')) is not bool:
+            return
+        agreed = data['selfie_consent']
+        player.participant.vars['selfie_consent'] = agreed
+        player.participant.vars['selfie_consent_at'] = datetime.now(timezone.utc).isoformat() if agreed else None
+        return {player.id_in_group: dict(selfie_consent_saved=agreed, request_id=data.get('request_id'))}
+
+    @staticmethod
     def error_message(player: Player, values):
         if str(values.get('honeypot_intro_response') or '').strip():
             player.honeypot_intro_triggered = True
         if not values.get('consent') or not values.get('llm_rule_confirm'):
             return "You must agree to all conditions and consent to continue."
+        if player.participant.vars.get('selfie_consent') is not True:
+            return "Please confirm that you agree to upload a selfie before continuing."
 
 
 BFI_PROMPTS = {
@@ -3841,7 +3852,7 @@ def custom_export(players):
            'reaction_treatment', 'feedback_snapshot_json', 'avatar_choice',
            'image_treatment', 'selfie_confirmed_at', 'difficulty', 'peer_group_json',
            'truth_treatment', 'average_feedback_json', 'average_beliefs_json', 'average_outcomes_json',
-           'linked_message_plan_json']
+           'linked_message_plan_json', 'selfie_consent', 'selfie_consent_at']
     for player in players:
         if player.round_number not in (15, 30, 45):
             continue
@@ -3862,4 +3873,6 @@ def custom_export(players):
                json.dumps(player.participant.vars.get('average_feedback', [])),
                json.dumps(player.participant.vars.get('average_beliefs', {})),
                json.dumps(player.participant.vars.get('average_outcomes', {})),
-               json.dumps(player.participant.vars.get('linked_message_plan', {}), ensure_ascii=False)]
+               json.dumps(player.participant.vars.get('linked_message_plan', {}), ensure_ascii=False),
+               player.participant.vars.get('selfie_consent', ''),
+               player.participant.vars.get('selfie_consent_at', '')]

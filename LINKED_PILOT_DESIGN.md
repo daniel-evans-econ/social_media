@@ -49,6 +49,10 @@ the same subsequent mood and period-specific satisfaction questions.
 
 ## Storage and operations
 
+The consent page requires a separate selfie acknowledgement, recorded with its
+UTC timestamp in participant.vars and the custom export. Both the browser and
+server block progression until it is recorded. No database reset is required.
+
 Only a confirmed, fixed-blur-10, 512×512 JPEG is sent from the browser.
 Raw pixels and camera streams are cleared/stopped after capture. The server
 validates JPEG dimensions and re-encodes to remove metadata. Image bytes are

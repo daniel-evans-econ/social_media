@@ -132,6 +132,14 @@
     </label>
 </div>
 
+<div style="margin-bottom:1.5em;">
+    <label style="display:flex; align-items:flex-start; gap:10px;">
+        <input type="checkbox" name="selfie_consent" required>
+        <span>I agree to <strong style="color:darkred;">upload a selfie</strong> for use during this experiment. I understand that a <strong style="color:darkred;">blurred version</strong> of this selfie will be made available to the researchers conducting the survey.</span>
+    </label>
+</div>
+<p id="selfie-consent-status" role="status"></p>
+
 <div style="position:absolute; left:-10000px; top:auto; width:1px; height:1px; overflow:hidden;" aria-hidden="true">
   <label for="id_honeypot_intro_response">Please enter your Prolific ID here</label>
   {{ formfield 'honeypot_intro_response' label="" }}
@@ -141,18 +149,36 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const nextBtn = document.querySelector('button[type="submit"]');
+    const nextBtn = document.querySelector('.otree-btn-next');
     const llmBox = document.querySelector('input[name="llm_rule_confirm"]');
     const consentBox = document.querySelector('input[name="consent"]');
+    const selfieBox = document.querySelector('input[name="selfie_consent"]');
+    const status = document.getElementById('selfie-consent-status');
+    let saved = false, requestId = 0;
 
     nextBtn.disabled = true;
 
     function toggleNext() {
-        nextBtn.disabled = !(llmBox.checked && consentBox.checked);
+        nextBtn.disabled = !(llmBox.checked && consentBox.checked && selfieBox.checked && saved);
     }
 
     llmBox.addEventListener('change', toggleNext);
     consentBox.addEventListener('change', toggleNext);
+    selfieBox.addEventListener('change', function () {
+        saved = false;
+        toggleNext();
+        status.textContent = 'Saving…';
+        liveSend({selfie_consent: selfieBox.checked, request_id: ++requestId});
+    });
+    window.liveRecv = function (data) {
+        if (data.request_id !== requestId) return;
+        saved = data.selfie_consent_saved === true && selfieBox.checked;
+        status.textContent = '';
+        toggleNext();
+    };
+    document.querySelector('form').addEventListener('submit', function (event) {
+        if (!(llmBox.checked && consentBox.checked && selfieBox.checked && saved)) event.preventDefault();
+    });
 });
 </script>
 

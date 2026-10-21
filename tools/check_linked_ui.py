@@ -34,6 +34,33 @@ with sync_playwright() as pw:
     page.on('pageerror',lambda error: errors.append(str(error)))
     def load(name):
         page.goto('https://survey.test/qa/'+name+'.html',wait_until='load')
+    if (fixtures/'Consent.html').exists():
+        load('Consent')
+        page.evaluate('() => { window.sent=[]; window.liveSend=data=>window.sent.push(data); }')
+        next_button = page.locator('.otree-btn-next')
+        assert next_button.is_disabled()
+        page.locator('[name=consent]').check()
+        page.locator('[name=llm_rule_confirm]').check()
+        assert next_button.is_disabled()
+        selfie_box = page.locator('[name=selfie_consent]')
+        assert selfie_box.get_attribute('required') is not None
+        selfie_box.check()
+        assert next_button.is_disabled(), 'Must wait for the saved consent acknowledgement'
+        page.evaluate('liveRecv({selfie_consent_saved:true,request_id:1})')
+        assert next_button.is_enabled()
+        selfie_box.uncheck()
+        assert next_button.is_disabled()
+        page.evaluate('liveRecv({selfie_consent_saved:true,request_id:1})')
+        assert next_button.is_disabled(), 'Ignore stale acknowledgements'
+        page.evaluate('liveRecv({selfie_consent_saved:false,request_id:2})')
+        selfie_box.check()
+        page.evaluate('liveRecv({selfie_consent_saved:true,request_id:3})')
+        assert next_button.is_enabled()
+        for phrase in ('upload a selfie','blurred version'):
+            emphasis = page.locator('strong').filter(has_text=phrase)
+            assert emphasis.count()==1
+            assert emphasis.evaluate("el=>getComputedStyle(el).color")=='rgb(139, 0, 0)'
+        page.screenshot(path=str(shots/'selfie-consent-checkbox.png'),full_page=True)
     load('SelfieCapture')
     assert page.locator('input[type=file]').count()==0
     page.evaluate("() => { window.sent=[]; window.liveSend=data=>window.sent.push(data); }")
@@ -69,7 +96,7 @@ with sync_playwright() as pw:
     page.screenshot(path=str(shots/'avatar-options.png'))
     for width in (1200,390):
         page.set_viewport_size({'width':width,'height':900})
-        for name in ('IntroImage_avatar','IntroImage_selfie','SelfieCapture',
+        for name in ('IntroImage_avatar','IntroImage_selfie','IntroImage_avatar_reactions','IntroImage_selfie_reactions','SelfieCapture',
                      'AverageBeliefs_quantitative_social','AverageBeliefs_qualitative_social',
                      'AverageTruth_quantitative_social','AverageTruth_qualitative_social',
                      'AverageOutcomes','EndOfPeriodSurvey','MessageReactionFeedback'):
@@ -78,6 +105,11 @@ with sync_playwright() as pw:
             load(name)
             assert 'Debug info' not in page.locator('body').inner_text()
             assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth+1'),(width,name)
+            if name in ('IntroImage_avatar_reactions','IntroImage_selfie_reactions'):
+                icon = page.locator('.care-icon')
+                assert icon.count()==1
+                bounds = icon.bounding_box()
+                assert 10 < bounds['width'] < 40 and 10 < bounds['height'] < 40,(name,bounds)
             if name=='IntroImage_selfie':
                 assert page.locator('.avatar-picker').count()==0
                 assert page.locator('#identity-preview-image').get_attribute('src').startswith('data:image/jpeg;base64,')
