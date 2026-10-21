@@ -1,0 +1,126 @@
+"""Independent direct-entry researcher previews; never alter real participants.
+
+Only this CLI creates the shortcuts. There is no public survey skip mechanism.
+TestBot labels and researcher_preview flags distinguish example own responses;
+comparison records and reported/actual statistics remain real pilot observations.
+Each page has an independent review and QA slot, so QA cannot advance review links.
+"""
+import base64
+import copy
+import io
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+# key, page, round, message format, image, correction
+CASES = [
+    ('consent', 'Consent', 1, 'quantitative', 'avatar', True),
+    ('camera', 'SelfieCapture', 1, 'quantitative', 'selfie', True),
+    ('username_avatar', 'Intro', 1, 'quantitative', 'avatar', True),
+    ('username_selfie', 'Intro', 1, 'quantitative', 'selfie', True),
+    ('message_quant_avatar', 'BlockFeedback', 5, 'quantitative', 'avatar', True),
+    ('message_quant_selfie', 'BlockFeedback', 5, 'quantitative', 'selfie', True),
+    ('message_qual_avatar', 'BlockFeedback', 5, 'qualitative', 'avatar', True),
+    ('message_qual_selfie', 'BlockFeedback', 5, 'qualitative', 'selfie', True),
+    ('subjective', 'EndOfPeriodSurvey', 15, 'quantitative', 'avatar', True),
+    ('beliefs_quant_correction', 'AverageBeliefs', 45, 'quantitative', 'avatar', True),
+    ('beliefs_quant_control', 'AverageBeliefs', 45, 'quantitative', 'avatar', False),
+    ('beliefs_qual_correction', 'AverageBeliefs', 45, 'qualitative', 'avatar', True),
+    ('beliefs_qual_control', 'AverageBeliefs', 45, 'qualitative', 'avatar', False),
+    ('correction_quant', 'AverageTruth', 45, 'quantitative', 'avatar', True),
+    ('correction_qual', 'AverageTruth', 45, 'qualitative', 'avatar', True),
+    ('final_questions', 'AverageOutcomes', 45, 'quantitative', 'avatar', True),
+]
+
+
+def create_previews():
+    from PIL import Image, ImageDraw
+    from otree.database import db, init_orm
+    init_orm()
+    from otree.session import create_session
+    from otree.lookup import _get_session_lookups
+    import social_media as survey
+    from social_media.peer_groups import averages
+    from social_media.new_pages import average_rows
+
+    session = create_session('cognitive_tasks', num_participants=2 * len(CASES),
+                             label='RESEARCHER PREVIEWS ONLY - meeting page shortcuts')
+    participants = session.get_participants()
+    # Choose a common randomly drawn reference group with both report formats
+    # available, and keep it identical across variants for a clean demonstration.
+    for source in participants:
+        source_player = source.get_player('social_media', 45)
+        usable = True
+        for kind in ('quantitative_social', 'qualitative_social'):
+            source.vars['social_type'] = kind
+            usable &= all(averages(source_player, period)['reported'] is not None
+                          for period in (1, 2, 3))
+        if usable:
+            shared = {key: copy.deepcopy(source.vars[key]) for key in
+                      ('period_tasks', 'period_sets', 'round_plan', 'period_task_labels', 'peer_groups')}
+            break
+    else:
+        raise RuntimeError('No complete comparison example; session left labelled as preview only.')
+
+    image = Image.new('RGB', (512, 512), '#cbd6df')
+    draw = ImageDraw.Draw(image)
+    draw.text((160, 245), 'DEMO IMAGE - NOT A SELFIE', fill='#394958')
+    stream = io.BytesIO()
+    image.save(stream, 'JPEG')
+    placeholder = 'data:image/jpeg;base64,' + base64.b64encode(stream.getvalue()).decode()
+    lookups = _get_session_lookups(session.code)
+    links = []
+    for purpose in ('review', 'qa'):
+        for case_number, (key, page_name, round_number, kind, image_arm, truth) in enumerate(CASES):
+            offset = 0 if purpose == 'review' else len(CASES)
+            participant = participants[offset + case_number]
+            participant.label = f'TestBot-meeting-{purpose}-{key}'
+            participant.vars.update(copy.deepcopy(shared))
+            participant.vars.update(
+                social_type=kind + '_social', image_treatment=image_arm,
+                like_treatment=True, reveal_truth=truth, linked_peer_groups=True,
+                third_period_accepted=True, period_3_condition=kind + '_social',
+                researcher_preview=True, display_name='TestBot',
+                avatar_choice='masculine-v2-1', iq_reference_asked=True,
+                average_beliefs={str(p): 50 if kind == 'qualitative' else 7.5 for p in (1, 2, 3)},
+            )
+            participant.period_1_condition = kind + '_social'
+            participant.period_2_condition = 'control'
+            if key != 'camera':
+                participant.vars['selfie'] = dict(image=placeholder, blur=10, source='researcher_preview_placeholder')
+            if key == 'consent':
+                participant.vars.pop('selfie_consent', None)
+            for player in participant.get_players():
+                player.condition = survey.get_condition(player)
+                player.q_correct = (player.round_number - 1) % 5 < 3
+                spec = survey.round_spec(player)
+                player.q_task = spec['task']
+                player.q_item_id = spec['item_id']
+                player.q_set_id = spec['set_id']
+                player.q_difficulty = spec['difficulty']
+                player.like_treatment = True
+            target = participant.get_player('social_media', round_number)
+            assert getattr(survey, page_name).is_displayed(target)
+            if page_name == 'BlockFeedback':
+                target.report_number = 3
+                if kind == 'qualitative':
+                    target.report_emoji = survey.QUAL_EMOJIS[0]
+                    target.report_message = 'I felt good about that block.'
+                assert survey.pilot_feedback_signals(target).get('name'), 'Preview needs a received message'
+            if page_name.startswith('Average'):
+                assert all(row['available'] for row in average_rows(target))
+            participant.initialize(participant.label)
+            participant._index_in_pages = next(i for i, lookup in lookups.items()
+                if lookup.round_number == round_number and lookup.page_class.__name__ == page_name)
+            links.append(dict(key=key, purpose=purpose, page=page_name,
+                              path=participant._url_i_should_be_on(), code=participant.code,
+                              message_format=kind, image=image_arm, correction=truth))
+    db.commit()
+    print(json.dumps(dict(session=session.code, links=links,
+                         comparison_quintiles={p: g['quintile'] for p, g in shared['peer_groups'].items()})))
+
+
+if __name__ == '__main__':
+    create_previews()
