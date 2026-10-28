@@ -51,12 +51,9 @@ def figure(data, task, scores, design=None, page=None):
             elif row % 2:
                 cell.set_facecolor('#f4f6f8')
         ax.set_title(f'{fmt.capitalize()} message condition', fontsize=13, loc='left')
-    note = 'Groups are ordered from lowest to highest historical performance.' if design else 'Each performance stratum is equally likely; these ranges include variation between strata.'
-    fig.text(.045, .035, 'Actual pilot data | 20 draws with replacement | Exact 2.5th-97.5th percentiles of displayed IQ.\n'
-             + note + '\nThese are feedback-distribution ranges, not confidence intervals for true IQ. Rerun: 28 October 2026.', fontsize=9)
     if page:
         fig.text(.965, .035, str(page), ha='right', fontsize=9)
-    fig.subplots_adjust(left=.045, right=.97, bottom=.16 if short else .12, top=.75 if short else .84, wspace=.15)
+    fig.subplots_adjust(left=.045, right=.97, bottom=.07, top=.75 if short else .84, wspace=.15)
     return fig
 
 
