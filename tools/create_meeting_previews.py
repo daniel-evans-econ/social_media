@@ -33,6 +33,7 @@ CASES = [
     ('correction_qual', 'AverageTruth', 45, 'qualitative', 'avatar', True),
     ('final_questions', 'AverageOutcomes', 45, 'quantitative', 'avatar', True),
     ('final_questions_control', 'AverageOutcomes', 45, 'quantitative', 'avatar', False),
+    ('satisfaction_bonus', 'FinalResults', 45, 'qualitative', 'selfie', True),
 ]
 
 
@@ -116,11 +117,14 @@ def create_previews():
                     target.report_emoji = survey.QUAL_EMOJIS[0]
                     target.report_message = 'I felt good about that block.'
                 assert survey.pilot_feedback_signals(target).get('name'), 'Preview needs a received message'
-            if page_name.startswith('Average'):
+            if page_name.startswith('Average') or key == 'satisfaction_bonus':
                 rows = average_rows(target)
                 assert all(row['available'] for row in rows)
                 participant.vars['average_beliefs'] = {
                     str(row['period']): 50 if kind == 'qualitative' else 7.5 for row in rows}
+                if key == 'satisfaction_bonus':
+                    answers = {str(row['period']): row['actual'] for row in rows}
+                    assert survey.AverageBeliefs.live_method(target, answers)[target.id_in_group]['saved']
             participant.initialize(participant.label)
             participant._index_in_pages = next(i for i, lookup in lookups.items()
                 if lookup.round_number == round_number and lookup.page_class.__name__ == page_name)

@@ -34,7 +34,11 @@ def build(root):
         if len(rows) != 3:
             continue
         key = hashlib.sha256((period['pcode'] + ':' + period['period']).encode()).hexdigest()[:16]
-        record = dict(id=key, score=int(float(period['score15'])), blocks=[], messages=[])
+        satisfaction = float(period['perf_sat'])
+        if satisfaction not in (1, 2, 3, 4, 5):
+            raise ValueError('Completed reference period lacks a valid satisfaction response.')
+        record = dict(id=key, score=int(float(period['score15'])),
+                      performance_satisfaction=int(satisfaction), blocks=[], messages=[])
         for row in rows:
             shared = row['shared'].lower() in ('true', '1', '1.0')
             numeric = row['report_number'] not in ('', 'NA', 'nan')

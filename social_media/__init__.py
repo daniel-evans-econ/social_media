@@ -1159,6 +1159,7 @@ def creating_session(subsession: Subsession):
             # Version the provisional restriction so existing participants retain
             # their original sampling policy and recorded exposure history.
             part.vars['peer_group_sampling'] = 'quantitative_only_v1'
+            part.vars['qualitative_target'] = 'private_satisfaction_v1'
             part.vars['reveal_truth'] = random.Random(f'{part.code}-truth').random() < .5
 
             # Randomized (50/50) reference-point treatment: only this subgroup is
@@ -3789,7 +3790,9 @@ class FinalResults(Page):
                 amount=f"{amount:.2f}",
             ))
 
-        total_payoff = cu(question_payoff)
+        belief_bonus = player.participant.vars.get('average_belief_bonus')
+        belief_bonus_amount = float(belief_bonus['amount']) if belief_bonus else 0
+        total_payoff = cu(question_payoff + belief_bonus_amount)
         player.payoff = total_payoff
 
         # Bonus stripped by tab switching (correct answers that switched tabs).
@@ -3809,6 +3812,8 @@ class FinalResults(Page):
             total_payoff=total_payoff,
             task_rows=task_rows,
             question_subtotal=f"{question_payoff:.2f}",
+            show_belief_bonus=belief_bonus is not None,
+            belief_bonus_display=f"{belief_bonus_amount:.2f}",
             switched_subtracted=f"{subtracted:.2f}",
             had_switch_deduction=subtracted > 0,
             guess_bonus_max_display=f"{float(guess_bonus_max):.2f}",
@@ -3878,7 +3883,7 @@ def custom_export(players):
            'image_treatment', 'selfie_confirmed_at', 'difficulty', 'peer_group_json',
            'truth_treatment', 'average_feedback_json', 'average_beliefs_json', 'average_outcomes_json',
            'linked_message_plan_json', 'selfie_consent', 'selfie_consent_at',
-           'average_period_selection_json']
+           'average_period_selection_json', 'average_belief_bonus_json', 'average_outcome_order_json']
     for player in players:
         if player.round_number not in (15, 30, 45):
             continue
@@ -3902,4 +3907,6 @@ def custom_export(players):
                json.dumps(player.participant.vars.get('linked_message_plan', {}), ensure_ascii=False),
                player.participant.vars.get('selfie_consent', ''),
                player.participant.vars.get('selfie_consent_at', ''),
-               json.dumps(player.participant.vars.get('average_period_selection', {}))]
+               json.dumps(player.participant.vars.get('average_period_selection', {})),
+               json.dumps(player.participant.vars.get('average_belief_bonus', {})),
+               json.dumps(player.participant.vars.get('average_outcome_order', []))]

@@ -288,7 +288,7 @@ class PlayerBot(Bot):
             yield Submission(PlatformUsage, dict(sm_instagram=True, social_media_hours=2.0), check_html=False)
             if AverageBeliefs.is_displayed(p):
                 self.capture_page('AverageBeliefs_' + p.participant.vars['social_type'])
-                answers = {str(row['period']): (50 if row['kind']=='happy' else 7.5) for row in average_rows(p) if row['available']}
+                answers = {str(row['period']): (7.5 if row['kind']=='score' else 50) for row in average_rows(p) if row['available']}
                 assert AverageBeliefs.live_method(p, answers)[p.id_in_group]['saved']
                 yield Submission(AverageBeliefs, {}, check_html=False)
                 if AverageTruth.is_displayed(p):

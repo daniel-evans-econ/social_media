@@ -24,7 +24,8 @@ def player(code, kind='quantitative_social'):
                                                        period_2_condition='control', vars={
                                'linked_peer_groups':True, 'period_tasks':['sequences','working_memory','ravens'],
                                'social_type':kind, 'image_treatment':'selfie',
-                               'peer_group_sampling':'quantitative_only_v1'}))
+                               'peer_group_sampling':'quantitative_only_v1',
+                               'qualitative_target':'private_satisfaction_v1'}))
 
 
 unavailable = 0
@@ -74,6 +75,8 @@ for kind in ('quantitative_social', 'qualitative_social'):
                                     result['selection']+result['misreporting'],abs_tol=1e-10)
             else:
                 assert 0 <= result['reported'] <= 100 and 0 <= result['actual'] <= 100
+                assert result['kind'] == 'satisfaction'
+                assert result['actual'] == 100*sum(r['performance_satisfaction']==5 for r in records)/20
 assert seen_quintiles == {1,2,3,4,5}
 assert messages_outside_iq_draw > 0
 # Different messages from one sender are allowed, including across periods;

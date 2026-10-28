@@ -47,6 +47,14 @@
             <td class="num"></td>
             <td class="num">${{ question_subtotal }}</td>
         </tr>
+        {% if show_belief_bonus %}
+        <tr>
+            <td>Comparison-group satisfaction estimate</td>
+            <td class="num"></td>
+            <td class="num"></td>
+            <td class="num">${{ belief_bonus_display }}</td>
+        </tr>
+        {% endif %}
         <tr class="grand">
             <td>Total Bonus Payoff</td>
             <td class="num"></td>

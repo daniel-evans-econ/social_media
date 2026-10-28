@@ -105,7 +105,8 @@ class AverageBeliefs(Page):
         rows = [{key:value for key,value in row.items() if key in allowed}
                 for row in average_rows(player)]
         return dict(rows=rows, single_period=len(rows) == 1,
-                    qualitative=player.participant.vars['social_type'] == 'qualitative_social')
+                    qualitative=player.participant.vars['social_type'] == 'qualitative_social',
+                    satisfaction_target=any(row['kind'] == 'satisfaction' for row in rows))
 
     @staticmethod
     def live_method(player, data):
@@ -120,11 +121,29 @@ class AverageBeliefs(Page):
                 if raw is None or isinstance(raw, bool) or str(raw).strip() == '':
                     raise ValueError()
                 value = float(raw)
-                if not math.isfinite(value) or not 0 <= value <= (100 if row['kind'] == 'happy' else 15):
+                if not math.isfinite(value) or not 0 <= value <= (15 if row['kind'] == 'score' else 100):
                     raise ValueError()
                 answers[str(row['period'])] = value
         except (ValueError, TypeError):
             return {player.id_in_group: dict(error='Please answer each question within the displayed range.')}
+        # Lock the incentivized estimate on first submission, before revelation.
+        bonus = player.participant.vars.get('average_belief_bonus')
+        if bonus is not None and answers != player.participant.vars.get('average_beliefs'):
+            return {player.id_in_group: dict(error='Your estimate has already been submitted.')}
+        if bonus is None:
+            eligible = [row for row in average_rows(player)
+                        if row['kind'] == 'satisfaction' and row['available']]
+            if eligible:
+                items = []
+                for row in eligible:
+                    guess = answers[str(row['period'])]
+                    error = abs(guess - row['actual'])
+                    earned = error <= row['incentive_tolerance'] + 1e-10
+                    items.append(dict(period=row['period'], guess=guess, actual=row['actual'],
+                                      absolute_error=error, tolerance=row['incentive_tolerance'],
+                                      amount=row['incentive_amount'] if earned else 0))
+                player.participant.vars['average_belief_bonus'] = dict(
+                    version=1, items=items, amount=sum(item['amount'] for item in items))
         player.participant.vars['average_beliefs'] = answers
         return {player.id_in_group: dict(saved=True)}
 
@@ -162,10 +181,16 @@ class AverageOutcomes(Page):
 
     @staticmethod
     def vars_for_template(player):
-        from . import MOOD_CHOICES, LIKERT_CHOICES, IQ_PERCEPTION_CHOICES, CFG
+        from . import MOOD_CHOICES, LIKERT_CHOICES, IQ_PERCEPTION_CHOICES, CFG, _stable_shuffled
         rows = [dict(period=row['period'], task_label=row['task_label']) for row in average_rows(player)]
+        questions = [dict(key='mood')] + [dict(row, key=f"satisfaction_{row['period']}") for row in rows]
+        if CFG['show_iq']:
+            questions.append(dict(key='iq_perception'))
+        questions = _stable_shuffled(player, 'average-outcomes', questions)
+        player.participant.vars['average_outcome_order'] = [q['key'] for q in questions]
         return dict(rows=rows, mood_choices=MOOD_CHOICES, satisfaction_choices=LIKERT_CHOICES,
-                    show_iq=CFG['show_iq'], iq_perception_choices=IQ_PERCEPTION_CHOICES)
+                    show_iq=CFG['show_iq'], iq_perception_choices=IQ_PERCEPTION_CHOICES,
+                    questions=questions)
 
     @staticmethod
     def live_method(player, data):

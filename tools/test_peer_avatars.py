@@ -22,7 +22,7 @@ with tempfile.TemporaryDirectory() as directory:
     for participant in participants:
         for period in (1, 2):
             periods.append(dict(pcode=participant['pcode'], period=period,
-                                finished='True', n_q=15, score15=6, task='sequences'))
+                                finished='True', n_q=15, score15=6, perf_sat=4, task='sequences'))
             for block in range(1, 4):
                 blocks.append(dict(pcode=participant['pcode'], username=participant['username'],
                                    period=period, block_global=(period-1)*3+block,

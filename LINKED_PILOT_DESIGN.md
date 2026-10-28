@@ -79,9 +79,20 @@ for auditing older mixed groups; it is zero (up to floating-point precision) in
 new quantitative-only groups.
 Empty reporting subsets are marked unavailable, not zero.
 
-Qualitative: percentage of happy 😃 emojis among sent qualitative messages;
-the target is the percentage among all composed qualitative messages, including
-unsent ones. This concerns selection, not verified emotional truthfulness.
+Qualitative (new sessions from 28 October): percentage of happy 😃 emojis among
+sent qualitative messages; the target is the percentage of all 20 reference
+draws who privately selected satisfaction 5 ("Very much"). Non-senders and
+historical control/quantitative respondents are included in this target;
+repeated draws carry repeated weight. The reference builder imports `perf_sat`
+from period-level data, validates all records, and encrypts it with the existing
+reference data. No identity, score, message, avatar, or group draw is changed.
+Earlier sessions without `qualitative_target=private_satisfaction_v1` retain
+the previous all-composed-messages emoji target and no new incentive.
+Wording review: the user's provisional "most positive expressions" sentence
+describes the historical happy/neutral/unhappy menu, not today's broader
+Facebook-style emoji menu. Sent-message percentages and person-level private
+satisfaction also have different units; neither difference is silently equated
+with selective sending alone on the new correction page.
 All guesses are collected before any revelations. Both revelation arms answer
 the same subsequent mood and period-specific satisfaction questions.
 
@@ -98,13 +109,21 @@ eligible periods. Both correction arms also answer the final IQ-perception item
 using the earlier five-point negative-to-positive scale (IQ-enabled pilots).
 These three pages remain immediately before the open-ended experience page.
 
-The proposed qualitative target change to private satisfaction and accuracy
-incentives are on hold: neither the target, the happy-emoji definition nor payment
-rules were changed. Period-end difficulty retains its shuffled position but now
+The qualitative target and accuracy incentive were initially held on 27 October
+and approved on 28 October. The new qualitative question pays $0.25 when the
+absolute error is at most 10 percentage points, inclusive. The first valid
+estimate is locked before correction; the target, answer, error and award are
+exported in `average_belief_bonus_json`. The award is included once in the final
+payoff and shown as a separate summary row in both truth-treatment arms.
+Quantitative elicitation payments are unchanged. Unavailable comparisons have
+no estimate or promised incentive. New randomized final-outcome order is stable
+per participant and exported as `average_outcome_order_json`.
+Period-end difficulty retains its shuffled position but now
 has difficulty-specific response labels from "Not at all difficult" to "Very difficult".
 
 Selfie capture is immediately after consent. The blurred confirmation preview
-uses a 36-pixel circle inside an example message; the live camera remains 180
+uses a standalone 36-pixel circle (the message mockup was removed on 28 October);
+the confirmation question precedes the retake/use buttons. The live camera remains 180
 pixels maximum. Fixed blur 10 and storage are unchanged. Consent/camera wording
 uses "selfie". Everyone captures one; only display image is randomized.
 

@@ -6,7 +6,11 @@
 <section class="average-section">
 <h4>Period {{ row.period }}: {{ row.task_label }}</h4>
 {% if row.available %}
-{% if qualitative %}
+{% if row.kind == 'satisfaction' %}
+<p><strong class="average-emphasis">{{ row.reported_text }}%</strong> of the messages sent by people in your comparison group contained a <strong class="average-emphasis">happy emoji 😃</strong>.</p>
+<p>Your <strong class="average-emphasis">estimate of the actual percentage</strong> who selected "Very much" was {{ row.guess }}%.</p>
+<p>The <strong class="average-emphasis">actual percentage</strong> of all participants in your comparison group who selected <strong class="average-emphasis">"Very much"</strong> when asked about their satisfaction was {{ row.actual_text }}%, including those who did not send messages.</p>
+{% elif qualitative %}
 <p>The <strong class="average-emphasis">reported percentage</strong> of messages with a happy emoji 😃 was {{ row.reported_text }}% among the 20 other participants in your comparison group.</p>
 <p>Your <strong class="average-emphasis">estimate of the actual percentage</strong> was {{ row.guess }}%.</p>
 <p>The <strong class="average-emphasis">actual percentage</strong> was {{ row.actual_text }}% among all messages they wrote, including messages they did not send.</p>

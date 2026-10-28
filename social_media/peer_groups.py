@@ -175,6 +175,14 @@ def averages(player, period):
         sent = [b for b in composed if b['sent']]
         happy = {'😃'}
         rate = lambda bs: 100*sum(b['emoji'] in happy for b in bs)/len(bs) if bs else None
+        if player.participant.vars.get('qualitative_target') == 'private_satisfaction_v1':
+            if not records or any(r.get('performance_satisfaction') not in (1, 2, 3, 4, 5) for r in records):
+                raise ValueError('Private satisfaction is required for every comparison-group draw.')
+            return dict(period=period, reported=rate(sent),
+                        actual=100*sum(r['performance_satisfaction'] == 5 for r in records)/len(records),
+                        kind='satisfaction', n_draws=len(records), composed=len(composed), sent_blocks=len(sent),
+                        happy_definition=sorted(happy), target='private_satisfaction_v1',
+                        incentive_amount=.25, incentive_tolerance=10)
         return dict(period=period, actual=rate(composed), reported=rate(sent),
                     kind='happy', n_draws=len(records), composed=len(composed), sent_blocks=len(sent),
                     happy_definition=sorted(happy))

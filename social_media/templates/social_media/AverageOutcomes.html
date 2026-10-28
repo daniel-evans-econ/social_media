@@ -7,6 +7,8 @@
 </style>
 <h3 class="average-page-title">A few final questions about the tasks</h3>
 <br>
+{% for row in questions %}
+{% if row.key == 'mood' %}
 <fieldset class="average-outcome"><legend>How is your <strong class="average-emphasis">mood</strong> right now?</legend>
 <div class="controls">
 {% for value,label in mood_choices %}
@@ -17,7 +19,7 @@
 {% endfor %}
 </div>
 </fieldset>
-{% for row in rows %}
+{% elif row.key != 'iq_perception' %}
 <fieldset class="average-outcome"><legend>How <strong class="average-emphasis">satisfied</strong> are you with your performance on the <strong class="average-emphasis">{{ row.task_label }} task</strong> in Period {{ row.period }}?</legend>
 <div class="controls">
 {% for value,label in satisfaction_choices %}
@@ -28,8 +30,7 @@
 {% endfor %}
 </div>
 </fieldset>
-{% endfor %}
-{% if show_iq %}
+{% else %}
 <fieldset class="average-outcome"><legend>How has the information you have received during the study changed your <strong class="average-emphasis">perception of your intelligence</strong>?</legend>
 <div class="controls">
 {% for value,label in iq_perception_choices %}
@@ -41,6 +42,7 @@
 </div>
 </fieldset>
 {% endif %}
+{% endfor %}
 {{ next_button }}
 {% include "social_media/SaveLiveAnswers.html" %}
 {% endblock %}
