@@ -34,6 +34,7 @@ CASES = [
     ('final_questions', 'AverageOutcomes', 45, 'quantitative', 'avatar', True),
     ('final_questions_control', 'AverageOutcomes', 45, 'quantitative', 'avatar', False),
     ('satisfaction_bonus', 'FinalResults', 45, 'qualitative', 'selfie', True),
+    ('quantitative_bonus', 'FinalResults', 45, 'quantitative', 'avatar', True),
 ]
 
 
@@ -100,9 +101,14 @@ def create_previews():
                 participant.vars['selfie'] = dict(image=placeholder, blur=10, source='researcher_preview_placeholder')
             if key == 'consent':
                 participant.vars.pop('selfie_consent', None)
+            bonus_preview = key in ('satisfaction_bonus', 'quantitative_bonus')
+            if bonus_preview:
+                participant.vars['third_period_pay_rate'] = float(survey.C.PAY_PER_CORRECT)
+                # Explicit, labelled researcher-only examples of deferred bonuses.
+                participant.vars['researcher_bonus_preview'] = dict(iq=.50, percentiles={str(p):.25 for p in (1,2,3)})
             for player in participant.get_players():
                 player.condition = survey.get_condition(player)
-                player.q_correct = (player.round_number - 1) % 5 < 3
+                player.q_correct = bonus_preview or (player.round_number - 1) % 5 < 3
                 spec = survey.round_spec(player)
                 player.q_task = spec['task']
                 player.q_item_id = spec['item_id']
@@ -117,12 +123,12 @@ def create_previews():
                     target.report_emoji = survey.QUAL_EMOJIS[0]
                     target.report_message = 'I felt good about that block.'
                 assert survey.pilot_feedback_signals(target).get('name'), 'Preview needs a received message'
-            if page_name.startswith('Average') or key == 'satisfaction_bonus':
+            if page_name.startswith('Average') or bonus_preview:
                 rows = average_rows(target)
                 assert all(row['available'] for row in rows)
                 participant.vars['average_beliefs'] = {
                     str(row['period']): 50 if kind == 'qualitative' else 7.5 for row in rows}
-                if key == 'satisfaction_bonus':
+                if bonus_preview:
                     answers = {str(row['period']): row['actual'] for row in rows}
                     assert survey.AverageBeliefs.live_method(target, answers)[target.id_in_group]['saved']
             participant.initialize(participant.label)

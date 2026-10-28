@@ -73,4 +73,41 @@ with patch('social_media.new_pages.average_rows', return_value=[row]):
         assert not AverageBeliefs.vars_for_template(p)['satisfaction_target']
         assert AverageBeliefs.live_method(p,{'1':25})[1]['saved']
         assert 'average_belief_bonus' not in p.participant.vars
+quantitative = dict(row, kind='score', actual=7.5, actual_text='7.5', incentive_tolerance=.5)
+with patch('social_media.new_pages.average_rows',return_value=[quantitative]):
+    for answer,expected in [(7,.25),(8,.25),(7.5,.25),(6.9,0),(8.1,0)]:
+        p=player()
+        p.participant.vars['social_type']='quantitative_social'
+        context=AverageBeliefs.vars_for_template(p)
+        assert context['rows'][0]['incentivized'] and not context['satisfaction_target']
+        assert AverageBeliefs.live_method(p,{'1':answer})[1]['saved']
+        assert p.participant.vars['average_belief_bonus']['amount']==expected
+        with patch.object(survey,'third_period_played',return_value=False), \
+             patch.object(survey,'switched_disqualified_count',return_value=0):
+            final=survey.FinalResults.vars_for_template(p)
+            assert final['belief_bonus_label']=='Comparison-group performance estimate'
+            assert float(p.payoff)==expected
+            survey.FinalResults.vars_for_template(p)
+            assert float(p.payoff)==expected
+    legacy=dict(quantitative)
+    del legacy['incentive_amount']
+    del legacy['incentive_tolerance']
+    with patch('social_media.new_pages.average_rows',return_value=[legacy]):
+        p=player()
+        assert not AverageBeliefs.vars_for_template(p)['rows'][0]['incentivized']
+        assert AverageBeliefs.live_method(p,{'1':7.5})[1]['saved']
+        assert 'average_belief_bonus' not in p.participant.vars
+# Filled examples must require the researcher-preview flag, never affect regular users.
+p=player()
+p.participant.vars.update(iq_reference_asked=True,
+    researcher_bonus_preview=dict(iq=.5,percentiles={'1':.25,'2':.25,'3':.25}))
+with patch.object(survey,'third_period_played',return_value=True), \
+     patch.object(survey,'switched_disqualified_count',return_value=0):
+    assert not survey.FinalResults.vars_for_template(p)['fully_filled_bonus_preview']
+    assert float(p.payoff)==0
+    p.participant.vars['researcher_preview']=True
+    result=survey.FinalResults.vars_for_template(p)
+    assert len(result['preview_guess_rows'])==4 and float(p.payoff)==1.25
+    survey.FinalResults.vars_for_template(p)
+    assert float(p.payoff)==1.25
 print('Passed: full-group satisfaction, legacy targets, inclusive bonus threshold, hidden truth, repeat-safe payment, stable randomized final questions.')

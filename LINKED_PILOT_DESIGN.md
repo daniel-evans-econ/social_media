@@ -115,9 +115,18 @@ absolute error is at most 10 percentage points, inclusive. The first valid
 estimate is locked before correction; the target, answer, error and award are
 exported in `average_belief_bonus_json`. The award is included once in the final
 payoff and shown as a separate summary row in both truth-treatment arms.
-Quantitative elicitation payments are unchanged. Unavailable comparisons have
+New quantitative sessions also pay $0.25 for an estimate within 0.5 questions
+of the actual /15 average, inclusive (`quantitative_estimate_incentive=True`).
+The same locked-submission, export and repeat-safe payment mechanism applies.
+Earlier snapshots without an incentive retain their original terms. Unavailable comparisons have
 no estimate or promised incentive. New randomized final-outcome order is stable
 per participant and exported as `average_outcome_order_json`.
+Task names within final-question sentences use the same lowercase construct
+labels as period-end questions; headings retain capitalized task labels.
+Fully filled payment demonstrations require `researcher_preview` plus explicit
+`researcher_bonus_preview` amounts. These show all three task bonuses, the new
+comparison estimate, initial IQ and percentile-estimate bonuses. Ordinary
+participants retain the existing deferred-payment wording for IQ/percentiles.
 Period-end difficulty retains its shuffled position but now
 has difficulty-specific response labels from "Not at all difficult" to "Very difficult".
 

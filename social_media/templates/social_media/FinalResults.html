@@ -49,12 +49,20 @@
         </tr>
         {% if show_belief_bonus %}
         <tr>
-            <td>Comparison-group satisfaction estimate</td>
+            <td>{{ belief_bonus_label }}</td>
             <td class="num"></td>
             <td class="num"></td>
             <td class="num">${{ belief_bonus_display }}</td>
         </tr>
         {% endif %}
+        {% for row in preview_guess_rows %}
+        <tr>
+            <td>{{ row.label }}</td>
+            <td class="num"></td>
+            <td class="num"></td>
+            <td class="num">${{ row.amount }}</td>
+        </tr>
+        {% endfor %}
         <tr class="grand">
             <td>Total Bonus Payoff</td>
             <td class="num"></td>
@@ -74,10 +82,12 @@
 <p style="margin-top:20px; color:#555; font-size:0.95em;">
     You will receive these performance-based bonus payments very soon.
 </p>
+{% if not fully_filled_bonus_preview %}
 <p style="margin-top:12px; color:#555; font-size:0.95em;">
     Additionally, you may receive up to <strong>${{ guess_bonus_max_display }}</strong> depending on how
     accurate your estimates of your {% if iq_reference_asked %}<strong style="color:darkred;">IQ</strong> and {% endif %}percentile performance were. This may take some days to estimate.
 </p>
+{% endif %}
 
 {% if show_reaction_followup %}
     <p style="margin-top:12px; color:#555; font-size:0.95em;">

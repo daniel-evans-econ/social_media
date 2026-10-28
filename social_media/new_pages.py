@@ -100,13 +100,16 @@ class AverageBeliefs(Page):
 
     @staticmethod
     def vars_for_template(player):
+        from . import REACTION_OPTIONS
         # Do not even send the unrevealed values to the template/debug context.
         allowed = {'period', 'task_label', 'available', 'reported_text', 'kind'}
-        rows = [{key:value for key,value in row.items() if key in allowed}
+        rows = [dict({key:value for key,value in row.items() if key in allowed},
+                     incentivized=row.get('incentive_amount', 0) > 0)
                 for row in average_rows(player)]
         return dict(rows=rows, single_period=len(rows) == 1,
                     qualitative=player.participant.vars['social_type'] == 'qualitative_social',
-                    satisfaction_target=any(row['kind'] == 'satisfaction' for row in rows))
+                    satisfaction_target=any(row['kind'] == 'satisfaction' for row in rows),
+                    reaction_options=REACTION_OPTIONS)
 
     @staticmethod
     def live_method(player, data):
@@ -132,7 +135,8 @@ class AverageBeliefs(Page):
             return {player.id_in_group: dict(error='Your estimate has already been submitted.')}
         if bonus is None:
             eligible = [row for row in average_rows(player)
-                        if row['kind'] == 'satisfaction' and row['available']]
+                        if row['kind'] in ('score', 'satisfaction')
+                        and row.get('incentive_amount', 0) > 0 and row['available']]
             if eligible:
                 items = []
                 for row in eligible:
@@ -181,8 +185,10 @@ class AverageOutcomes(Page):
 
     @staticmethod
     def vars_for_template(player):
-        from . import MOOD_CHOICES, LIKERT_CHOICES, IQ_PERCEPTION_CHOICES, CFG, _stable_shuffled
-        rows = [dict(period=row['period'], task_label=row['task_label']) for row in average_rows(player)]
+        from . import MOOD_CHOICES, LIKERT_CHOICES, IQ_PERCEPTION_CHOICES, CFG, _stable_shuffled, TASK_CONSTRUCT
+        rows = [dict(period=row['period'], task_label=row['task_label'],
+                     task_construct=TASK_CONSTRUCT[player.participant.vars['period_tasks'][row['period']-1]])
+                for row in average_rows(player)]
         questions = [dict(key='mood')] + [dict(row, key=f"satisfaction_{row['period']}") for row in rows]
         if CFG['show_iq']:
             questions.append(dict(key='iq_perception'))

@@ -1160,6 +1160,7 @@ def creating_session(subsession: Subsession):
             # their original sampling policy and recorded exposure history.
             part.vars['peer_group_sampling'] = 'quantitative_only_v1'
             part.vars['qualitative_target'] = 'private_satisfaction_v1'
+            part.vars['quantitative_estimate_incentive'] = True
             part.vars['reveal_truth'] = random.Random(f'{part.code}-truth').random() < .5
 
             # Randomized (50/50) reference-point treatment: only this subgroup is
@@ -3792,7 +3793,17 @@ class FinalResults(Page):
 
         belief_bonus = player.participant.vars.get('average_belief_bonus')
         belief_bonus_amount = float(belief_bonus['amount']) if belief_bonus else 0
-        total_payoff = cu(question_payoff + belief_bonus_amount)
+        preview_guess_rows = []
+        preview = (player.participant.vars.get('researcher_bonus_preview')
+                   if player.participant.vars.get('researcher_preview') else None)
+        if preview:
+            if player.participant.vars.get('iq_reference_asked'):
+                preview_guess_rows.append(dict(label='Initial IQ estimate', amount=f"{preview['iq']:.2f}"))
+            for row in task_rows:
+                amount = preview['percentiles'].get(str(row['period']), 0)
+                preview_guess_rows.append(dict(label=f"Period {row['period']} percentile estimate", amount=f"{amount:.2f}"))
+        preview_guess_amount = sum(float(row['amount']) for row in preview_guess_rows)
+        total_payoff = cu(question_payoff + belief_bonus_amount + preview_guess_amount)
         player.payoff = total_payoff
 
         # Bonus stripped by tab switching (correct answers that switched tabs).
@@ -3814,6 +3825,11 @@ class FinalResults(Page):
             question_subtotal=f"{question_payoff:.2f}",
             show_belief_bonus=belief_bonus is not None,
             belief_bonus_display=f"{belief_bonus_amount:.2f}",
+            belief_bonus_label=('Comparison-group performance estimate'
+                                if player.participant.vars.get('social_type') == 'quantitative_social'
+                                else 'Comparison-group satisfaction estimate'),
+            preview_guess_rows=preview_guess_rows,
+            fully_filled_bonus_preview=bool(preview),
             switched_subtracted=f"{subtracted:.2f}",
             had_switch_deduction=subtracted > 0,
             guess_bonus_max_display=f"{float(guess_bonus_max):.2f}",

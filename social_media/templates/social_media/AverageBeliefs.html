@@ -3,8 +3,9 @@
 {% include "social_media/AveragePageStyle.html" %}
 <h2 class="average-page-title">Messages and actual performance</h2>
 {% if satisfaction_target %}
-<p>After completing the task, you and other participants were asked to write messages with emojis. Separately, you were asked privately about your level of satisfaction with your performance on the task in this period. The responses ranged from "Not at all" to "Very much."</p>
-<p>For the purpose of this question, we interpret a <strong class="average-emphasis">happy emoji 😃</strong> in a message as equivalent to <strong class="average-emphasis">"Very much"</strong> on the satisfaction scale. These were the most positive expressions available for each response.</p>
+<p>After completing each task, you and other participants were asked to <strong class="average-emphasis">write messages with emojis</strong>. The possible emojis you could choose from were {% for option in reaction_options %}{% if option.value != 'like' %}, {% if option.value == 'angry' %}and {% endif %}{% endif %}<span title="{{ option.label }}" aria-label="{{ option.label }}">{% include "social_media/EmojiIcon.html" %}</span>{% endfor %}.</p>
+<p>Separately, you and other participants were asked privately about your <strong class="average-emphasis">level of satisfaction</strong> with your performance on the task in that period. The possible responses ranged from "Not at all" to "Very much."</p>
+<p>For the purpose of this question, we interpret a <strong class="average-emphasis">happy emoji 😃</strong> in a message as equivalent to <strong class="average-emphasis">"Very much"</strong> on the satisfaction scale. This is because these were the most positive expressions available for each response.</p>
 {% elif qualitative %}
 <p>{% if single_period %}For the task below, we{% else %}For each task type, we{% endif %} calculated the <strong class="average-emphasis">percentage of messages</strong> that people in your comparison group sent with a <strong class="average-emphasis">happy emoji 😃</strong>.</p>
 {% else %}
@@ -15,8 +16,8 @@
 <h4>Period {{ row.period }}: {{ row.task_label }}</h4>
 {% if row.available %}
 {% if row.kind == 'satisfaction' %}
-<p><strong class="average-emphasis">{{ row.reported_text }}%</strong> of the messages sent by people in your comparison group contained a <strong class="average-emphasis">happy emoji 😃</strong>.</p>
-<label class="average-question" for="guess-{{ row.period }}">What percentage of all participants in your comparison group do you think selected <strong class="average-emphasis">"Very much"</strong> when asked about their satisfaction, including those who did not send messages?</label>
+<p>The share of <strong class="average-emphasis">sent messages with happy 😃 emojis</strong> was {{ row.reported_text }}% among the 20 other participants in your comparison group.</p>
+<label class="average-question" for="guess-{{ row.period }}">What do you think the share who selected <strong class="average-emphasis">"Very much"</strong> to describe their satisfaction was, including respondents who did not send messages?</label>
 <p>You will be paid <strong class="average-emphasis">$0.25</strong> if your answer is within 10 percentage points of the actual percentage.</p>
 <p class="average-answer"><input id="guess-{{ row.period }}" data-answer="{{ row.period }}" type="number" min="0" max="100" step="0.1" required aria-label="Period {{ row.period }} satisfaction percentage estimate"> <span>% (0–100)</span></p>
 {% elif qualitative %}
@@ -26,6 +27,7 @@
 {% else %}
 <p>The <strong class="average-emphasis">reported average</strong> was {{ row.reported_text }} questions out of 15 correct among the 20 other participants in your comparison group.</p>
 <label class="average-question" for="guess-{{ row.period }}">What do you think the <strong class="average-emphasis">actual average</strong> was, including respondents who did not send messages?</label>
+{% if row.incentivized %}<p>You will be paid <strong class="average-emphasis">$0.25</strong> if your answer is within 0.5 questions of the actual average number of questions answered correctly.</p>{% endif %}
 <p class="average-answer"><input id="guess-{{ row.period }}" data-answer="{{ row.period }}" type="number" min="0" max="15" step="0.1" required aria-label="Period {{ row.period }} actual average estimate"> <span>out of 15</span></p>
 {% endif %}
 {% else %}
