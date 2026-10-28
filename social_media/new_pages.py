@@ -102,7 +102,7 @@ class AverageBeliefs(Page):
     def vars_for_template(player):
         from . import REACTION_OPTIONS
         # Do not even send the unrevealed values to the template/debug context.
-        allowed = {'period', 'task_label', 'available', 'reported_text', 'kind'}
+        allowed = {'period', 'task_label', 'available', 'reported_text', 'kind', 'incentive_tolerance'}
         rows = [dict({key:value for key,value in row.items() if key in allowed},
                      incentivized=row.get('incentive_amount', 0) > 0)
                 for row in average_rows(player)]

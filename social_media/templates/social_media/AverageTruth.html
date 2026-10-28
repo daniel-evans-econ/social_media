@@ -7,9 +7,9 @@
 <h4>Period {{ row.period }}: {{ row.task_label }}</h4>
 {% if row.available %}
 {% if row.kind == 'satisfaction' %}
-<p>The share of <strong class="average-emphasis">sent messages with happy 😃 emojis</strong> was {{ row.reported_text }}% among the 20 other participants in your comparison group.</p>
+<p>The <strong class="average-emphasis">share of sent messages with happy 😃 emojis</strong> was {{ row.reported_text }}% among the 20 other participants in your comparison group.</p>
 <p>Your <strong class="average-emphasis">estimate of the actual percentage</strong> who selected "Very much" was {{ row.guess }}%.</p>
-<p>The <strong class="average-emphasis">actual percentage</strong> of all participants in your comparison group who selected <strong class="average-emphasis">"Very much"</strong> when asked about their satisfaction was {{ row.actual_text }}%, including those who did not send messages.</p>
+<p>The <strong class="average-emphasis">actual percentage</strong> was {{ row.actual_text }}%.</p>
 {% elif qualitative %}
 <p>The <strong class="average-emphasis">reported percentage</strong> of messages with a happy emoji 😃 was {{ row.reported_text }}% among the 20 other participants in your comparison group.</p>
 <p>Your <strong class="average-emphasis">estimate of the actual percentage</strong> was {{ row.guess }}%.</p>

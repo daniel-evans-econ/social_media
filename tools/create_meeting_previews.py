@@ -9,8 +9,10 @@ import base64
 import copy
 import io
 import json
+import statistics
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -38,6 +40,56 @@ CASES = [
 ]
 
 
+def representative_groups(sample_size=1000):
+    """Select real draws near the joint medians, only for researcher previews.
+
+    Both formats use numerical reasoning in period 1. Each candidate follows
+    the survey's ordinary quintile/replacement rule. No observations or values
+    are edited; the chosen candidate minimizes squared distance to the reported
+    and actual medians across available candidates. Both axes have equal units.
+    """
+    import social_media as survey
+    from social_media.peer_groups import averages, message_for
+
+    for seed in range(100):
+        tasks, sets, plan = survey._build_plan(SimpleNamespace(code=f'preview-plan-{seed}'))
+        if tasks[0] == 'sequences':
+            break
+    else:
+        raise RuntimeError('No numerical-reasoning preview plan.')
+    shared, audit = {}, {}
+    for kind in ('quantitative_social', 'qualitative_social'):
+        candidates = []
+        for i in range(sample_size):
+            code = f'representative-v1-{kind}-{i}'
+            part = SimpleNamespace(code=code, vars=dict(
+                period_tasks=tasks, period_sets=sets, round_plan=plan,
+                period_task_labels=' → '.join(survey.TASK_LABELS[t] for t in tasks),
+                linked_peer_groups=True, peer_group_sampling='quantitative_only_v1',
+                qualitative_target='private_satisfaction_v1', quantitative_estimate_incentive=True,
+                social_type=kind))
+            player = SimpleNamespace(participant=part, round_number=5)
+            row = averages(player, 1)
+            if row['reported'] is not None:
+                candidates.append((player, row))
+        med_reported = statistics.median(row['reported'] for _, row in candidates)
+        med_actual = statistics.median(row['actual'] for _, row in candidates)
+        candidates.sort(key=lambda pair: (pair[1]['reported']-med_reported)**2
+                                        + (pair[1]['actual']-med_actual)**2)
+        for player, row in candidates:
+            if all(averages(player, p)['reported'] is not None for p in (2, 3)) and message_for(player, kind.removesuffix('_social')):
+                shared[kind] = {key: copy.deepcopy(player.participant.vars[key]) for key in
+                    ('period_tasks', 'period_sets', 'round_plan', 'period_task_labels', 'peer_groups')}
+                audit[kind] = dict(candidate_seed=player.participant.code, sample_size=sample_size,
+                    available_candidates=len(candidates), median_reported=med_reported, median_actual=med_actual,
+                    reported=row['reported'], actual=row['actual'], task=tasks[0],
+                    selection='nearest joint medians among feasible real draws')
+                break
+        else:
+            raise RuntimeError('No complete comparison example.')
+    return shared, audit
+
+
 def create_previews():
     from PIL import Image, ImageDraw
     from otree.database import db, init_orm
@@ -45,29 +97,12 @@ def create_previews():
     from otree.session import create_session
     from otree.lookup import _get_session_lookups
     import social_media as survey
-    from social_media.peer_groups import averages, message_for
     from social_media.new_pages import average_rows
 
+    shared_by_kind, representative_audit = representative_groups()
     session = create_session('cognitive_tasks', num_participants=2 * len(CASES),
                              label='RESEARCHER PREVIEWS ONLY - meeting page shortcuts')
     participants = session.get_participants()
-    # Keep comparisons identical WITHIN format; quantitative participants now
-    # require quantitative-only reference groups, while qualitative is unchanged.
-    shared_by_kind = {}
-    for kind in ('quantitative_social', 'qualitative_social'):
-        for source in participants:
-            source.vars.pop('peer_groups', None)
-            source.vars.pop('linked_message_plan', None)
-            source.vars['social_type'] = kind
-            source_player = source.get_player('social_media', 45)
-            usable = all(averages(source_player, period)['reported'] is not None for period in (1, 2, 3))
-            usable &= bool(message_for(source.get_player('social_media', 5), kind.removesuffix('_social')))
-            if usable:
-                shared_by_kind[kind] = {key: copy.deepcopy(source.vars[key]) for key in
-                    ('period_tasks', 'period_sets', 'round_plan', 'period_task_labels', 'peer_groups')}
-                break
-        else:
-            raise RuntimeError('No complete comparison example; session left labelled as preview only.')
 
     image = Image.new('RGB', (512, 512), '#cbd6df')
     draw = ImageDraw.Draw(image)
@@ -127,7 +162,7 @@ def create_previews():
                 rows = average_rows(target)
                 assert all(row['available'] for row in rows)
                 participant.vars['average_beliefs'] = {
-                    str(row['period']): 50 if kind == 'qualitative' else 7.5 for row in rows}
+                    str(row['period']): round((row['reported'] + row['actual']) / 2, 1) for row in rows}
                 if bonus_preview:
                     answers = {str(row['period']): row['actual'] for row in rows}
                     assert survey.AverageBeliefs.live_method(target, answers)[target.id_in_group]['saved']
@@ -138,7 +173,7 @@ def create_previews():
                               path=participant._url_i_should_be_on(), code=participant.code,
                               message_format=kind, image=image_arm, correction=truth))
     db.commit()
-    print(json.dumps(dict(session=session.code, links=links,
+    print(json.dumps(dict(session=session.code, links=links, representative_examples=representative_audit,
                          comparison_quintiles={kind: {p: g['quintile'] for p, g in shared['peer_groups'].items()}
                                                for kind, shared in shared_by_kind.items()})))
 

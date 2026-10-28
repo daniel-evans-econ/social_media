@@ -192,7 +192,7 @@ def averages(player, period):
     result = dict(period=period, actual=actual, reported=None, kind='score', sent_blocks=len(sent),
                   numeric_blocks=len(all_numeric), n_draws=len(records))
     if player.participant.vars.get('quantitative_estimate_incentive'):
-        result.update(incentive_amount=.25, incentive_tolerance=.5)
+        result.update(incentive_amount=.25, incentive_tolerance=1.5)
     if sent:
         reported = 3*sum(b['report'] for b in sent)/len(sent)
         actual_sent = 3*sum(b['score'] for b in sent)/len(sent)

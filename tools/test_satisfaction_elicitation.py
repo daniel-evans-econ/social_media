@@ -73,13 +73,18 @@ with patch('social_media.new_pages.average_rows', return_value=[row]):
         assert not AverageBeliefs.vars_for_template(p)['satisfaction_target']
         assert AverageBeliefs.live_method(p,{'1':25})[1]['saved']
         assert 'average_belief_bonus' not in p.participant.vars
-quantitative = dict(row, kind='score', actual=7.5, actual_text='7.5', incentive_tolerance=.5)
+quantitative = dict(row, kind='score', actual=7.5, actual_text='7.5', incentive_tolerance=1.5)
+p=player()
+p.participant.vars.update(social_type='quantitative_social', quantitative_estimate_incentive=True)
+with patch('social_media.peer_groups.records_for', return_value=[dict(score=9, blocks=[dict(report=3,score=3,sent=True)]*3)]*20):
+    assert averages(p,1)['incentive_tolerance'] == 1.5
 with patch('social_media.new_pages.average_rows',return_value=[quantitative]):
-    for answer,expected in [(7,.25),(8,.25),(7.5,.25),(6.9,0),(8.1,0)]:
+    for answer,expected in [(6,.25),(9,.25),(7.5,.25),(5.9,0),(9.1,0)]:
         p=player()
         p.participant.vars['social_type']='quantitative_social'
         context=AverageBeliefs.vars_for_template(p)
         assert context['rows'][0]['incentivized'] and not context['satisfaction_target']
+        assert context['rows'][0]['incentive_tolerance'] == 1.5
         assert AverageBeliefs.live_method(p,{'1':answer})[1]['saved']
         assert p.participant.vars['average_belief_bonus']['amount']==expected
         with patch.object(survey,'third_period_played',return_value=False), \
@@ -89,6 +94,12 @@ with patch('social_media.new_pages.average_rows',return_value=[quantitative]):
             assert float(p.payoff)==expected
             survey.FinalResults.vars_for_template(p)
             assert float(p.payoff)==expected
+    # An already displayed snapshot retains its announced cutoff and payment.
+    with patch('social_media.new_pages.average_rows', return_value=[dict(quantitative, incentive_tolerance=.5)]):
+        p=player()
+        assert AverageBeliefs.vars_for_template(p)['rows'][0]['incentive_tolerance'] == .5
+        assert AverageBeliefs.live_method(p, {'1': 8.1})[1]['saved']
+        assert p.participant.vars['average_belief_bonus']['amount'] == 0
     legacy=dict(quantitative)
     del legacy['incentive_amount']
     del legacy['incentive_tolerance']
