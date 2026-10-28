@@ -12,33 +12,22 @@
 .selfie-camera { width: min(180px, 50%); aspect-ratio: 1; object-fit: cover; border-radius: 12px; }
 .selfie-camera { transform: scaleX(-1); }
 .selfie-preview { max-width: 370px; }
-.selfie-message { padding: 10px 12px; border-radius: 14px; background: #e7f0fa; color: #111; }
-.selfie-message-header { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
-.selfie-result { width:36px; height:36px; flex:0 0 36px; object-fit:cover; border-radius:50%; }
-.selfie-message-name { font-weight:600; }
-.selfie-message-time { color:#777; font-size:.82em; }
-.selfie-preview-caption { margin-top:12px; font-size:.9em; }
+.selfie-result { width:36px; height:36px; object-fit:cover; border-radius:50%; }
 .selfie-actions { display:flex; flex-wrap:wrap; gap:12px; margin:16px 0; }
 .selfie-actions button { padding:10px 16px; border:1px solid #b9c9dc; border-radius:8px; }
 [hidden] { display:none!important; }
 </style>
 <video id="selfie-camera" class="selfie-camera" autoplay playsinline muted hidden></video>
 <div id="selfie-preview" class="selfie-preview" hidden>
-<div class="selfie-message">
-    <div class="selfie-message-header">
-        <img id="selfie-result" class="selfie-result" alt="Your blurred selfie" hidden>
-        <div><div class="selfie-message-name">Your username</div><div class="selfie-message-time">Just now</div></div>
-    </div>
-    <div>Your message will appear here.</div>
+<p>Here is a preview of your selfie:</p>
+<img id="selfie-result" class="selfie-result" alt="Your blurred selfie" hidden>
 </div>
-<p class="selfie-preview-caption">Your blurred selfie is shown at the size used alongside messages.</p>
-</div>
+<p id="selfie-status" role="status" style="margin-top:16px;"></p>
 <div class="selfie-actions">
 <button type="button" id="selfie-open">Open camera</button>
 <button type="button" id="selfie-take" hidden>Take selfie</button>
 <button type="button" id="selfie-retake" hidden>Retake selfie</button>
 <button type="button" id="selfie-confirm" hidden>Use this selfie and continue</button>
 </div>
-<p id="selfie-status" role="status"></p>
 <script src="/static/social/selfie-capture.js"></script>
 {% endblock %}
