@@ -32,6 +32,7 @@ CASES = [
     ('correction_quant', 'AverageTruth', 45, 'quantitative', 'avatar', True),
     ('correction_qual', 'AverageTruth', 45, 'qualitative', 'avatar', True),
     ('final_questions', 'AverageOutcomes', 45, 'quantitative', 'avatar', True),
+    ('final_questions_control', 'AverageOutcomes', 45, 'quantitative', 'avatar', False),
 ]
 
 
@@ -87,11 +88,14 @@ def create_previews():
                 third_period_accepted=True, period_3_condition=kind + '_social',
                 researcher_preview=True, display_name='TestBot',
                 avatar_choice='masculine-v2-1', iq_reference_asked=True,
-                average_beliefs={str(p): 50 if kind == 'qualitative' else 7.5 for p in (1, 2, 3)},
+                # Match the displayed period across review contrasts. This
+                # override is confined to labelled researcher preview sessions.
+                average_period_selection=dict(version=1, eligible_periods=[1, 3], period=1,
+                                              source='researcher_preview'),
             )
             participant.period_1_condition = kind + '_social'
             participant.period_2_condition = 'control'
-            if key != 'camera':
+            if key not in ('camera', 'consent'):
                 participant.vars['selfie'] = dict(image=placeholder, blur=10, source='researcher_preview_placeholder')
             if key == 'consent':
                 participant.vars.pop('selfie_consent', None)
@@ -113,7 +117,10 @@ def create_previews():
                     target.report_message = 'I felt good about that block.'
                 assert survey.pilot_feedback_signals(target).get('name'), 'Preview needs a received message'
             if page_name.startswith('Average'):
-                assert all(row['available'] for row in average_rows(target))
+                rows = average_rows(target)
+                assert all(row['available'] for row in rows)
+                participant.vars['average_beliefs'] = {
+                    str(row['period']): 50 if kind == 'qualitative' else 7.5 for row in rows}
             participant.initialize(participant.label)
             participant._index_in_pages = next(i for i, lookup in lookups.items()
                 if lookup.round_number == round_number and lookup.page_class.__name__ == page_name)

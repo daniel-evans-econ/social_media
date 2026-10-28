@@ -11,6 +11,7 @@
   async function open() {
     stop(); const current = request; image = '';
     result.removeAttribute('src'); result.hidden = true;
+    $('preview').hidden = true;
     $('confirm').hidden = true; $('retake').hidden = true; $('open').disabled = true;
     $('status').textContent = 'Please allow camera access.';
     try {
@@ -46,19 +47,20 @@
     if (bc.filter !== 'blur(10px)') {
       stop(); source.width = padded.width = 0; video.hidden = true; $('take').hidden = true;
       $('open').hidden = false;
-      $('status').textContent = 'This browser cannot blur photographs safely. Please use a current browser such as Chrome or Firefox.';
+      $('status').textContent = 'This browser cannot blur selfies safely. Please use a current browser such as Chrome or Firefox.';
       return;
     }
     bc.drawImage(padded,-p,-p); image = blurred.toDataURL('image/jpeg',0.9);
     source.width = padded.width = blurred.width = 0; stop();
     video.hidden = true; $('take').hidden = true;
     result.src = image; result.hidden = false; $('retake').hidden = false; $('confirm').hidden = false;
-    $('status').textContent = 'Is this the photograph you would like to use?';
+    $('preview').hidden = false;
+    $('status').textContent = 'Is this the selfie you would like to use?';
   };
   $('confirm').onclick = () => {
     if (!image || saving) return;
     saving = true; $('confirm').disabled = true; $('retake').disabled = true;
-    $('status').textContent = 'Saving your blurred photograph…';
+    $('status').textContent = 'Saving your blurred selfie…';
     liveSend({action:'confirm',image});
   };
   window.liveRecv = data => {

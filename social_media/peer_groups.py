@@ -1,4 +1,4 @@
-"""Persistent task-specific reference draws shared by feedback and messages."""
+"""Task-specific IQ draws and message sampling from their performance stratum."""
 import hashlib
 import json
 import random
@@ -94,11 +94,38 @@ def records_for(player, period):
     return [index[key] for key in group['draw_ids']]
 
 
-def message_for(player, kind):
-    """Sample messages only from drawn members; no repeated sender/content pair.
+def stratum_records_for(player, period):
+    """All historical respondents in the assigned full-domain performance bin.
 
-    Duplicate draws increase norming weights, not the number of times a message
-    can appear. Exhaustion produces no incoming message, never a fabricated peer.
+    The 20-person norming draw remains unchanged. Message eligibility instead
+    uses the full stratum, with message-format filtering applied by message_for.
+    Explicit strata/stratum fields also support analysis-only terciles/halves;
+    existing survey snapshots identify their bin through quintile.
+    """
+    group = group_for(player, period)
+    if not group:
+        return []
+    task = group['task']
+    rows = sorted(reference(group['reference_source'])[task], key=lambda r:
+                  (r['score'], hashlib.sha256((task+r['id']).encode()).hexdigest()))
+    strata = group.get('strata', 5)
+    stratum = group.get('stratum', group.get('quintile'))
+    if strata not in (2, 3, 5) or stratum not in range(1, strata+1):
+        raise ValueError('Invalid performance stratum in reference snapshot')
+    return rows[len(rows)*(stratum-1)//strata:len(rows)*stratum//strata]
+
+
+def message_fingerprint(message):
+    """Keep the existing sender/content repeat definition for old snapshots."""
+    return json.dumps([message['name'].casefold(), message.get('number'),
+                       message.get('sentence', '').strip()], ensure_ascii=False)
+
+
+def message_for(player, kind):
+    """Sample distinct messages from the whole assigned performance stratum.
+
+    Authors need not occur in the 20-person IQ draw. Senders may repeat, but
+    sender/content pairs cannot. Exhaustion never produces a fabricated peer.
     """
     plans = dict(player.participant.vars.get('linked_message_plan', {}))
     key = str(player.round_number)
@@ -107,20 +134,26 @@ def message_for(player, kind):
         return dict(message, avatar=reference_avatar(group_for(player)['reference_source'],
                     message_id=message['id'])) if message else None
     # Only reserve messages actually encountered, not messages for control or
-    # unplayed periods. Preserve the earlier no-repeat-sender rule as well.
+    # unplayed periods. Temporarily allow different messages from the same
+    # sender; revisit sender uniqueness with a larger pilot reference pool.
     period = (player.round_number - 1)//15 + 1
     used = {m['fingerprint'] for m in plans.values() if m}
-    used_names = {m['name'].strip().casefold() for m in plans.values() if m}
-    records = records_for(player, period)
-    candidates = {m['id']: m for r in records for m in r['messages'] if m['kind'] == kind}
+    records = stratum_records_for(player, period)
+    candidates = {}
+    for record in records:
+        for message in record['messages']:
+            if message['kind'] == kind:
+                # Duplicate historical copies of identical sender/content do
+                # not give that visible message extra sampling weight.
+                candidates.setdefault(message_fingerprint(message), message)
     candidates = list(candidates.values())
     random.Random(f'{player.participant.code}-messages-{period}-{kind}').shuffle(candidates)
     chosen = None
     for message in candidates:
-        fingerprint = json.dumps([message['name'].casefold(), message.get('number'),
-                                  message.get('sentence', '').strip()], ensure_ascii=False)
-        if fingerprint not in used and message['name'].strip().casefold() not in used_names:
-            chosen = dict(message, fingerprint=fingerprint)
+        fingerprint = message_fingerprint(message)
+        if fingerprint not in used:
+            chosen = dict(message, fingerprint=fingerprint,
+                          sampling_policy='performance_stratum_messages_v1')
             break
     plans[key] = chosen
     player.participant.vars['linked_message_plan'] = plans

@@ -19,7 +19,7 @@ from otree.database import db
 
 from . import (
     C, CFG, QD, WTA_AMOUNTS, QUAL_EMOJIS, REACTION_VALUES, BFI_CORE_FIELDS,
-    round_spec, get_condition, experienced_conditions, like_button_enabled, pilot_feedback_signals,
+    round_spec, get_condition, experienced_conditions, like_button_enabled, pilot_feedback_signals, peer_avatar_for_round,
     is_feedback_round, is_third_period, third_period_played,
     is_end_of_period_with_p3,
     BotCheck, Consent, ProlificID, IQReferencePoint, Intro, TaskIntro, QuestionPage, BlockFeedback, IQFeedback,
@@ -33,7 +33,7 @@ from . import (
     experience_page_order, ToolsUsed,
     SurveyReliabilityOverall, Comments, FinalResults,
 )
-from .new_pages import SelfieCapture, AverageBeliefs, AverageTruth, AverageOutcomes, average_rows, completed_periods
+from .new_pages import SelfieCapture, AverageBeliefs, AverageTruth, AverageOutcomes, average_rows
 
 
 def _correct_answer(player):
@@ -82,12 +82,6 @@ class PlayerBot(Bot):
             yield Submission(Consent, dict(
                 consent=True, llm_rule_confirm=True, honeypot_intro_response='',
             ), check_html=False)
-            yield Submission(ProlificID, dict(prolific_id='abcdefghijklmnopqrstuvwx'), check_html=False)
-            self.capture_page('IQReferencePoint')
-            if p.participant.vars.get('iq_reference_asked', False):
-                yield Submission(IQReferencePoint, dict(iq_reference_score=100), check_html=False)
-            else:
-                yield Submission(IQReferencePoint, dict(), check_html=False)
             import base64
             import io
             from PIL import Image
@@ -98,6 +92,12 @@ class PlayerBot(Bot):
             assert 'error' in SelfieCapture.live_method(p, {'action':'confirm','image':'invalid'})[p.id_in_group]
             assert SelfieCapture.live_method(p, {'action':'confirm','image':'data:image/jpeg;base64,'+base64.b64encode(photo.getvalue()).decode()})[p.id_in_group]['saved']
             yield Submission(SelfieCapture, {}, check_html=False)
+            yield Submission(ProlificID, dict(prolific_id='abcdefghijklmnopqrstuvwx'), check_html=False)
+            self.capture_page('IQReferencePoint')
+            if p.participant.vars.get('iq_reference_asked', False):
+                yield Submission(IQReferencePoint, dict(iq_reference_score=100), check_html=False)
+            else:
+                yield Submission(IQReferencePoint, dict(), check_html=False)
             self.capture_page('IntroReactions' if like_button_enabled(p) else 'IntroNoReactions')
             self.capture_page('Intro_' + p.participant.vars['social_type'] + ('_reactions' if like_button_enabled(p) else '_no_reactions'))
             self.capture_page('IntroImage_' + p.participant.vars['image_treatment'])
@@ -218,7 +218,11 @@ class PlayerBot(Bot):
                 assert all(all(r['count'] > 0 for r in m['reactions']) for m in messages)
                 assert all([r['count'] for r in m['reactions']] == sorted((r['count'] for r in m['reactions']), reverse=True) for m in messages)
                 assert all(m['name'] == 'Bot' and m['avatar'] == 'feminine-v2-3' for m in messages if m['is_own'])
-                assert all(m['avatar'] and m['initial'] == m['name'][:1].upper() for m in messages if not m['is_own'])
+                for message in (m for m in messages if not m['is_own']):
+                    source_round = int(message['key'].split('-')[1])
+                    assert message['avatar'] == peer_avatar_for_round(p, message['name'], source_round)
+                    # Missing historical demographics intentionally use initials.
+                    assert message['initial'] == message['name'][:1].upper()
                 self.capture_page('MessageReactionFeedback' if expected_count else 'MessageReactionFeedbackEmpty')
                 yield Submission(MessageReactionFeedback, {}, check_html=False)
                 db.expire_all()
@@ -291,7 +295,9 @@ class PlayerBot(Bot):
                     self.capture_page('AverageTruth_' + p.participant.vars['social_type'])
                     yield Submission(AverageTruth, {}, check_html=False)
                 self.capture_page('AverageOutcomes')
-                answers = {'mood':3, **{f'satisfaction_{period}':3 for period in completed_periods(p)}}
+                answers = {'mood':3, **{f"satisfaction_{row['period']}":3 for row in average_rows(p)}}
+                if CFG['show_iq']:
+                    answers['iq_perception'] = 3
                 assert AverageOutcomes.live_method(p, answers)[p.id_in_group]['saved']
                 yield Submission(AverageOutcomes, {}, check_html=False)
             self.capture_page('RealismQuestion')

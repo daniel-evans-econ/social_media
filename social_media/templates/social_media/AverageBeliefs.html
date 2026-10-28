@@ -3,9 +3,9 @@
 {% include "social_media/AveragePageStyle.html" %}
 <h2 class="average-page-title">Messages and actual performance</h2>
 {% if qualitative %}
-<p>For each task type, we calculated the <strong class="average-emphasis">percentage of messages</strong> that people in your comparison group sent with a <strong class="average-emphasis">happy emoji 😃</strong>.</p>
+<p>{% if single_period %}For the task below, we{% else %}For each task type, we{% endif %} calculated the <strong class="average-emphasis">percentage of messages</strong> that people in your comparison group sent with a <strong class="average-emphasis">happy emoji 😃</strong>.</p>
 {% else %}
-<p>For each task type, we calculated the <strong class="average-emphasis">average number of questions</strong> that people in your comparison group <strong class="average-emphasis">reported getting correct</strong> in their messages.</p>
+<p>{% if single_period %}For the task below, we{% else %}For each task type, we{% endif %} calculated the <strong class="average-emphasis">average number of questions</strong> that people in your comparison group <strong class="average-emphasis">reported getting correct</strong> in their messages.</p>
 {% endif %}
 {% for row in rows %}
 <section class="average-section">

@@ -29,6 +29,18 @@
 </div>
 </fieldset>
 {% endfor %}
+{% if show_iq %}
+<fieldset class="average-outcome"><legend>How has the information you have received during the study changed your <strong class="average-emphasis">perception of your intelligence</strong>?</legend>
+<div class="controls">
+{% for value,label in iq_perception_choices %}
+<div class="form-check form-check-inline">
+    <input class="form-check-input" id="final-iq-perception-{{ value }}" type="radio" name="final_iq_perception" data-answer="iq_perception" value="{{ value }}" required>
+    <label class="form-check-label" for="final-iq-perception-{{ value }}">{{ label }}</label>
+</div>
+{% endfor %}
+</div>
+</fieldset>
+{% endif %}
 {{ next_button }}
 {% include "social_media/SaveLiveAnswers.html" %}
 {% endblock %}

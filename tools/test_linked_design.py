@@ -13,25 +13,27 @@ os.environ['EXPERIMENT_PILOT'] = 'iq'
 os.environ['OTREE_IN_MEMORY'] = '1'
 from PIL import Image
 import social_media as survey
-from social_media.peer_groups import group_for, records_for, message_for, averages, reference
-from social_media.new_pages import SelfieCapture, AverageBeliefs, AverageTruth
+from social_media.peer_groups import group_for, records_for, stratum_records_for, message_for, averages, reference
+from social_media.new_pages import (SelfieCapture, AverageBeliefs, AverageTruth, AverageOutcomes,
+                                    average_rows, average_periods)
 
 
 def player(code, kind='quantitative_social'):
     return SimpleNamespace(round_number=5, id_in_group=1,
-                           participant=SimpleNamespace(code=code, vars={
+                           participant=SimpleNamespace(code=code, period_1_condition=kind,
+                                                       period_2_condition='control', vars={
                                'linked_peer_groups':True, 'period_tasks':['sequences','working_memory','ravens'],
                                'social_type':kind, 'image_treatment':'selfie',
                                'peer_group_sampling':'quantitative_only_v1'}))
 
 
 unavailable = 0
+messages_outside_iq_draw = 0
 seen_quintiles = set()
 for kind in ('quantitative_social', 'qualitative_social'):
     for i in range(200):
         p = player(str(i),kind)
         fingerprints = set()
-        senders = set()
         for period in range(1,4):
             group = group_for(p,period)
             seen_quintiles.add(group['quintile'])
@@ -42,6 +44,7 @@ for kind in ('quantitative_social', 'qualitative_social'):
                           (r['score'], hashlib.sha256((group['task']+r['id']).encode()).hexdigest()))
             q=group['quintile']-1
             eligible=pool[len(pool)*q//5:len(pool)*(q+1)//5]
+            assert stratum_records_for(p,period) == eligible
             assert set(group['draw_ids']) <= {r['id'] for r in eligible}
             if kind=='quantitative_social':
                 assert group['sampling_policy']=='quantitative_only_v1'
@@ -54,11 +57,12 @@ for kind in ('quantitative_social', 'qualitative_social'):
                 message=message_for(p, 'quantitative' if kind=='quantitative_social' else 'qualitative')
                 assert message == message_for(p, 'quantitative' if kind=='quantitative_social' else 'qualitative')
                 if message:
-                    assert message['id'].split('-')[0] in group['draw_ids']
+                    author=message['id'].split('-')[0]
+                    assert author in {r['id'] for r in eligible}
+                    messages_outside_iq_draw += author not in group['draw_ids']
+                    assert message['sampling_policy']=='performance_stratum_messages_v1'
                     assert message['fingerprint'] not in fingerprints
                     fingerprints.add(message['fingerprint'])
-                    assert message['name'].strip().casefold() not in senders
-                    senders.add(message['name'].strip().casefold())
             result=averages(p,period)
             if result['reported'] is None:
                 unavailable+=1
@@ -71,13 +75,33 @@ for kind in ('quantitative_social', 'qualitative_social'):
             else:
                 assert 0 <= result['reported'] <= 100 and 0 <= result['actual'] <= 100
 assert seen_quintiles == {1,2,3,4,5}
+assert messages_outside_iq_draw > 0
+# Different messages from one sender are allowed, including across periods;
+# duplicate copies of the same sender/content must still never be shown twice.
+for fmt in ('quantitative', 'qualitative'):
+    p=player('repeat-sender-test',fmt+'_social')
+    messages=[dict(id=str(i),name='Same sender',kind=fmt,
+                   **({'number':n} if fmt=='quantitative' else {'sentence':str(n)}))
+              for i,n in enumerate((1,2,2,3))]
+    with patch('social_media.peer_groups.stratum_records_for',return_value=[{'messages':messages}]), \
+         patch('social_media.peer_groups.group_for',return_value={'reference_source':'initial'}), \
+         patch('social_media.peer_groups.reference_avatar',return_value=None):
+        seen=set()
+        for rnd in (5,10,35):
+            p.round_number=rnd
+            msg=message_for(p,fmt)
+            assert msg is not None and msg['fingerprint'] not in seen
+            seen.add(msg['fingerprint'])
+            assert message_for(p,fmt)['id']==msg['id']
+        p.round_number=40
+        assert message_for(p,fmt) is None
 # Historical sampling and already-recorded groups must not be rewritten.
 p=player('legacy'); p.participant.vars.pop('peer_group_sampling')
 original=group_for(p,1)
 assert original['sampling_policy']=='all_message_formats'
 p.participant.vars['peer_group_sampling']='quantitative_only_v1'
 assert group_for(p,1)==original
-# The IQ adjustment uses the same group scores as the messages/averages.
+# The IQ adjustment and averages still use the same 20 group scores.
 p=player('iq-linked'); p.round_number=15
 group=group_for(p,1)
 with patch.object(survey,'_percentile_iq',return_value=100) as percentile:
@@ -125,6 +149,48 @@ for kind in ('qualitative_social','quantitative_social'):
         assert 'error' in AverageBeliefs.live_method(p,{'1':'nan','2':'nan'})[1]
         assert 'error' in AverageBeliefs.live_method(p,{'1':'','2':''})[1]
         assert AverageBeliefs.live_method(p,{'1':5,'2':5})[1]['saved']
+# A single completed social period is fixed independently of correction status.
+selected = set()
+for i in range(100):
+    p = player('period-' + str(i))
+    p.participant.vars['period_3_condition'] = 'quantitative_social'
+    with patch('social_media.new_pages.completed_periods', return_value=[1, 2, 3]):
+        choice = average_periods(p)
+        selected.update(choice)
+        assert choice in ([1], [3])
+        p.participant.vars['reveal_truth'] = True
+        assert average_periods(p) == choice
+        rows = average_rows(p)
+        assert [r['period'] for r in rows] == choice
+        assert [r['period'] for r in AverageTruth.vars_for_template(p)['rows']] == choice
+        assert [r['period'] for r in AverageOutcomes.vars_for_template(p)['rows']] == choice
+        answers = dict(mood=3, iq_perception=4, **{f'satisfaction_{choice[0]}':2})
+        assert AverageOutcomes.live_method(p, answers)[1]['saved']
+        assert p.participant.vars['average_outcomes'] == answers
+        for bad in (None, [], {}, dict(answers, iq_perception=2.5), dict(answers, mood=True)):
+            assert 'error' in AverageOutcomes.live_method(p, bad)[1]
+assert selected == {1, 3}
+p = player('optional-declined')
+p.participant.vars['period_3_condition'] = 'quantitative_social'
+with patch('social_media.new_pages.completed_periods', return_value=[1, 2]):
+    assert average_periods(p) == [1]
+p = player('social-second')
+p.participant.period_1_condition = 'control'
+p.participant.period_2_condition = 'quantitative_social'
+with patch('social_media.new_pages.completed_periods', return_value=[1, 2]):
+    assert average_periods(p) == [2]
+    with patch.dict(survey.CFG, show_iq=False):
+        assert not AverageOutcomes.vars_for_template(p)['show_iq']
+        assert AverageOutcomes.live_method(p, dict(mood=3, satisfaction_2=4))[1]['saved']
+# Existing displayed feedback retains all original rows and recorded numbers.
+p = player('legacy-feedback')
+original = [averages(p, 1), averages(p, 2)]
+p.participant.vars['average_feedback'] = original
+assert average_periods(p) == [1, 2]
+assert [r['actual'] for r in average_rows(p)] == [r['actual'] for r in original]
+assert 'average_period_selection' not in p.participant.vars
+assert survey.page_sequence.index(survey.SelfieCapture) == survey.page_sequence.index(survey.Consent) + 1
+assert survey.page_sequence.index(AverageOutcomes) < survey.page_sequence.index(survey.RealismQuestion)
 # The displayed gap includes composition as well as sending and misreporting.
 # Its sending share must not silently use a different denominator or be capped.
 for reported, actual, selection, expected in [

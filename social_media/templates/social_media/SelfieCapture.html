@@ -2,26 +2,42 @@
 {% block content %}
 <h2 style="color:darkred;font-weight:bold;margin-bottom:1.5rem;">Your selfie</h2>
 <div class="selfie-instructions">
-<p>Please take a <strong style="color:darkred;">photograph</strong> of your face using your camera.</p>
-<p>Each photo you take is <strong style="color:darkred;">blurred on your browser</strong> before being displayed below. You can review the blurred version of the photo and retake it before submission. The original, unblurred version of the photo <strong style="color:darkred;">will not be stored</strong> and <strong style="color:darkred;">will not be visible</strong> to anyone.</p>
+<p>Please take a <strong style="color:darkred;">selfie</strong> using your camera.</p>
+<p>Each selfie you take is <strong style="color:darkred;">blurred on your browser</strong> before being displayed below. You can review the blurred version of the selfie and retake it before submission. The original, unblurred version of the selfie <strong style="color:darkred;">will not be stored</strong> and <strong style="color:darkred;">will not be visible</strong> to anyone.</p>
 <p>Press "<strong style="color:darkred;">Open camera</strong>" to proceed.</p>
 </div>
 <style>
 .selfie-instructions { margin-bottom: 1.5rem; }
 .selfie-instructions p { margin-bottom: 1rem; }
-.selfie-camera, .selfie-result { width: min(180px, 50%); aspect-ratio: 1; object-fit: cover; border-radius: 12px; }
+.selfie-camera { width: min(180px, 50%); aspect-ratio: 1; object-fit: cover; border-radius: 12px; }
 .selfie-camera { transform: scaleX(-1); }
+.selfie-preview { max-width: 370px; }
+.selfie-message { padding: 10px 12px; border-radius: 14px; background: #e7f0fa; color: #111; }
+.selfie-message-header { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+.selfie-result { width:36px; height:36px; flex:0 0 36px; object-fit:cover; border-radius:50%; }
+.selfie-message-name { font-weight:600; }
+.selfie-message-time { color:#777; font-size:.82em; }
+.selfie-preview-caption { margin-top:12px; font-size:.9em; }
 .selfie-actions { display:flex; flex-wrap:wrap; gap:12px; margin:16px 0; }
 .selfie-actions button { padding:10px 16px; border:1px solid #b9c9dc; border-radius:8px; }
 [hidden] { display:none!important; }
 </style>
 <video id="selfie-camera" class="selfie-camera" autoplay playsinline muted hidden></video>
-<img id="selfie-result" class="selfie-result" alt="Your blurred photograph" hidden>
+<div id="selfie-preview" class="selfie-preview" hidden>
+<div class="selfie-message">
+    <div class="selfie-message-header">
+        <img id="selfie-result" class="selfie-result" alt="Your blurred selfie" hidden>
+        <div><div class="selfie-message-name">Your username</div><div class="selfie-message-time">Just now</div></div>
+    </div>
+    <div>Your message will appear here.</div>
+</div>
+<p class="selfie-preview-caption">Your blurred selfie is shown at the size used alongside messages.</p>
+</div>
 <div class="selfie-actions">
 <button type="button" id="selfie-open">Open camera</button>
-<button type="button" id="selfie-take" hidden>Take photograph</button>
-<button type="button" id="selfie-retake" hidden>Retake photograph</button>
-<button type="button" id="selfie-confirm" hidden>Use this photograph and continue</button>
+<button type="button" id="selfie-take" hidden>Take selfie</button>
+<button type="button" id="selfie-retake" hidden>Retake selfie</button>
+<button type="button" id="selfie-confirm" hidden>Use this selfie and continue</button>
 </div>
 <p id="selfie-status" role="status"></p>
 <script src="/static/social/selfie-capture.js"></script>

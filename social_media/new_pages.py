@@ -5,6 +5,7 @@ No schema reset is required; existing participants keep their previous flow.
 import base64
 import io
 import math
+import random
 from datetime import datetime, timezone
 from otree.api import Page
 from .peer_groups import averages
@@ -22,11 +23,35 @@ def completed_periods(player):
     return [1, 2, 3] if not CFG['use_wta'] or third_period_played(player) else [1, 2]
 
 
+def average_periods(player):
+    """Fix one completed social period, independently of correction assignment.
+
+    Preserve previously displayed multi-period snapshots and their responses.
+    Select before checking message availability: missing reports must not change
+    which period is selected or silently change the randomization population.
+    """
+    part = player.participant
+    if 'average_feedback' in part.vars:
+        return [row['period'] for row in part.vars['average_feedback']]
+    selection = part.vars.get('average_period_selection')
+    if selection is None:
+        conditions = {1: part.period_1_condition, 2: part.period_2_condition,
+                      3: part.vars.get('period_3_condition', 'control')}
+        eligible = [p for p in completed_periods(player)
+                    if conditions[p] in ('quantitative_social', 'qualitative_social')]
+        if not eligible:
+            raise ValueError('Average elicitation requires a completed social period.')
+        period = random.Random(f'{part.code}-average-period').choice(eligible)
+        selection = dict(version=1, eligible_periods=eligible, period=period)
+        part.vars['average_period_selection'] = selection
+    return [selection['period']]
+
+
 def average_rows(player):
     from . import TASK_LABELS
     snapshots = player.participant.vars.get('average_feedback')
     if snapshots is None:
-        snapshots = [averages(player, p) for p in completed_periods(player)]
+        snapshots = [averages(player, p) for p in average_periods(player)]
         player.participant.vars['average_feedback'] = snapshots
     return [dict(row, task_label=TASK_LABELS[player.participant.vars['period_tasks'][row['period']-1]],
                  available=row['reported'] is not None and row['actual'] is not None,
@@ -60,12 +85,12 @@ class SelfieCapture(Page):
                 confirmed_at=datetime.now(timezone.utc).isoformat(), blur=10, version=1)
             return {player.id_in_group: dict(saved=True)}
         except (ValueError, OSError, TypeError):
-            return {player.id_in_group: dict(error='Please take and confirm your photograph again.')}
+            return {player.id_in_group: dict(error='Please take and confirm your selfie again.')}
 
     @staticmethod
     def error_message(player, values):
         if not player.participant.vars.get('selfie', {}).get('image'):
-            return 'Please take and confirm your photograph before continuing.'
+            return 'Please take and confirm your selfie before continuing.'
 
 
 class AverageBeliefs(Page):
@@ -79,7 +104,7 @@ class AverageBeliefs(Page):
         allowed = {'period', 'task_label', 'available', 'reported_text', 'kind'}
         rows = [{key:value for key,value in row.items() if key in allowed}
                 for row in average_rows(player)]
-        return dict(rows=rows,
+        return dict(rows=rows, single_period=len(rows) == 1,
                     qualitative=player.participant.vars['social_type'] == 'qualitative_social')
 
     @staticmethod
@@ -137,14 +162,22 @@ class AverageOutcomes(Page):
 
     @staticmethod
     def vars_for_template(player):
-        from . import MOOD_CHOICES, LIKERT_CHOICES
+        from . import MOOD_CHOICES, LIKERT_CHOICES, IQ_PERCEPTION_CHOICES, CFG
         rows = [dict(period=row['period'], task_label=row['task_label']) for row in average_rows(player)]
-        return dict(rows=rows, mood_choices=MOOD_CHOICES, satisfaction_choices=LIKERT_CHOICES)
+        return dict(rows=rows, mood_choices=MOOD_CHOICES, satisfaction_choices=LIKERT_CHOICES,
+                    show_iq=CFG['show_iq'], iq_perception_choices=IQ_PERCEPTION_CHOICES)
 
     @staticmethod
     def live_method(player, data):
-        keys = ['mood'] + [f'satisfaction_{p}' for p in completed_periods(player)]
+        from . import CFG
+        keys = ['mood'] + [f"satisfaction_{row['period']}" for row in average_rows(player)]
+        if CFG['show_iq']:
+            keys.append('iq_perception')
         try:
+            if not isinstance(data, dict) or any(isinstance(data.get(key), bool)
+                                               or str(data.get(key)) not in ('1', '2', '3', '4', '5')
+                                               for key in keys):
+                raise ValueError()
             answers = {key: int(data[key]) for key in keys}
             if any(value not in range(1, 6) for value in answers.values()):
                 raise ValueError()

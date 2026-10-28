@@ -557,6 +557,14 @@ MOOD_CHOICES = [
     [5, "Very good"],
 ]
 
+DIFFICULTY_CHOICES = [
+    [1, "Not at all difficult"],
+    [2, "Slightly difficult"],
+    [3, "Moderately difficult"],
+    [4, "Quite difficult"],
+    [5, "Very difficult"],
+]
+
 # Signed five-point scale: negative on the left, positive on the right, matching
 # the direction of the other end-of-period items.
 IQ_PERCEPTION_CHOICES = [
@@ -1505,8 +1513,10 @@ def pilot_feedback_signals(player: Player):
 
     Initial pilot: no received message (send-only). IQ/Main: draw a message from
     the previous pilot's portable pool, independent of the participant's own task
-    and set, without repeating a message or a sender within a participant; fall
-    back to a simulated one only when the pool is empty. Messages are
+    and set in legacy sessions. Linked sessions draw from the full assigned
+    performance stratum, allowing repeated senders but not repeated sender/content pairs;
+    exhaustion yields no message. Legacy sessions can use simulated fallback.
+    Messages are
     number-correct based (0-5) in all pilots.
     """
     cond = get_condition(player)
@@ -3273,7 +3283,7 @@ class EndOfPeriodSurvey(Page):
             task_construct=TASK_CONSTRUCT.get(task, "task"),
             question_order=question_keys,
             collect_difficulty=player.participant.vars.get('image_treatment') is not None,
-            difficulty_choices=LIKERT_CHOICES,
+            difficulty_choices=DIFFICULTY_CHOICES,
         )
 
     @staticmethod
@@ -3824,9 +3834,9 @@ class ProlificCompletion(Page):
 page_sequence = [
     BotCheck,
     Consent,
+    SelfieCapture,
     ProlificID,
     IQReferencePoint,
-    SelfieCapture,
     Intro,
     TaskIntro,
     QuestionPage,
@@ -3867,7 +3877,8 @@ def custom_export(players):
            'reaction_treatment', 'feedback_snapshot_json', 'avatar_choice',
            'image_treatment', 'selfie_confirmed_at', 'difficulty', 'peer_group_json',
            'truth_treatment', 'average_feedback_json', 'average_beliefs_json', 'average_outcomes_json',
-           'linked_message_plan_json', 'selfie_consent', 'selfie_consent_at']
+           'linked_message_plan_json', 'selfie_consent', 'selfie_consent_at',
+           'average_period_selection_json']
     for player in players:
         if player.round_number not in (15, 30, 45):
             continue
@@ -3890,4 +3901,5 @@ def custom_export(players):
                json.dumps(player.participant.vars.get('average_outcomes', {})),
                json.dumps(player.participant.vars.get('linked_message_plan', {}), ensure_ascii=False),
                player.participant.vars.get('selfie_consent', ''),
-               player.participant.vars.get('selfie_consent_at', '')]
+               player.participant.vars.get('selfie_consent_at', ''),
+               json.dumps(player.participant.vars.get('average_period_selection', {}))]

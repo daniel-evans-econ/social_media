@@ -56,7 +56,7 @@ with sync_playwright() as pw:
         selfie_box.check()
         page.evaluate('liveRecv({selfie_consent_saved:true,request_id:3})')
         assert next_button.is_enabled()
-        for phrase in ('upload a photograph of myself','blurred version'):
+        for phrase in ('upload a selfie','blurred version'):
             emphasis = page.locator('strong').filter(has_text=phrase)
             assert emphasis.count()==1
             assert emphasis.evaluate("el=>getComputedStyle(el).color")=='rgb(139, 0, 0)'
@@ -72,8 +72,12 @@ with sync_playwright() as pw:
     assert page.evaluate("window.sent.filter(x=>x && x.action==='confirm').length")==0, page.evaluate("window.sent.map(x=>Object.keys(x))")
     photo=page.locator('#selfie-result').get_attribute('src')
     assert photo.startswith('data:image/jpeg;base64,')
+    assert page.locator('#selfie-preview').is_visible()
+    assert page.locator('#selfie-result').bounding_box()['width'] == 36
+    assert page.locator('#selfie-result').bounding_box()['height'] == 36
     page.screenshot(path=str(shots/'selfie-confirm.png'))
     page.locator('#selfie-retake').click()
+    assert page.locator('#selfie-preview').is_hidden()
     page.wait_for_function("document.getElementById('selfie-camera').videoWidth>0")
     page.locator('#selfie-take').click()
     page.locator('#selfie-confirm').click()

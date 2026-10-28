@@ -1,7 +1,8 @@
 # Linked pilot design (October 2026)
 
-New sessions capture a selfie after the IQ explanation/reference-point page and
-before the username/image selection page. All participants capture a photo. The 50/50 image assignment
+With the October 27 changes, new sessions capture a selfie immediately after
+consent, before the IQ explanation and username/image selection. All participants
+capture a selfie. The 50/50 image assignment
 only determines whether a confirmed blurred selfie or a chosen avatar accompanies
 their messages. Truth revelation is independently randomized 50/50. Existing
 sessions have no new assignment flags and retain their previous page sequence.
@@ -25,7 +26,9 @@ As of 21 October, new quantitative participants draw only from respondents with
 three numerical block reports, within the selected full-domain quintile. Reports
 were elicited before the send decision, so this includes non-senders. Quintile
 boundaries remain defined using the full domain sample. The same 20 draws drive
-IQ feedback, incoming-message eligibility, and the end-of-survey averages.
+IQ feedback and the end-of-survey averages. As of October 28, incoming messages
+are drawn separately from the entire assigned performance stratum, not only
+from those 20 draws.
 Qualitative groups retain their existing sampling rule. The participant-level
 `peer_group_sampling` flag and group `sampling_policy` record this provisional
 change. Existing participants and stored group/average snapshots remain intact.
@@ -33,10 +36,23 @@ change. Existing participants and stored group/average snapshots remain intact.
 at least 20 respondents. The pilot never substitutes respondents from other
 quintiles to fill a message shortage.
 
-Incoming messages must belong to drawn respondents, match the assigned message
-format, and not repeat a sender or username/content pair across blocks. A repeated reference
-observation does not cause its message to be repeated. When eligible messages are
-exhausted, no incoming message is shown; there is no simulated fallback.
+Incoming messages must belong to respondents in the assigned full-domain
+performance stratum and match the assigned message format. Draw uniformly from
+distinct username/content pairs, without repeating a pair across blocks or
+periods. Different messages from the same sender are provisionally allowed.
+The sender need not be in the 20-person IQ draw. Repeated reference observations
+do not increase message weights. Previously recorded messages are preserved;
+new selections record `performance_stratum_messages_v1` in the message plan.
+When eligible messages are exhausted, no incoming message is shown; there is no
+simulated fallback. Historical qualitative content filters remain in place.
+
+The local survey still assigns quintiles. Terciles and halves are analysis-only
+counterfactuals. Updated simulations and all 95% feedback ranges are in
+`analysis/stratum_message_sampling/`. All conditional and pooled IQ distributions
+exactly reproduce the preceding calculations: only message eligibility changed.
+All 2,000 profiles per format/design received three messages in each social
+period with terciles or halves. Quintiles still have sparse cells. End averages
+remain statistics for the 20 draws, not averages of the messages displayed.
 
 Historical reference tasks used different item sets; comparisons use those
 pilot observations, not performance on the current fixed fifteen questions.
@@ -69,8 +85,92 @@ unsent ones. This concerns selection, not verified emotional truthfulness.
 All guesses are collected before any revelations. Both revelation arms answer
 the same subsequent mood and period-specific satisfaction questions.
 
+### Changes prepared on 27 October
+
+For participants without an existing `average_feedback` snapshot, select one
+completed social period uniformly and retain it in `average_period_selection`.
+The selection is independent of the revelation treatment, excludes control and
+unplayed periods, and is made before checking whether reports are available.
+Do not redraw an unavailable period. Beliefs, correction and subsequent
+task-specific satisfaction use this same period. Existing multi-period snapshots
+and responses are preserved. The custom export includes the selection and its
+eligible periods. Both correction arms also answer the final IQ-perception item
+using the earlier five-point negative-to-positive scale (IQ-enabled pilots).
+These three pages remain immediately before the open-ended experience page.
+
+The proposed qualitative target change to private satisfaction and accuracy
+incentives are on hold: neither the target, the happy-emoji definition nor payment
+rules were changed. Period-end difficulty retains its shuffled position but now
+has difficulty-specific response labels from "Not at all difficult" to "Very difficult".
+
+Selfie capture is immediately after consent. The blurred confirmation preview
+uses a 36-pixel circle inside an example message; the live camera remains 180
+pixels maximum. Fixed blur 10 and storage are unchanged. Consent/camera wording
+uses "selfie". Everyone captures one; only display image is randomized.
+
+### Treatment inventory for circulation
+
+1. **Message format:** quantitative numerical reports versus qualitative text
+   and composed emojis. Assigned between participants; each participant retains
+   the format in their social periods. Session creation balances message format
+   and control/social order in four repeating cells; allocation is not an
+   independent coin flip for each arriving participant.
+2. **Reactions:** 50/50 reaction access versus no reaction access, independent
+   of message format. Both formats can react when assigned access. In the current
+   pilot, only quantitative + reactions participants also see the ranked feed.
+   `ENABLE_REACTION_FEEDBACK` and the session switch can disable that feed. Feed
+   counts and other reactors' names remain demonstration values. The intended
+   final design pools reactions and the ranked feed as one interactivity treatment
+   across both formats; that expansion is not part of the October 27 changes.
+3. **Display image:** 50/50 own blurred selfie versus chosen avatar. Everyone
+   takes a selfie before reaching this display choice. Historical received
+   messages currently use avatars based on reported demographic gender, not
+   historical selfies. Thus this pilot does not yet fully cross incoming-peer
+   selfie exposure with own-image assignment.
+4. **Initial IQ reference point:** 50/50 elicitation versus no elicitation of
+   the participant's own IQ estimate before the task; everyone sees the IQ
+   explanation. This assignment is independent of the other binary treatments.
+5. **Information correction:** 50/50 reveal versus do not reveal the actual
+   comparison-group result after the belief elicitation. Both arms provide the
+   same subsequent mood, selected-task satisfaction and IQ-perception responses.
+6. **Comparison-group performance:** independently choose one of five
+   task-specific performance quintiles for each participant-period, then draw
+   20 observations with replacement within it. Quantitative participants use
+   the provisional quantitative-only pool within the full-domain boundaries;
+   qualitative participants use the mixed-format pool. This assignment jointly
+   changes IQ feedback and the eligible messages/statistics; it is not a separate
+   orthogonal IQ-noise treatment.
+
+In addition, each participant has one control and one social period among the
+first two, with order balanced within format. Task order is randomized. The
+optional third period is determined by the incentivized WTA mechanism and its
+selected scenario. The one-period end elicitation is an independent measurement
+selection, not another intervention. The inventory is drafted for Daniel to
+circulate; no message has been sent to co-authors.
+
+### Release handoff (28 October)
+
+The October 27 changes were initially held locally at Daniel's request. On
+October 28 Daniel explicitly authorized deployment and fresh, shareable Heroku
+links opening directly to the changed pages. The release includes the later
+whole-stratum message-sampling change. Focused logic checks and desktop/mobile
+rendering checks use a synthetic camera; full bot checks cover all pilot modes.
+Fresh researcher previews have separate review and QA participants so checking
+the deployment never consumes the review links. Consult git and Heroku release
+history for the deployed revision.
+No schema change or database reset is needed. Use fresh sessions when checking
+the changed page sequence; existing oTree sessions retain their page lookup order.
+
 ## To do / revisit
 
+- [ ] Restore **no repeated sender** when the reference sample is larger, after
+  checking availability separately by task, performance stratum and message
+  format across all social periods. From October 28, different messages from
+  the same sender are allowed provisionally; the same sender/content pair
+  cannot repeat. Duplicate reference draws do not create extra usable messages.
+  See `analysis/stratum_message_sampling/` for the latest matched-profile
+  availability checks after expanding message eligibility to the whole assigned
+  stratum. Deployment was authorized for the October 28 preview release.
 - [ ] Revisit the provisional quantitative-only comparison pool after the pilot.
   Confirm whether to retain it and whether qualitative groups should also be
   restricted by historical message format. Assess effects on IQ feedback, the

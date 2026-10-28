@@ -1,0 +1,398 @@
+{
+  "seed": 20261027,
+  "task_order_seed": 20261028,
+  "group_size": 20,
+  "rule": "Whole-stratum message pool; repeated senders allowed; repeated sender/content pairs prohibited across periods.",
+  "setup": "Actual pilot pools; matched task orders and peer draws; social/control/social; all tasks completed.",
+  "source_hashes": {
+    "peer_reference_initial.fernet": "2ca21d7abface2118840ba29fe9dcb629a458f8839808056aef860f087b600fd",
+    "iq_scores_initial.json": "afcc858d04d92e7848b2bb35bd44db51e3a96f188d6901c50827fa4106a1fc1c",
+    "iq_distribution_initial.json": "9d4c8d31f2088c0d4855d1d48e6b2a7bc49bc00f66738589a4dd036b7c1a826a"
+  },
+  "results": [
+    {
+      "design": "quintiles",
+      "format": "quantitative",
+      "social_period_number": 1,
+      "profiles": 2000,
+      "previous_all_three": 0.726,
+      "all_three": 0.931,
+      "probabilities_0_1_2_3": [
+        0.0,
+        0.069,
+        0.0,
+        0.931
+      ],
+      "task_results": [
+        {
+          "task": "ravens",
+          "profiles": 699,
+          "all_three": 0.8025751072961373
+        },
+        {
+          "task": "working_memory",
+          "profiles": 647,
+          "all_three": 1.0
+        },
+        {
+          "task": "sequences",
+          "profiles": 654,
+          "all_three": 1.0
+        }
+      ],
+      "profiles_with_repeated_sender_either_period": 1625
+    },
+    {
+      "design": "quintiles",
+      "format": "quantitative",
+      "social_period_number": 2,
+      "profiles": 2000,
+      "previous_all_three": 0.6995,
+      "all_three": 0.9265,
+      "probabilities_0_1_2_3": [
+        0.0,
+        0.0675,
+        0.006,
+        0.9265
+      ],
+      "task_results": [
+        {
+          "task": "working_memory",
+          "profiles": 653,
+          "all_three": 1.0
+        },
+        {
+          "task": "sequences",
+          "profiles": 689,
+          "all_three": 1.0
+        },
+        {
+          "task": "ravens",
+          "profiles": 658,
+          "all_three": 0.776595744680851
+        }
+      ],
+      "profiles_with_repeated_sender_either_period": 1625
+    },
+    {
+      "design": "quintiles",
+      "format": "qualitative",
+      "social_period_number": 1,
+      "profiles": 2000,
+      "previous_all_three": 0.524,
+      "all_three": 0.9385,
+      "probabilities_0_1_2_3": [
+        0.0,
+        0.0615,
+        0.0,
+        0.9385
+      ],
+      "task_results": [
+        {
+          "task": "sequences",
+          "profiles": 677,
+          "all_three": 1.0
+        },
+        {
+          "task": "ravens",
+          "profiles": 672,
+          "all_three": 0.8169642857142857
+        },
+        {
+          "task": "working_memory",
+          "profiles": 651,
+          "all_three": 1.0
+        }
+      ],
+      "profiles_with_repeated_sender_either_period": 1576
+    },
+    {
+      "design": "quintiles",
+      "format": "qualitative",
+      "social_period_number": 2,
+      "profiles": 2000,
+      "previous_all_three": 0.5015,
+      "all_three": 0.9295,
+      "probabilities_0_1_2_3": [
+        0.0,
+        0.0705,
+        0.0,
+        0.9295
+      ],
+      "task_results": [
+        {
+          "task": "working_memory",
+          "profiles": 646,
+          "all_three": 1.0
+        },
+        {
+          "task": "ravens",
+          "profiles": 662,
+          "all_three": 0.7870090634441088
+        },
+        {
+          "task": "sequences",
+          "profiles": 692,
+          "all_three": 1.0
+        }
+      ],
+      "profiles_with_repeated_sender_either_period": 1576
+    },
+    {
+      "design": "terciles",
+      "format": "quantitative",
+      "social_period_number": 1,
+      "profiles": 2000,
+      "previous_all_three": 0.999,
+      "all_three": 1.0,
+      "probabilities_0_1_2_3": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "task_results": [
+        {
+          "task": "ravens",
+          "profiles": 699,
+          "all_three": 1.0
+        },
+        {
+          "task": "working_memory",
+          "profiles": 647,
+          "all_three": 1.0
+        },
+        {
+          "task": "sequences",
+          "profiles": 654,
+          "all_three": 1.0
+        }
+      ],
+      "profiles_with_repeated_sender_either_period": 1245
+    },
+    {
+      "design": "terciles",
+      "format": "quantitative",
+      "social_period_number": 2,
+      "profiles": 2000,
+      "previous_all_three": 0.9795,
+      "all_three": 1.0,
+      "probabilities_0_1_2_3": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "task_results": [
+        {
+          "task": "working_memory",
+          "profiles": 653,
+          "all_three": 1.0
+        },
+        {
+          "task": "sequences",
+          "profiles": 689,
+          "all_three": 1.0
+        },
+        {
+          "task": "ravens",
+          "profiles": 658,
+          "all_three": 1.0
+        }
+      ],
+      "profiles_with_repeated_sender_either_period": 1245
+    },
+    {
+      "design": "terciles",
+      "format": "qualitative",
+      "social_period_number": 1,
+      "profiles": 2000,
+      "previous_all_three": 0.6775,
+      "all_three": 1.0,
+      "probabilities_0_1_2_3": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "task_results": [
+        {
+          "task": "sequences",
+          "profiles": 677,
+          "all_three": 1.0
+        },
+        {
+          "task": "ravens",
+          "profiles": 672,
+          "all_three": 1.0
+        },
+        {
+          "task": "working_memory",
+          "profiles": 651,
+          "all_three": 1.0
+        }
+      ],
+      "profiles_with_repeated_sender_either_period": 1438
+    },
+    {
+      "design": "terciles",
+      "format": "qualitative",
+      "social_period_number": 2,
+      "profiles": 2000,
+      "previous_all_three": 0.615,
+      "all_three": 1.0,
+      "probabilities_0_1_2_3": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "task_results": [
+        {
+          "task": "working_memory",
+          "profiles": 646,
+          "all_three": 1.0
+        },
+        {
+          "task": "ravens",
+          "profiles": 662,
+          "all_three": 1.0
+        },
+        {
+          "task": "sequences",
+          "profiles": 692,
+          "all_three": 1.0
+        }
+      ],
+      "profiles_with_repeated_sender_either_period": 1438
+    },
+    {
+      "design": "halves",
+      "format": "quantitative",
+      "social_period_number": 1,
+      "profiles": 2000,
+      "previous_all_three": 1.0,
+      "all_three": 1.0,
+      "probabilities_0_1_2_3": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "task_results": [
+        {
+          "task": "ravens",
+          "profiles": 699,
+          "all_three": 1.0
+        },
+        {
+          "task": "working_memory",
+          "profiles": 647,
+          "all_three": 1.0
+        },
+        {
+          "task": "sequences",
+          "profiles": 654,
+          "all_three": 1.0
+        }
+      ],
+      "profiles_with_repeated_sender_either_period": 944
+    },
+    {
+      "design": "halves",
+      "format": "quantitative",
+      "social_period_number": 2,
+      "profiles": 2000,
+      "previous_all_three": 0.9995,
+      "all_three": 1.0,
+      "probabilities_0_1_2_3": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "task_results": [
+        {
+          "task": "working_memory",
+          "profiles": 653,
+          "all_three": 1.0
+        },
+        {
+          "task": "sequences",
+          "profiles": 689,
+          "all_three": 1.0
+        },
+        {
+          "task": "ravens",
+          "profiles": 658,
+          "all_three": 1.0
+        }
+      ],
+      "profiles_with_repeated_sender_either_period": 944
+    },
+    {
+      "design": "halves",
+      "format": "qualitative",
+      "social_period_number": 1,
+      "profiles": 2000,
+      "previous_all_three": 0.75,
+      "all_three": 1.0,
+      "probabilities_0_1_2_3": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "task_results": [
+        {
+          "task": "sequences",
+          "profiles": 677,
+          "all_three": 1.0
+        },
+        {
+          "task": "ravens",
+          "profiles": 672,
+          "all_three": 1.0
+        },
+        {
+          "task": "working_memory",
+          "profiles": 651,
+          "all_three": 1.0
+        }
+      ],
+      "profiles_with_repeated_sender_either_period": 1056
+    },
+    {
+      "design": "halves",
+      "format": "qualitative",
+      "social_period_number": 2,
+      "profiles": 2000,
+      "previous_all_three": 0.7305,
+      "all_three": 1.0,
+      "probabilities_0_1_2_3": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "task_results": [
+        {
+          "task": "working_memory",
+          "profiles": 646,
+          "all_three": 1.0
+        },
+        {
+          "task": "ravens",
+          "profiles": 662,
+          "all_three": 1.0
+        },
+        {
+          "task": "sequences",
+          "profiles": 692,
+          "all_three": 1.0
+        }
+      ],
+      "profiles_with_repeated_sender_either_period": 1056
+    }
+  ]
+}
