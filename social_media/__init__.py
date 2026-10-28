@@ -3825,9 +3825,7 @@ class FinalResults(Page):
             question_subtotal=f"{question_payoff:.2f}",
             show_belief_bonus=belief_bonus is not None,
             belief_bonus_display=f"{belief_bonus_amount:.2f}",
-            belief_bonus_label=('Comparison-group performance estimate'
-                                if player.participant.vars.get('social_type') == 'quantitative_social'
-                                else 'Comparison-group satisfaction estimate'),
+            belief_bonus_label='Comparison-group belief accuracy',
             preview_guess_rows=preview_guess_rows,
             fully_filled_bonus_preview=bool(preview),
             switched_subtracted=f"{subtracted:.2f}",

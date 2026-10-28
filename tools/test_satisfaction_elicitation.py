@@ -85,7 +85,7 @@ with patch('social_media.new_pages.average_rows',return_value=[quantitative]):
         with patch.object(survey,'third_period_played',return_value=False), \
              patch.object(survey,'switched_disqualified_count',return_value=0):
             final=survey.FinalResults.vars_for_template(p)
-            assert final['belief_bonus_label']=='Comparison-group performance estimate'
+            assert final['belief_bonus_label']=='Comparison-group belief accuracy'
             assert float(p.payoff)==expected
             survey.FinalResults.vars_for_template(p)
             assert float(p.payoff)==expected
