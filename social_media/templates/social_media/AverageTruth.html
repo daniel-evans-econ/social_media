@@ -14,16 +14,12 @@
 <p>The <strong class="average-emphasis">reported percentage</strong> of messages with a happy emoji 😃 was {{ row.reported_text }}% among the 20 other participants in your comparison group.</p>
 <p>Your <strong class="average-emphasis">estimate of the actual percentage</strong> was {{ row.guess }}%.</p>
 <p>The <strong class="average-emphasis">actual percentage</strong> was {{ row.actual_text }}% among all messages they wrote, including messages they did not send.</p>
-<p>This gap reflects which messages people chose to send.</p>
+
 {% else %}
 <p>The <strong class="average-emphasis">reported average</strong> was {{ row.reported_text }} questions out of 15 correct among the 20 other participants in your comparison group.</p>
 <p>Your <strong class="average-emphasis">estimate of the actual average</strong> was {{ row.guess }} questions out of 15 correct.</p>
 <p>The <strong class="average-emphasis">actual average</strong> was {{ row.actual_text }} questions out of 15 correct.</p>
-{% if row.has_gap %}
-<p>{{ row.selection_percent }}% of the gap between the reported and the actual average comes from people choosing not to send messages, rather than misreporting the number they answered correctly.</p>
-{% else %}
-<p>There is no gap between the reported and actual averages.</p>
-{% endif %}
+
 {% endif %}
 {% else %}<p>No comparison is available for this period.</p>{% endif %}
 </section>

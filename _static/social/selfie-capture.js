@@ -50,8 +50,13 @@
       $('status').textContent = 'This browser cannot blur selfies safely. Please use a current browser such as Chrome or Firefox.';
       return;
     }
-    bc.drawImage(padded,-p,-p); image = blurred.toDataURL('image/jpeg',0.9);
-    source.width = padded.width = blurred.width = 0; stop();
+    bc.drawImage(padded,-p,-p);
+    // Keep blur strength on the original 512px scale; transmit only the
+    // 72px thumbnail (2x resolution for its 36px message display).
+    const thumbnail = document.createElement('canvas'); thumbnail.width = thumbnail.height = 72;
+    thumbnail.getContext('2d').drawImage(blurred,0,0,72,72);
+    image = thumbnail.toDataURL('image/jpeg',0.9);
+    source.width = padded.width = blurred.width = thumbnail.width = 0; stop();
     video.hidden = true; $('take').hidden = true;
     result.src = image; result.hidden = false; $('retake').hidden = false; $('confirm').hidden = false;
     $('preview').hidden = false;

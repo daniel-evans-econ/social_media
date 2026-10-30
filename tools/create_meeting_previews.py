@@ -31,10 +31,10 @@ CASES = [
     ('beliefs_quant_control', 'AverageBeliefs', 45, 'quantitative', 'avatar', False),
     ('beliefs_qual_correction', 'AverageBeliefs', 45, 'qualitative', 'avatar', True),
     ('beliefs_qual_control', 'AverageBeliefs', 45, 'qualitative', 'avatar', False),
-    ('correction_quant', 'AverageTruth', 45, 'quantitative', 'avatar', True),
-    ('correction_qual', 'AverageTruth', 45, 'qualitative', 'avatar', True),
-    ('final_questions', 'AverageOutcomes', 45, 'quantitative', 'avatar', True),
-    ('final_questions_control', 'AverageOutcomes', 45, 'quantitative', 'avatar', False),
+    ('correction_quant', 'AverageBeliefs', 45, 'quantitative', 'avatar', True),
+    ('correction_qual', 'AverageBeliefs', 45, 'qualitative', 'avatar', True),
+    ('final_questions', 'AverageBeliefs', 45, 'quantitative', 'avatar', True),
+    ('final_questions_control', 'AverageBeliefs', 45, 'quantitative', 'avatar', False),
     ('satisfaction_bonus', 'FinalResults', 45, 'qualitative', 'selfie', True),
     ('quantitative_bonus', 'FinalResults', 45, 'quantitative', 'avatar', True),
 ]
@@ -44,7 +44,7 @@ def representative_groups(sample_size=1000):
     """Select real draws near the joint medians, only for researcher previews.
 
     Both formats use numerical reasoning in period 1. Each candidate follows
-    the survey's ordinary quintile/replacement rule. No observations or values
+    the survey's ordinary half/replacement rule. No observations or values
     are edited; the chosen candidate minimizes squared distance to the reported
     and actual medians across available candidates. Both axes have equal units.
     """
@@ -65,7 +65,7 @@ def representative_groups(sample_size=1000):
             part = SimpleNamespace(code=code, vars=dict(
                 period_tasks=tasks, period_sets=sets, round_plan=plan,
                 period_task_labels=' → '.join(survey.TASK_LABELS[t] for t in tasks),
-                linked_peer_groups=True, peer_group_sampling='quantitative_only_v1',
+                linked_peer_groups=True, peer_group_sampling='quantitative_only_v1', peer_group_strata=2,
                 qualitative_target='private_satisfaction_v1', quantitative_estimate_incentive=True,
                 social_type=kind))
             player = SimpleNamespace(participant=part, round_number=5)
@@ -163,9 +163,9 @@ def create_previews():
                 assert all(row['available'] for row in rows)
                 participant.vars['average_beliefs'] = {
                     str(row['period']): round((row['reported'] + row['actual']) / 2, 1) for row in rows}
-                if bonus_preview:
-                    answers = {str(row['period']): row['actual'] for row in rows}
-                    assert survey.AverageBeliefs.live_method(target, answers)[target.id_in_group]['saved']
+                if bonus_preview or key.startswith(('correction_', 'final_questions')):
+                    answers = {str(row['period']): row['actual'] if bonus_preview else round((row['reported']+row['actual'])/2,1) for row in rows}
+                    assert survey.AverageBeliefs.live_method(target, dict(action='belief',answers=answers))[target.id_in_group]['saved']
             participant.initialize(participant.label)
             participant._index_in_pages = next(i for i, lookup in lookups.items()
                 if lookup.round_number == round_number and lookup.page_class.__name__ == page_name)
@@ -174,7 +174,7 @@ def create_previews():
                               message_format=kind, image=image_arm, correction=truth))
     db.commit()
     print(json.dumps(dict(session=session.code, links=links, representative_examples=representative_audit,
-                         comparison_quintiles={kind: {p: g['quintile'] for p, g in shared['peer_groups'].items()}
+                         comparison_strata={kind: {p: g['stratum'] for p, g in shared['peer_groups'].items()}
                                                for kind, shared in shared_by_kind.items()})))
 
 

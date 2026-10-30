@@ -58,29 +58,34 @@ def group_for(player, period=None):
     if len(rows) < 5:
         raise ValueError(f'No complete linked reference pool for {task}')
     # Stable random tie-breaks keep equal-score respondents from systematically
-    # sorting by participant ID. Quintile boundaries are fixed for each domain.
+    # sorting by participant ID. Boundaries are fixed for each domain.
     rows = sorted(rows, key=lambda r: (r['score'], hashlib.sha256((task+r['id']).encode()).hexdigest()))
     rng = random.Random(f'{player.participant.code}-peer-group-{period}-{task}')
-    quintile = rng.randrange(5)
-    eligible = rows[len(rows)*quintile//5:len(rows)*(quintile+1)//5]
+    strata = player.participant.vars.get('peer_group_strata', 5)
+    if strata not in (2, 3, 5):
+        raise ValueError('Invalid number of performance strata')
+    stratum = rng.randrange(strata)
+    eligible = rows[len(rows)*stratum//strata:len(rows)*(stratum+1)//strata]
     quantitative_only = (
         player.participant.vars.get('peer_group_sampling') == 'quantitative_only_v1'
         and player.participant.vars['social_type'] == 'quantitative_social')
     if quantitative_only:
-        # Restrict within the original full-domain quintile, preserving its
+        # Restrict within the original full-domain stratum, preserving its
         # boundaries. Numerical reports were elicited before the send decision;
         # retain non-senders, and require all three reports for a common /15 base.
         eligible = [r for r in eligible if len(r['blocks']) == 3
                     and all(b['report'] is not None for b in r['blocks'])]
         if not eligible:
-            raise ValueError(f'No quantitative respondents in {task} quintile {quintile + 1}')
-    # TEMPORARY: replacement accommodates small pilot quintiles. Switch to
-    # sample(..., 20) when every domain/quintile contains enough respondents.
+            raise ValueError(f'No quantitative respondents in {task} stratum {stratum + 1}')
+    # TEMPORARY: replacement accommodates small pilot strata. Switch to
+    # sample(..., 20) when every domain/stratum contains enough respondents.
     draws = rng.choices(eligible, k=20)
-    snapshot = dict(task=task, quintile=quintile+1, replacement=True,
+    snapshot = dict(task=task, strata=strata, stratum=stratum+1, replacement=True,
                     sampling_policy='quantitative_only_v1' if quantitative_only else 'all_message_formats',
                     reference_source=CFG['iq_distribution_source'],
                     draw_ids=[r['id'] for r in draws], scores=[r['score'] for r in draws])
+    if strata == 5:
+        snapshot['quintile'] = stratum+1
     snapshots[key] = snapshot
     player.participant.vars['peer_groups'] = snapshots
     return snapshot
@@ -192,7 +197,7 @@ def averages(player, period):
     result = dict(period=period, actual=actual, reported=None, kind='score', sent_blocks=len(sent),
                   numeric_blocks=len(all_numeric), n_draws=len(records))
     if player.participant.vars.get('quantitative_estimate_incentive'):
-        result.update(incentive_amount=.25, incentive_tolerance=1.5)
+        result.update(incentive_amount=.25, incentive_tolerance=1)
     if sent:
         reported = 3*sum(b['report'] for b in sent)/len(sent)
         actual_sent = 3*sum(b['score'] for b in sent)/len(sent)

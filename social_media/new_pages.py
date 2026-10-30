@@ -11,6 +11,21 @@ from otree.api import Page
 from .peer_groups import averages
 
 
+def combined_average_flow(player):
+    return player.participant.vars.get('combined_average_flow', False)
+
+
+def belief_stage(player):
+    """Only the correction arm receives truth, and only after its guess locks."""
+    part = player.participant
+    submitted = part.vars.get('average_beliefs_submitted', False)
+    return dict(submitted=submitted,
+                beliefs=part.vars.get('average_beliefs', {}) if submitted else {},
+                corrections=[dict(period=r['period'], value=r['actual_text'])
+                             for r in average_rows(player) if r['available']]
+                if submitted and part.vars.get('reveal_truth', False) else [])
+
+
 def image_url(player):
     from . import own_avatar
     if player.participant.vars.get('image_treatment') == 'selfie':
@@ -76,13 +91,15 @@ class SelfieCapture(Page):
                 raise ValueError()
             raw = base64.b64decode(value.split(',', 1)[1], validate=True)
             with Image.open(io.BytesIO(raw)) as image:
-                if image.size != (512, 512) or image.format != 'JPEG':
+                # Accept an already-open legacy camera page, but retain only a
+                # thumbnail. New clients resize before transmitting anything.
+                if image.size not in ((72, 72), (512, 512)) or image.format != 'JPEG':
                     raise ValueError()
                 output = io.BytesIO()
-                image.convert('RGB').save(output, format='JPEG', quality=90)
+                image.convert('RGB').resize((72, 72), Image.Resampling.LANCZOS).save(output, format='JPEG', quality=90)
             player.participant.vars['selfie'] = dict(
                 image='data:image/jpeg;base64,'+base64.b64encode(output.getvalue()).decode(),
-                confirmed_at=datetime.now(timezone.utc).isoformat(), blur=10, version=1)
+                confirmed_at=datetime.now(timezone.utc).isoformat(), blur=10, version=2, width=72, height=72)
             return {player.id_in_group: dict(saved=True)}
         except (ValueError, OSError, TypeError):
             return {player.id_in_group: dict(error='Please take and confirm your selfie again.')}
@@ -106,15 +123,36 @@ class AverageBeliefs(Page):
         rows = [dict({key:value for key,value in row.items() if key in allowed},
                      incentivized=row.get('incentive_amount', 0) > 0)
                 for row in average_rows(player)]
-        return dict(rows=rows, single_period=len(rows) == 1,
+        context = dict(rows=rows, single_period=len(rows) == 1,
                     qualitative=player.participant.vars['social_type'] == 'qualitative_social',
                     satisfaction_target=any(row['kind'] == 'satisfaction' for row in rows),
-                    reaction_options=REACTION_OPTIONS)
+                    reaction_options=REACTION_OPTIONS, combined=combined_average_flow(player))
+        if context['combined']:
+            stage = belief_stage(player)
+            for row in rows:
+                row['guess'] = stage['beliefs'].get(str(row['period']), '')
+                row['revealed_actual'] = next((r['value'] for r in stage['corrections']
+                                              if r['period'] == row['period']), '')
+            outcomes = AverageOutcomes.vars_for_template(player)
+            context.update({k:v for k,v in outcomes.items() if k != 'rows'})
+            context.update(submitted=stage['submitted'])
+        return context
 
     @staticmethod
     def live_method(player, data):
         if not isinstance(data, dict):
             return
+        combined = combined_average_flow(player)
+        if combined:
+            if data.get('action') == 'outcomes':
+                if not player.participant.vars.get('average_beliefs_submitted'):
+                    return {player.id_in_group: dict(error='Please submit your estimate first.')}
+                return AverageOutcomes.live_method(player, data.get('answers'))
+            if data.get('action') != 'belief':
+                return {player.id_in_group: dict(error='Please submit your estimate first.')}
+            data = data.get('answers')
+            if not isinstance(data, dict):
+                return {player.id_in_group: dict(error='Please enter your estimate.')}
         answers = {}
         try:
             for row in average_rows(player):
@@ -131,7 +169,7 @@ class AverageBeliefs(Page):
             return {player.id_in_group: dict(error='Please answer each question within the displayed range.')}
         # Lock the incentivized estimate on first submission, before revelation.
         bonus = player.participant.vars.get('average_belief_bonus')
-        if bonus is not None and answers != player.participant.vars.get('average_beliefs'):
+        if (bonus is not None or player.participant.vars.get('average_beliefs_submitted')) and answers != player.participant.vars.get('average_beliefs'):
             return {player.id_in_group: dict(error='Your estimate has already been submitted.')}
         if bonus is None:
             eligible = [row for row in average_rows(player)
@@ -149,10 +187,17 @@ class AverageBeliefs(Page):
                 player.participant.vars['average_belief_bonus'] = dict(
                     version=1, items=items, amount=sum(item['amount'] for item in items))
         player.participant.vars['average_beliefs'] = answers
+        if combined:
+            player.participant.vars['average_beliefs_submitted'] = True
+            return {player.id_in_group: dict(saved=True, stage='belief', **belief_stage(player))}
         return {player.id_in_group: dict(saved=True)}
 
     @staticmethod
     def error_message(player, values):
+        if combined_average_flow(player):
+            if not player.participant.vars.get('average_beliefs_submitted'):
+                return 'Please submit your estimate before continuing.'
+            return AverageOutcomes.error_message(player, values)
         if 'average_beliefs' not in player.participant.vars:
             return 'Please save your estimates before continuing.'
 
@@ -160,7 +205,8 @@ class AverageBeliefs(Page):
 class AverageTruth(Page):
     @staticmethod
     def is_displayed(player):
-        return AverageBeliefs.is_displayed(player) and player.participant.vars.get('reveal_truth', False)
+        return (AverageBeliefs.is_displayed(player) and not combined_average_flow(player)
+                and player.participant.vars.get('reveal_truth', False))
 
     @staticmethod
     def vars_for_template(player):
@@ -181,7 +227,7 @@ class AverageTruth(Page):
 class AverageOutcomes(Page):
     @staticmethod
     def is_displayed(player):
-        return AverageBeliefs.is_displayed(player)
+        return AverageBeliefs.is_displayed(player) and not combined_average_flow(player)
 
     @staticmethod
     def vars_for_template(player):
@@ -192,11 +238,15 @@ class AverageOutcomes(Page):
         questions = [dict(key='mood')] + [dict(row, key=f"satisfaction_{row['period']}") for row in rows]
         if CFG['show_iq']:
             questions.append(dict(key='iq_perception'))
+        if combined_average_flow(player):
+            questions.append(dict(key='human_nature'))
         questions = _stable_shuffled(player, 'average-outcomes', questions)
         player.participant.vars['average_outcome_order'] = [q['key'] for q in questions]
         return dict(rows=rows, mood_choices=MOOD_CHOICES, satisfaction_choices=LIKERT_CHOICES,
                     show_iq=CFG['show_iq'], iq_perception_choices=IQ_PERCEPTION_CHOICES,
-                    questions=questions)
+                    questions=questions, human_nature_choices=list(enumerate(
+                        ['Very negatively', 'Somewhat negatively', 'Neutral',
+                         'Somewhat positively', 'Very positively'], 1)))
 
     @staticmethod
     def live_method(player, data):
@@ -204,6 +254,10 @@ class AverageOutcomes(Page):
         keys = ['mood'] + [f"satisfaction_{row['period']}" for row in average_rows(player)]
         if CFG['show_iq']:
             keys.append('iq_perception')
+        if combined_average_flow(player):
+            if not player.participant.vars.get('average_beliefs_submitted'):
+                return {player.id_in_group: dict(error='Please submit your estimate first.')}
+            keys.append('human_nature')
         try:
             if not isinstance(data, dict) or any(isinstance(data.get(key), bool)
                                                or str(data.get(key)) not in ('1', '2', '3', '4', '5')

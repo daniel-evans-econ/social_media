@@ -95,6 +95,17 @@
     </p>
 {% endif %}
 
+{% if debrief_rows %}
+<section style="margin-top:28px;">
+<h4 style="color:darkred;font-weight:bold;">Your full-sample IQ estimates</h4>
+<p>Earlier IQ feedback depended on a randomly selected comparison group. Below are your IQ estimates using the study's full-sample calibration, without that comparison-group adjustment.</p>
+{% for row in debrief_rows %}
+<p><strong>Period {{ row.period }}: {{ row.label }}</strong><br>
+You answered {{ row.correct }} out of 15 questions correctly. Your full-sample IQ estimate is <strong style="color:darkred;">{{ row.iq }}</strong>.</p>
+{% endfor %}
+</section>
+{% endif %}
+
 <p style="margin-top:28px;">
     You may now click the button below to return to Prolific.
 </p>

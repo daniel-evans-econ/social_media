@@ -406,7 +406,7 @@ def iq_noise_offset(player, component: str, score: int) -> int:
 
     Deterministic given the participant and component, so refreshing the
     feedback page cannot re-roll the draw. Linked pilot groups use replacement
-    within a performance quintile; the legacy fallback samples without replacement.
+    within a performance half; the legacy fallback samples without replacement.
     """
     ref = iq_reference_scores() or {}
     sample = ref.get(component) or []
@@ -1159,6 +1159,9 @@ def creating_session(subsession: Subsession):
             # Version the provisional restriction so existing participants retain
             # their original sampling policy and recorded exposure history.
             part.vars['peer_group_sampling'] = 'quantitative_only_v1'
+            part.vars['peer_group_strata'] = 2
+            part.vars['combined_average_flow'] = True
+            part.vars['full_sample_iq_debrief'] = True
             part.vars['qualitative_target'] = 'private_satisfaction_v1'
             part.vars['quantitative_estimate_incentive'] = True
             part.vars['reveal_truth'] = random.Random(f'{part.code}-truth').random() < .5
@@ -3773,6 +3776,7 @@ class FinalResults(Page):
 
         # One row per played task period (period 3 only if it was taken).
         task_rows = []
+        debrief_rows = []
         question_payoff = 0.0
         for idx, (start, end) in enumerate(period_ranges):
             period_no = idx + 1
@@ -3790,6 +3794,15 @@ class FinalResults(Page):
                 rate=f"{rate:.2f}",
                 amount=f"{amount:.2f}",
             ))
+            if CFG['show_iq'] and player.participant.vars.get('full_sample_iq_debrief') and task in TASK_IQ_COMPONENT:
+                # Use all correct answers, including ones ineligible for the
+                # monetary bonus. This is the calibrated base, with no noise.
+                raw_correct = sum(bool(p.field_maybe_none('q_correct')) for p in player.in_rounds(start, end))
+                debrief_rows.append(dict(period=period_no, label=TASK_LABELS[task], correct=raw_correct,
+                                         iq=estimate_iq(TASK_IQ_COMPONENT[task], raw_correct, C.PERIOD_LENGTH)))
+
+        if debrief_rows:
+            player.participant.vars['full_sample_iq_debrief_results'] = debrief_rows
 
         belief_bonus = player.participant.vars.get('average_belief_bonus')
         belief_bonus_amount = float(belief_bonus['amount']) if belief_bonus else 0
@@ -3822,6 +3835,7 @@ class FinalResults(Page):
         return dict(
             total_payoff=total_payoff,
             task_rows=task_rows,
+            debrief_rows=debrief_rows,
             question_subtotal=f"{question_payoff:.2f}",
             show_belief_bonus=belief_bonus is not None,
             belief_bonus_display=f"{belief_bonus_amount:.2f}",
@@ -3897,7 +3911,8 @@ def custom_export(players):
            'image_treatment', 'selfie_confirmed_at', 'difficulty', 'peer_group_json',
            'truth_treatment', 'average_feedback_json', 'average_beliefs_json', 'average_outcomes_json',
            'linked_message_plan_json', 'selfie_consent', 'selfie_consent_at',
-           'average_period_selection_json', 'average_belief_bonus_json', 'average_outcome_order_json']
+           'average_period_selection_json', 'average_belief_bonus_json', 'average_outcome_order_json',
+           'combined_average_flow', 'full_sample_iq_debrief_json']
     for player in players:
         if player.round_number not in (15, 30, 45):
             continue
@@ -3923,4 +3938,6 @@ def custom_export(players):
                player.participant.vars.get('selfie_consent_at', ''),
                json.dumps(player.participant.vars.get('average_period_selection', {})),
                json.dumps(player.participant.vars.get('average_belief_bonus', {})),
-               json.dumps(player.participant.vars.get('average_outcome_order', []))]
+               json.dumps(player.participant.vars.get('average_outcome_order', [])),
+               player.participant.vars.get('combined_average_flow', False),
+               json.dumps(player.participant.vars.get('full_sample_iq_debrief_results', []))]

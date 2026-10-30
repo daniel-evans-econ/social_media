@@ -7,42 +7,7 @@
 </style>
 <h3 class="average-page-title">A few final questions about the tasks</h3>
 <br>
-{% for row in questions %}
-{% if row.key == 'mood' %}
-<fieldset class="average-outcome"><legend>How is your <strong class="average-emphasis">mood</strong> right now?</legend>
-<div class="controls">
-{% for value,label in mood_choices %}
-<div class="form-check form-check-inline">
-    <input class="form-check-input" id="final-mood-{{ value }}" type="radio" name="final_mood" data-answer="mood" value="{{ value }}" required>
-    <label class="form-check-label" for="final-mood-{{ value }}">{{ label }}</label>
-</div>
-{% endfor %}
-</div>
-</fieldset>
-{% elif row.key != 'iq_perception' %}
-<fieldset class="average-outcome"><legend>How <strong class="average-emphasis">satisfied</strong> are you with your performance on the <strong class="average-emphasis">{{ row.task_construct }} task</strong> in Period {{ row.period }}?</legend>
-<div class="controls">
-{% for value,label in satisfaction_choices %}
-<div class="form-check form-check-inline">
-    <input class="form-check-input" id="satisfaction-{{ row.period }}-{{ value }}" type="radio" name="satisfaction_{{ row.period }}" data-answer="satisfaction_{{ row.period }}" value="{{ value }}" required>
-    <label class="form-check-label" for="satisfaction-{{ row.period }}-{{ value }}">{{ label }}</label>
-</div>
-{% endfor %}
-</div>
-</fieldset>
-{% else %}
-<fieldset class="average-outcome"><legend>How has the information you have received during the study changed your <strong class="average-emphasis">perception of your intelligence</strong>?</legend>
-<div class="controls">
-{% for value,label in iq_perception_choices %}
-<div class="form-check form-check-inline">
-    <input class="form-check-input" id="final-iq-perception-{{ value }}" type="radio" name="final_iq_perception" data-answer="iq_perception" value="{{ value }}" required>
-    <label class="form-check-label" for="final-iq-perception-{{ value }}">{{ label }}</label>
-</div>
-{% endfor %}
-</div>
-</fieldset>
-{% endif %}
-{% endfor %}
+{% include "social_media/AverageOutcomeQuestions.html" %}
 {{ next_button }}
 {% include "social_media/SaveLiveAnswers.html" %}
 {% endblock %}
