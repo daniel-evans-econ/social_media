@@ -1161,6 +1161,7 @@ def creating_session(subsession: Subsession):
             part.vars['peer_group_sampling'] = 'quantitative_only_v1'
             part.vars['peer_group_strata'] = 2
             part.vars['combined_average_flow'] = True
+            part.vars['belief_before_platform'] = True
             part.vars['full_sample_iq_debrief'] = True
             part.vars['qualitative_target'] = 'private_satisfaction_v1'
             part.vars['quantitative_estimate_incentive'] = True
@@ -3456,7 +3457,8 @@ class PlatformUsage(Page):
 
     @staticmethod
     def is_displayed(player: Player):
-        return player.round_number == C.NUM_ROUNDS
+        return (player.round_number == C.NUM_ROUNDS
+                and not player.participant.vars.get('platform_usage_completed_before_reorder', False))
 
     @staticmethod
     def error_message(player: Player, values):
@@ -3927,10 +3929,10 @@ page_sequence = [
     Demographics,
     TaskEffort,
     OutcomeConcern,
-    PlatformUsage,
     AverageBeliefs,
     AverageTruth,
     AverageOutcomes,
+    PlatformUsage,
     RealismQuestion,
     ExperienceChecklist1,
     ExperienceChecklist2,

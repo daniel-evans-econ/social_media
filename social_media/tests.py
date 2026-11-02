@@ -285,7 +285,6 @@ class PlayerBot(Bot):
             if CFG['show_iq']:
                 concern['care_about_iq_score'] = 2
             yield Submission(OutcomeConcern, concern, check_html=False)
-            yield Submission(PlatformUsage, dict(sm_instagram=True, social_media_hours=2.0), check_html=False)
             if AverageBeliefs.is_displayed(p):
                 self.capture_page('AverageBeliefs_' + p.participant.vars['social_type'])
                 answers = {str(row['period']): (7.5 if row['kind']=='score' else 50) for row in average_rows(p) if row['available']}
@@ -307,6 +306,7 @@ class PlayerBot(Bot):
                 else:
                     assert AverageOutcomes.live_method(p, answers)[p.id_in_group]['saved']
                     yield Submission(AverageOutcomes, {}, check_html=False)
+            yield Submission(PlatformUsage, dict(sm_instagram=True, social_media_hours=2.0), check_html=False)
             self.capture_page('RealismQuestion')
             yield Submission(RealismQuestion, dict(
                 realism_feedback='The social feedback felt fairly realistic to me overall, thanks.',
