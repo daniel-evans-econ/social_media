@@ -28,6 +28,9 @@
   form.addEventListener('submit', event => {
     if (finished) return;
     event.preventDefault();
+    // This stage saves through liveSend, not a page submission. Do not let
+    // oTree's submit debounce restore our temporary disabled state later.
+    event.stopImmediatePropagation();
     if (pending || waitingForCorrection || !form.reportValidity()) return;
     const answers = {};
     const inputs = submitted ? outcomes.querySelectorAll('[data-answer]')
