@@ -165,7 +165,10 @@ def create_previews():
             )
             participant.period_1_condition = kind + '_social'
             participant.period_2_condition = 'control'
-            if page_name == 'Intro':
+            # These previews can advance into avatar selection. Do not seed a
+            # portrait until the preview starts after that choice has occurred.
+            if page_name in ('BotCheck', 'Consent', 'SelfieCapture', 'ProlificID',
+                             'IQReferencePoint', 'Intro'):
                 participant.vars.pop('avatar_choice', None)
             if key in ('iq_lower_half', 'iq_upper_half'):
                 half = 1 if key == 'iq_lower_half' else 2
