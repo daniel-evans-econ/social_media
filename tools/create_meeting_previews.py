@@ -280,4 +280,11 @@ if __name__ == '__main__':
         CASES = [case for case in treatment_cases() if case[0] in (
             'effort', 'performance_concern', 'correction_quantitative_correction',
             'correction_qualitative_correction', 'correction_quantitative_control')]
+    elif '--typography' in sys.argv:
+        CASES = [(key, page, 45, 'quantitative', 'avatar', True) for key, page in (
+            ('effort', 'TaskEffort'), ('performance_concern', 'OutcomeConcern'),
+            ('credibility', 'IQCredibility'), ('personality', 'BigFiveSurvey1'),
+            ('self_esteem', 'SelfEsteemSurvey'), ('narcissism', 'NarcissismSurvey'),
+            ('writing_motives', 'ExperienceChecklist1'), ('sharing_motives', 'ExperienceChecklist2'),
+            ('impacts', 'ExperienceChecklist3'), ('payment', 'FinalResults'))]
     create_previews()

@@ -1,11 +1,8 @@
-{% extends "global/Page.html" %}
+{% extends "social_media/StandardPage.html" %}
 {% load otree static %}
 
 {% block content %}
 <style>
-    body {
-        font-size: 1.2em;
-    }
     .npi-item {
         border: 1px solid #ddd;
         border-radius: 6px;
@@ -21,8 +18,8 @@
     }
 </style>
 
-<h2 style="color:darkred; font-weight:bold; font-size:1.8em;">Questions about you</h2>
-<br>
+<h2 class="survey-page-title">Questions about you</h2>
+
 <p class="npi-instruction">
     There are no right or wrong answers. For each pair of statements below,
     <span style="color:darkred; font-weight:bold;">please choose the option that best describes you.</span>

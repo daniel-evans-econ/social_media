@@ -1,4 +1,4 @@
-{% extends "global/Page.html" %}
+{% extends "social_media/StandardPage.html" %}
 {% load otree static %}
 
 {% block content %}
@@ -9,8 +9,8 @@
     .form-group { margin-bottom: 1.4em; }
 </style>
 
-<h3 style="color:darkred; font-weight:bold;">Your performance in this study</h3>
-<br>
+<h2 class="survey-page-title">Your performance in this study</h2>
+
 
 {% for key in question_order %}
     {% if key == 'care_about_ranking' %}

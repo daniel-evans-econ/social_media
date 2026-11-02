@@ -1,14 +1,13 @@
-{% extends "global/Page.html" %}
+{% extends "social_media/StandardPage.html" %}
 {% load otree static %}
 
 {% block content %}
 <style>
-    body { font-size: 1.1em; }
     .care-icon { width: 1.3em; height: 1.3em; vertical-align: middle; }
 </style>
 
-<h2 style="color:darkred; font-weight:bold;">Further instructions</h2>
-<br>
+<h2 class="survey-page-title">Further instructions</h2>
+
 <p>
     {% if receives_messages %}In some periods, you will
     <strong style="color:darkred;">receive messages from other participants</strong>

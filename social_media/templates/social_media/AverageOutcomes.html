@@ -1,12 +1,12 @@
-{% extends "global/Page.html" %}
+{% extends "social_media/StandardPage.html" %}
 {% block content %}
 <style>
     .average-page-title, .average-emphasis { color: darkred; font-weight: bold; }
     .average-outcome { margin-bottom: 1.4em; }
     .average-outcome legend { font-size: 1em; margin-bottom: 6px; }
 </style>
-<h3 class="average-page-title">A few final questions about the tasks</h3>
-<br>
+<h2 class="average-page-title survey-page-title">A few final questions about the tasks</h2>
+
 {% include "social_media/AverageOutcomeQuestions.html" %}
 {{ next_button }}
 {% include "social_media/SaveLiveAnswers.html" %}

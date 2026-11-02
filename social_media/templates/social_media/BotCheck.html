@@ -1,11 +1,8 @@
-{% extends "global/Page.html" %}
+{% extends "social_media/StandardPage.html" %}
 {% load otree static %}
 
 {% block content %}
 <style>
-    body {
-        font-size: 1.2em;
-    }
     /* Gray out Next button until Turnstile verifies */
     button.otree-btn-next:disabled,
     button[type="submit"]:disabled,
@@ -16,8 +13,8 @@
     }
 </style>
 
-<h2 style="color:darkred; font-weight:bold; font-size:1.8em;">Welcome!</h2>
-<br>
+<h2 class="survey-page-title">Welcome!</h2>
+
 <p>
 Thank you for joining.
 <br><br>

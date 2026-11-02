@@ -1,7 +1,7 @@
-{% extends "global/Page.html" %}
+{% extends "social_media/StandardPage.html" %}
 {% block content %}
 {% include "social_media/AveragePageStyle.html" %}
-<h2 class="average-page-title">Messages and actual performance</h2>
+<h2 class="average-page-title survey-page-title">Messages and actual performance</h2>
 {% if satisfaction_target %}
 <p>For the task you completed earlier in the experiment, you and other participants were asked to <strong class="average-emphasis">write messages with emojis</strong>. The possible emojis you could choose from were {% for option in reaction_options %}{% if option.value != 'like' %}, {% if option.value == 'angry' %}and {% endif %}{% endif %}<span title="{{ option.label }}" aria-label="{{ option.label }}">{% include "social_media/EmojiIcon.html" %}</span>{% endfor %}.</p>
 <p>Separately, you and other participants were asked privately about your <strong class="average-emphasis">level of satisfaction</strong> with your performance on that task. The possible responses you could choose from ranged from "Not at all" to "Very much."</p>

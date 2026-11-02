@@ -68,6 +68,7 @@ class PlayerBot(Bot):
             # Four bots cover IQ-prior yes/no crossed with optional-period yes/no.
             p.participant.vars['iq_reference_asked'] = p.id_in_group % 2 == 1
             p.iq_reference_asked = p.participant.vars['iq_reference_asked']
+            self.capture_page('BotCheck')
             yield Submission(BotCheck, dict(
                 turnstile_token='', turnstile_bypass_key='',
                 turnstile_client_host='localhost',
@@ -92,6 +93,7 @@ class PlayerBot(Bot):
             assert 'error' in SelfieCapture.live_method(p, {'action':'confirm','image':'invalid'})[p.id_in_group]
             assert SelfieCapture.live_method(p, {'action':'confirm','image':'data:image/jpeg;base64,'+base64.b64encode(photo.getvalue()).decode()})[p.id_in_group]['saved']
             yield Submission(SelfieCapture, {}, check_html=False)
+            self.capture_page('ProlificID')
             yield Submission(ProlificID, dict(prolific_id='abcdefghijklmnopqrstuvwx'), check_html=False)
             self.capture_page('IQReferencePoint')
             if p.participant.vars.get('iq_reference_asked', False):
@@ -116,6 +118,7 @@ class PlayerBot(Bot):
 
         if p.round_number in (1, C.PERIOD_LENGTH + 1, C.THIRD_PERIOD_START) and plays_question:
             p.participant.vars['task_intro_checked'] = True
+            self.capture_page('TaskIntro_' + round_spec(p)['task'])
             yield Submission(TaskIntro, dict(), check_html=False)
         if plays_question:
             self.capture_page('Question_' + round_spec(p)['task'])
@@ -193,6 +196,7 @@ class PlayerBot(Bot):
             db.expire_all()
             p = self.player
             assert p.perceived_relative_performance == count * 5
+            self.capture_page('PerceivedPercentileConfidence')
             yield Submission(PerceivedPercentileConfidence, dict(perceived_percentile_confidence=50), check_html=False)
             with patch.dict(os.environ, {'ENABLE_REACTION_FEEDBACK': '0'}):
                 assert not MessageReactionFeedback.is_displayed(p)
@@ -262,15 +266,19 @@ class PlayerBot(Bot):
                 wta[f'wta_c_{i}'] = 'Yes' if p.id_in_group <= 2 else 'No'
             self.capture_page('WTACompare')
             yield Submission(WTACompare, wta, check_html=False)
+            self.capture_page('Results')
             yield Submission(Results, dict(), check_html=False)
 
         if self.round_number == C.NUM_ROUNDS:
+            self.capture_page('TaskEffort')
             yield Submission(TaskEffort, dict(task_effort=75), check_html=False)
             concern = dict(care_about_ranking=4)
             if CFG['show_iq']:
                 concern['care_about_iq_score'] = 2
+            self.capture_page('OutcomeConcern')
             yield Submission(OutcomeConcern, concern, check_html=False)
             if IQCredibility.is_displayed(p):
+                self.capture_page('IQCredibility')
                 yield Submission(IQCredibility, dict(trust_own_iq_estimate=3), check_html=False)
             if AverageBeliefs.is_displayed(p):
                 self.capture_page('AverageBeliefs_' + p.participant.vars['social_type'])
@@ -305,7 +313,9 @@ class PlayerBot(Bot):
                 age=30, gender='woman', education='bachelor', taken_iq_test_before='Yes',
                 trust_iq_tests=3,
             )
+            self.capture_page('Demographics')
             yield Submission(Demographics, demo, check_html=False)
+            self.capture_page('PlatformUsage')
             yield Submission(PlatformUsage, dict(sm_instagram=True, social_media_hours=2.0), check_html=False)
             self.capture_page('RealismQuestion')
             yield Submission(RealismQuestion, dict(
@@ -357,6 +367,7 @@ class PlayerBot(Bot):
                 page_key = experience_page_order(p.participant)[slot]
                 self.capture_page('Experience_' + page_key)
                 yield Submission(page_cls, _exp_by_key[page_key], check_html=False)
+            self.capture_page('ToolsUsed')
             yield Submission(ToolsUsed, dict(
                 tool_pen_paper=True,
                 tool_calculator=False,
@@ -366,7 +377,9 @@ class PlayerBot(Bot):
                 tool_ask_someone_else=False,
                 tool_none=False,
             ), check_html=False)
+            self.capture_page('SurveyReliabilityOverall')
             yield Submission(SurveyReliabilityOverall, dict(survey_reliability=7), check_html=False)
+            self.capture_page('Comments')
             yield Submission(Comments, dict(comments='Great study, no issues.'), check_html=False)
             if IQDebrief.is_displayed(p):
                 assert 'Your full-sample IQ estimates' in self.html

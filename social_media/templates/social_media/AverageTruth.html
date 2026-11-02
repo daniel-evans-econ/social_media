@@ -1,7 +1,7 @@
-{% extends "global/Page.html" %}
+{% extends "social_media/StandardPage.html" %}
 {% block content %}
 {% include "social_media/AveragePageStyle.html" %}
-<h2 class="average-page-title">Reported vs. actual results</h2>
+<h2 class="average-page-title survey-page-title">Reported vs. actual results</h2>
 {% for row in rows %}
 <section class="average-section">
 <h4>Period {{ row.period }}: {{ row.task_label }}</h4>

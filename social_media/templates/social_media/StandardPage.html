@@ -1,0 +1,6 @@
+{% extends "global/Page.html" %}
+{% load otree static %}
+{% block global_styles %}
+{{ super() }}
+<link rel="stylesheet" href="{% static 'social/survey-typography.css' %}">
+{% endblock %}

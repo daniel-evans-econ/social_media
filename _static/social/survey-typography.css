@@ -1,0 +1,70 @@
+/* Shared typography for instructions, questionnaires, debrief and payments.
+   Task stimuli and the messaging interfaces keep their purpose-specific styles. */
+body {
+    font-size: 1.1rem;
+    line-height: 1.5;
+}
+.survey-page-title {
+    color: darkred;
+    font-size: clamp(1.5rem, calc(1.325rem + .9vw), 2rem);
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 0 0 1.5rem;
+}
+/* oTree adds label padding that otherwise pushes a first question down
+   compared with the same question written as a paragraph. */
+.survey-page-title + ._formfield > .col-form-label {
+    padding-top: 0;
+}
+@media (max-width: 600px) {
+    .personality-table, .motive-table {
+        display: block;
+        width: 100%;
+        font-size: .86rem;
+    }
+    .personality-table colgroup, .motive-table colgroup { display: none; }
+    .personality-table thead, .motive-table thead {
+        display: block;
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: white;
+    }
+    .personality-table tbody, .motive-table tbody { display: block; }
+    .personality-table tr, .motive-table tr {
+        display: grid;
+        grid-template-columns: repeat(var(--scale-columns, 5), minmax(0, 1fr));
+    }
+    .self-esteem-table { --scale-columns: 4; }
+    .personality-table thead th:first-child:not([colspan]),
+    .motive-table thead th:first-child:not([colspan]) { display: none; }
+    .personality-table th[colspan], .motive-table th[colspan],
+    .personality-table td:first-child, .motive-table td:first-child {
+        grid-column: 1 / -1;
+    }
+    .personality-table th, .personality-table td,
+    .motive-table th, .motive-table td {
+        padding: 8px 4px;
+        overflow-wrap: anywhere;
+    }
+    .personality-table th, .motive-table th {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .personality-table th[colspan], .motive-table th[colspan] {
+        display: block;
+        text-align: left;
+    }
+    .otree-content .payoff-table {
+        width: 100%;
+        min-width: 0;
+        table-layout: fixed;
+        font-size: .86rem;
+    }
+    .otree-content .payoff-table th, .otree-content .payoff-table td {
+        padding: 6px 4px;
+        overflow-wrap: anywhere;
+    }
+    .otree-content .payoff-table thead th:first-child { width: 40%; }
+}
