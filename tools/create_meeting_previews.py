@@ -40,6 +40,31 @@ CASES = [
 ]
 
 
+def treatment_cases():
+    cases = [
+        ('consent', 'Consent', 1, 'quantitative', 'avatar', True),
+        ('camera', 'SelfieCapture', 1, 'quantitative', 'selfie', True),
+        ('reference_on', 'IQReferencePoint', 1, 'quantitative', 'avatar', True),
+        ('reference_off', 'IQReferencePoint', 1, 'quantitative', 'avatar', True),
+        ('username_avatar', 'Intro', 1, 'quantitative', 'avatar', True),
+        ('username_selfie', 'Intro', 1, 'quantitative', 'selfie', True),
+        ('iq_lower_half', 'IQFeedback', 15, 'quantitative', 'avatar', True),
+        ('iq_upper_half', 'IQFeedback', 15, 'quantitative', 'avatar', True),
+        ('ranked_feed', 'MessageReactionFeedback', 15, 'quantitative', 'avatar', True),
+        ('subjective', 'EndOfPeriodSurvey', 15, 'quantitative', 'avatar', True),
+        ('debrief', 'FinalResults', 45, 'quantitative', 'avatar', True),
+    ]
+    for kind in ('quantitative', 'qualitative'):
+        for reacts in (False, True):
+            key = f'message_{kind}_' + ('reactions' if reacts else 'no_reactions')
+            cases.append((key, 'BlockFeedback', 5, kind, 'avatar', True))
+        for truth in (False, True):
+            suffix = 'correction' if truth else 'control'
+            cases.append((f'beliefs_{kind}_{suffix}', 'AverageBeliefs', 45, kind, 'avatar', truth))
+            cases.append((f'correction_{kind}_{suffix}', 'AverageBeliefs', 45, kind, 'avatar', truth))
+    return cases
+
+
 def representative_groups(sample_size=1000):
     """Select real draws near the joint medians, only for researcher previews.
 
@@ -79,7 +104,7 @@ def representative_groups(sample_size=1000):
         for player, row in candidates:
             if all(averages(player, p)['reported'] is not None for p in (2, 3)) and message_for(player, kind.removesuffix('_social')):
                 shared[kind] = {key: copy.deepcopy(player.participant.vars[key]) for key in
-                    ('period_tasks', 'period_sets', 'round_plan', 'period_task_labels', 'peer_groups')}
+                    ('period_tasks', 'period_sets', 'round_plan', 'period_task_labels', 'peer_groups', 'linked_message_plan')}
                 audit[kind] = dict(candidate_seed=player.participant.code, sample_size=sample_size,
                     available_candidates=len(candidates), median_reported=med_reported, median_actual=med_actual,
                     reported=row['reported'], actual=row['actual'], task=tasks[0],
@@ -98,6 +123,7 @@ def create_previews():
     from otree.lookup import _get_session_lookups
     import social_media as survey
     from social_media.new_pages import average_rows
+    from social_media.peer_groups import group_for
 
     shared_by_kind, representative_audit = representative_groups()
     session = create_session('cognitive_tasks', num_participants=2 * len(CASES),
@@ -114,6 +140,7 @@ def create_previews():
     links = []
     for purpose in ('review', 'qa'):
         for case_number, (key, page_name, round_number, kind, image_arm, truth) in enumerate(CASES):
+            reacts = not key.endswith('no_reactions')
             offset = 0 if purpose == 'review' else len(CASES)
             participant = participants[offset + case_number]
             participant.label = f'TestBot-meeting-{purpose}-{key}'
@@ -121,10 +148,10 @@ def create_previews():
             participant.vars.update(copy.deepcopy(shared_by_kind[kind + '_social']))
             participant.vars.update(
                 social_type=kind + '_social', image_treatment=image_arm,
-                like_treatment=True, reveal_truth=truth, linked_peer_groups=True,
+                like_treatment=reacts, reveal_truth=truth, linked_peer_groups=True,
                 third_period_accepted=True, period_3_condition=kind + '_social',
                 researcher_preview=True, display_name='TestBot',
-                avatar_choice='masculine-v2-1', iq_reference_asked=True,
+                avatar_choice='masculine-v2-1', iq_reference_asked=key != 'reference_off',
                 # Match the displayed period across review contrasts. This
                 # override is confined to labelled researcher preview sessions.
                 average_period_selection=dict(version=1, eligible_periods=[1, 3], period=1,
@@ -132,6 +159,19 @@ def create_previews():
             )
             participant.period_1_condition = kind + '_social'
             participant.period_2_condition = 'control'
+            if key in ('iq_lower_half', 'iq_upper_half'):
+                half = 1 if key == 'iq_lower_half' else 2
+                for i in range(100):
+                    candidate = SimpleNamespace(code=f'preview-half-{half}-{i}',
+                        vars=dict(participant.vars, peer_groups={}))
+                    group = group_for(SimpleNamespace(participant=candidate, round_number=15), 1)
+                    if group['stratum'] == half:
+                        groups = copy.deepcopy(participant.vars['peer_groups'])
+                        groups['1'] = group
+                        participant.vars['peer_groups'] = groups
+                        break
+                else:
+                    raise RuntimeError('Could not find a comparison-half example')
             if key not in ('camera', 'consent'):
                 participant.vars['selfie'] = dict(image=placeholder, blur=10, source='researcher_preview_placeholder')
             if key == 'consent':
@@ -149,7 +189,7 @@ def create_previews():
                 player.q_item_id = spec['item_id']
                 player.q_set_id = spec['set_id']
                 player.q_difficulty = spec['difficulty']
-                player.like_treatment = True
+                player.like_treatment = reacts
             target = participant.get_player('social_media', round_number)
             assert getattr(survey, page_name).is_displayed(target)
             if page_name == 'BlockFeedback':
@@ -158,6 +198,17 @@ def create_previews():
                     target.report_emoji = survey.QUAL_EMOJIS[0]
                     target.report_message = 'I felt good about that block.'
                 assert survey.pilot_feedback_signals(target).get('name'), 'Preview needs a received message'
+            if page_name == 'MessageReactionFeedback':
+                # Exercise the real message-recording path before rendering the
+                # ranked preview. Counts/usernames remain labelled synthetic.
+                for rnd in (5, 10, 15):
+                    source = participant.get_player('social_media', rnd)
+                    source.report_number = 3
+                    source.report_shared = True
+                    source.received_reaction = 'love' if rnd == 5 else 'none'
+                    survey.BlockFeedback.before_next_page(source, False)
+                    survey.record_sent_message_time(source, 'block')
+                assert survey.MessageReactionFeedback.vars_for_template(target)['messages']
             if page_name.startswith('Average') or bonus_preview:
                 rows = average_rows(target)
                 assert all(row['available'] for row in rows)
@@ -171,7 +222,8 @@ def create_previews():
                 if lookup.round_number == round_number and lookup.page_class.__name__ == page_name)
             links.append(dict(key=key, purpose=purpose, page=page_name,
                               path=participant._url_i_should_be_on(), code=participant.code,
-                              message_format=kind, image=image_arm, correction=truth))
+                              message_format=kind, image=image_arm, correction=truth,
+                              reactions=reacts, iq_reference=key != 'reference_off'))
     db.commit()
     print(json.dumps(dict(session=session.code, links=links, representative_examples=representative_audit,
                          comparison_strata={kind: {p: g['stratum'] for p, g in shared['peer_groups'].items()}
@@ -179,4 +231,6 @@ def create_previews():
 
 
 if __name__ == '__main__':
+    if '--treatments' in sys.argv:
+        CASES = treatment_cases()
     create_previews()
