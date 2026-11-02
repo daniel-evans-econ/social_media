@@ -216,7 +216,10 @@ def create_previews():
                     survey.PerceivedPercentile.before_next_page(end, False)
                 p30 = participant.get_player('social_media', 30)
                 p30.global_iq_estimate = survey.global_iq_for_player(p30)
-                participant.get_player('social_media', 1).iq_reference_score = p30.global_iq_estimate
+                # Use the real full-sample target for a winning initial-guess
+                # example; the recalled earlier score remains the noisy one.
+                _, full_sample_overall = survey.full_sample_iq_results(target)
+                participant.get_player('social_media', 1).iq_reference_score = full_sample_overall
                 if key == 'payment_no_initial_iq':
                     participant.vars['third_period_accepted'] = False
             assert getattr(survey, page_name).is_displayed(target)

@@ -3,7 +3,7 @@ import random
 
 
 def accuracy_bonuses(player):
-    from . import (C, CFG, TASK_IQ_COMPONENT, estimate_iq_for_player,
+    from . import (C, CFG, TASK_IQ_COMPONENT, estimate_iq,
                    group_for, iq_reference_scores, IQ_COMPARISON_GROUP,
                    third_period_played)
 
@@ -23,9 +23,9 @@ def accuracy_bonuses(player):
             continue
         score = sum(bool(p.field_maybe_none('q_correct')) for p in rounds
                     if end - C.PERIOD_LENGTH < p.round_number <= end)
-        iq = last.field_maybe_none('iq_estimate')
-        if iq is None:
-            iq = estimate_iq_for_player(last, component, score, C.PERIOD_LENGTH)
+        # Accuracy of the initial guess is assessed against the calibrated
+        # full-sample estimate, never the randomized comparison-group feedback.
+        iq = estimate_iq(component, score, C.PERIOD_LENGTH)
         iq_results.append(iq)
         guess = last.field_maybe_none('perceived_relative_performance')
         if guess is None:
@@ -57,15 +57,13 @@ def accuracy_bonuses(player):
         # The initial instructions specify two components when period 3 is
         # optional; its acceptance must not change the initial prediction target.
         count = 2 if CFG['use_wta'] else 3
-        combined = by_round.get(2 * C.PERIOD_LENGTH)
-        actual = combined.field_maybe_none('global_iq_estimate') if combined and CFG['use_wta'] else None
-        if actual is None and len(iq_results) >= count:
-            actual = int(sum(iq_results[:count]) / count + .5)
+        actual = int(sum(iq_results[:count]) / count + .5) if len(iq_results) >= count else None
         if guess is None or actual is None:
             pending.insert(0, dict(label='Initial IQ estimate', maximum=float(C.PAY_IQ_REFERENCE_GUESS)))
         else:
             amount = float(C.PAY_IQ_REFERENCE_GUESS) if abs(guess - actual) <= 10 else 0
             rows.insert(0, dict(label='Initial IQ estimate', amount=f'{amount:.2f}'))
-            audit['initial_iq'] = dict(guess=guess, actual=actual, components=count, tolerance=10, amount=amount)
-    player.participant.vars['accuracy_bonus_results'] = dict(version=1, awards=audit, pending=pending)
+            audit['initial_iq'] = dict(guess=guess, actual=actual, components=count,
+                                      source='full_sample', tolerance=10, amount=amount)
+    player.participant.vars['accuracy_bonus_results'] = dict(version=2, awards=audit, pending=pending)
     return rows, pending

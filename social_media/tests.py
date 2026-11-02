@@ -368,6 +368,11 @@ class PlayerBot(Bot):
             ), check_html=False)
             yield Submission(SurveyReliabilityOverall, dict(survey_reliability=7), check_html=False)
             yield Submission(Comments, dict(comments='Great study, no issues.'), check_html=False)
+            if IQDebrief.is_displayed(p):
+                assert 'Your full-sample IQ estimates' in self.html
+                assert 'Overall IQ' in self.html
+                self.capture_page('IQDebrief')
+                yield Submission(IQDebrief, dict(), check_html=False)
             accepted = third_period_played(p)
             asked = p.participant.vars['iq_reference_asked']
             self.capture_page(f'FinalResults_{int(asked)}_{int(accepted)}')
@@ -388,8 +393,3 @@ class PlayerBot(Bot):
                               if CFG['use_wta'] and task_round.round_number > 30 else float(C.PAY_PER_CORRECT))
             assert float(p.participant.payoff) == round(bonus, 2)
             yield Submission(FinalResults, dict(), check_html=False)
-            if IQDebrief.is_displayed(p):
-                assert 'Your full-sample IQ estimates' in self.html
-                assert 'Overall IQ' in self.html
-                self.capture_page('IQDebrief')
-                yield Submission(IQDebrief, dict(), check_html=False)

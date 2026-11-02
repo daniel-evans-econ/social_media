@@ -1163,6 +1163,7 @@ def creating_session(subsession: Subsession):
             part.vars['combined_average_flow'] = True
             part.vars['belief_before_platform'] = True
             part.vars['posttask_order_version'] = 2
+            part.vars['debrief_before_bonus_version'] = 1
             part.vars['full_sample_iq_debrief'] = True
             part.vars['qualitative_target'] = 'private_satisfaction_v1'
             part.vars['quantitative_estimate_incentive'] = True
@@ -3763,7 +3764,7 @@ class Comments(Page):
 
 
 def full_sample_iq_results(player):
-    """Calibrated component IQs and their equally weighted overall average."""
+    """Calibrated component IQs; overall uses the initially promised tasks."""
     rows = []
     if CFG['show_iq'] and player.participant.vars.get('full_sample_iq_debrief'):
         tasks = player.participant.vars.get('period_tasks', [])
@@ -3782,7 +3783,10 @@ def full_sample_iq_results(player):
             rows.append(dict(period=period, label=TASK_LABELS[task], correct=correct,
                              earlier_iq=earlier_iq,
                              iq=estimate_iq(TASK_IQ_COMPONENT[task], correct, C.PERIOD_LENGTH)))
-    overall = int(sum(row['iq'] for row in rows) / len(rows) + .5) if rows else None
+    # Match the pre-WTA overall feedback and initial IQ prediction target.
+    # The optional third task has its own component score but cannot alter it.
+    overall_rows = rows[:2] if CFG['use_wta'] else rows
+    overall = int(sum(row['iq'] for row in overall_rows) / len(overall_rows) + .5) if overall_rows else None
     if rows:
         player.participant.vars['full_sample_iq_debrief_results'] = rows
         player.participant.vars['full_sample_iq_debrief_overall'] = overall
@@ -3885,7 +3889,6 @@ class FinalResults(Page):
             total_payoff=total_payoff,
             task_rows=task_rows,
             debrief_rows=debrief_rows,
-            show_iq_debrief=IQDebrief.is_displayed(player),
             question_subtotal=f"{question_payoff:.2f}",
             show_belief_bonus=belief_bonus is not None,
             belief_bonus_display=f"{belief_bonus_amount:.2f}",
@@ -3953,8 +3956,8 @@ page_sequence = [
     ToolsUsed,
     SurveyReliabilityOverall,
     Comments,
-    FinalResults,
     IQDebrief,
+    FinalResults,
 ]
 
 

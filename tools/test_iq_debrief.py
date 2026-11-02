@@ -6,8 +6,11 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 os.environ['OTREE_IN_MEMORY'] = '1'
+os.environ['OTREE_EPHEMERAL'] = '1'
 os.environ['EXPERIMENT_PILOT'] = 'iq'
 from otree.database import init_orm
+import otree.database as database
+database.ephemeral_connection = database.engine.connect()
 init_orm()
 from otree.session import create_session
 import social_media as s
@@ -32,7 +35,7 @@ for accepted in (False, True):
     assert [r['iq'] for r in context['debrief_rows']] == expected
     assert [r['earlier_iq'] for r in context['debrief_rows']] == [180, 100, 65][:3 if accepted else 2]
     assert context['earlier_overall_iq'] == 140
-    assert context['overall_iq'] == int(sum(expected) / len(expected) + .5)
+    assert context['overall_iq'] == int(sum(expected[:2]) / 2 + .5)
     assert float(part.payoff) == 2.75 and float(player.payoff) == 2.75
     assert s.IQDebrief.is_displayed(player)
     assert not s.IQDebrief.is_displayed(part.get_player('social_media', 30))
@@ -43,6 +46,6 @@ part.get_player('social_media', 30).global_iq_estimate = None
 assert s.IQDebrief.vars_for_template(player)['earlier_overall_iq'] is None
 with patch.dict(s.CFG, show_iq=False):
     assert not s.IQDebrief.is_displayed(player)
-assert s.page_sequence.index(s.IQDebrief) == s.page_sequence.index(s.FinalResults) + 1
+assert s.page_sequence.index(s.IQDebrief) + 1 == s.page_sequence.index(s.FinalResults)
 
 print('Passed two/three-period full-sample debrief, recorded earlier feedback, half-up overall rounding and unchanged payoffs.')

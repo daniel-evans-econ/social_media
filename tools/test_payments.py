@@ -7,12 +7,16 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 os.environ['OTREE_IN_MEMORY'] = '1'
+os.environ['OTREE_EPHEMERAL'] = '1'
 os.environ['EXPERIMENT_PILOT'] = 'iq'
 from otree.database import init_orm
+import otree.database as database
+database.ephemeral_connection = database.engine.connect()
 init_orm()
 from otree.session import create_session
 import social_media as s
 from social_media.new_pages import image_url
+from tools.reconcile_payment_totals import reconcile
 
 session = create_session('cognitive_tasks', num_participants=32, label='LOCAL PAYMENT TEST')
 checked = 0
@@ -40,7 +44,9 @@ for part, (fmt, reactions, image, truth, prior) in zip(session.get_participants(
                 p.q_correct = accepted and p.round_number - 31 < 8
         for belief, accurate in itertools.product((0, .25), (False, True)):
             part.vars['average_belief_bonus'] = dict(amount=belief)
-            p1.iq_reference_score = 115 if accurate else 116
+            full_sample_target = int(sum(s.estimate_iq(s.TASK_IQ_COMPONENT[t], 10, 15)
+                                         for t in part.vars['period_tasks'][:2]) / 2 + .5)
+            p1.iq_reference_score = full_sample_target + (10 if accurate else 11)
             for p in (p15, p30, p45):
                 p.perceived_relative_performance = 60 if accurate else 61
             # All ties => 50th percentile. Correct-but-disqualified questions
@@ -60,7 +66,9 @@ for part, (fmt, reactions, image, truth, prior) in zip(session.get_participants(
                 awards = part.vars['accuracy_bonus_results']['awards']
                 assert all(a['actual'] == 50 for k, a in awards.items() if k.startswith('percentile'))
                 if prior:
-                    assert awards['initial_iq']['actual'] == 105 and awards['initial_iq']['components'] == 2
+                    assert awards['initial_iq']['actual'] == full_sample_target and awards['initial_iq']['components'] == 2
+                    assert awards['initial_iq']['source'] == 'full_sample'
+                    assert s.IQDebrief.vars_for_template(p45)['overall_iq'] == full_sample_target
                 s.FinalResults.vars_for_template(p45)
                 assert float(part.payoff) == expected, 'Refresh must not double-pay'
                 # An existing old final-round full-total credit is repaired.
@@ -96,7 +104,6 @@ assert s.own_avatar(p1) == choice and image_url(p1).endswith('/' + choice + '.sv
 assert not s.Intro.error_message(p1, dict(display_name='Test'))
 assert s.Intro.vars_for_template(p1)['selected_avatar'] == choice
 
-from tools.reconcile_payment_totals import reconcile
 part.vars.pop('payment_accounting_version')
 p30.payoff = s.cu(4.5)
 p45.payoff = s.cu(6)
