@@ -23,7 +23,7 @@ from . import (
     is_feedback_round, is_third_period, third_period_played,
     is_end_of_period_with_p3, q_answer_earns_bonus,
     BotCheck, Consent, ProlificID, IQReferencePoint, Intro, TaskIntro, QuestionPage, BlockFeedback, IQFeedback,
-    EndOfPeriodSurvey, TaskEffort, WTACompare, Results, GlobalIQFeedback,
+    EndOfPeriodSurvey, TaskEffort, IQCredibility, WTACompare, Results, GlobalIQFeedback,
     PerceivedPercentile, PerceivedPercentileConfidence,
     MessageReactionFeedback, reaction_feedback_messages,
     BigFiveSurvey1, BigFiveSurvey2, _bfi_page_fields,
@@ -265,26 +265,9 @@ class PlayerBot(Bot):
             yield Submission(Results, dict(), check_html=False)
 
         if self.round_number == C.NUM_ROUNDS:
-            for page_cls, page_no in ((BigFiveSurvey1, 1), (BigFiveSurvey2, 2)):
-                fields = _bfi_page_fields(p, page_no)
-                self.capture_page(page_cls.__name__)
-                yield Submission(page_cls, {f: 3 for f in fields}, check_html=False)
-            self.capture_page('SelfEsteemSurvey')
-            yield Submission(SelfEsteemSurvey, {f'rses_{i}': 2 for i in range(1, 11)}, check_html=False)
-            self.capture_page('NarcissismSurvey')
-            yield Submission(NarcissismSurvey, {f'npi_{i}': 1 for i in range(1, 9)}, check_html=False)
-            demo = dict(
-                age=30, gender='woman', education='bachelor', taken_iq_test_before='Yes',
-                trust_iq_tests=3,
-            )
-            if CFG['show_iq']:
-                demo['trust_own_iq_estimate'] = 3
-            yield Submission(Demographics, demo, check_html=False)
             yield Submission(TaskEffort, dict(task_effort=75), check_html=False)
-            concern = dict(care_about_ranking=4)
-            if CFG['show_iq']:
-                concern['care_about_iq_score'] = 2
-            yield Submission(OutcomeConcern, concern, check_html=False)
+            if IQCredibility.is_displayed(p):
+                yield Submission(IQCredibility, dict(trust_own_iq_estimate=3), check_html=False)
             if AverageBeliefs.is_displayed(p):
                 self.capture_page('AverageBeliefs_' + p.participant.vars['social_type'])
                 answers = {str(row['period']): (7.5 if row['kind']=='score' else 50) for row in average_rows(p) if row['available']}
@@ -306,6 +289,23 @@ class PlayerBot(Bot):
                 else:
                     assert AverageOutcomes.live_method(p, answers)[p.id_in_group]['saved']
                     yield Submission(AverageOutcomes, {}, check_html=False)
+            for page_cls, page_no in ((BigFiveSurvey1, 1), (BigFiveSurvey2, 2)):
+                fields = _bfi_page_fields(p, page_no)
+                self.capture_page(page_cls.__name__)
+                yield Submission(page_cls, {f: 3 for f in fields}, check_html=False)
+            self.capture_page('SelfEsteemSurvey')
+            yield Submission(SelfEsteemSurvey, {f'rses_{i}': 2 for i in range(1, 11)}, check_html=False)
+            self.capture_page('NarcissismSurvey')
+            yield Submission(NarcissismSurvey, {f'npi_{i}': 1 for i in range(1, 9)}, check_html=False)
+            demo = dict(
+                age=30, gender='woman', education='bachelor', taken_iq_test_before='Yes',
+                trust_iq_tests=3,
+            )
+            yield Submission(Demographics, demo, check_html=False)
+            concern = dict(care_about_ranking=4)
+            if CFG['show_iq']:
+                concern['care_about_iq_score'] = 2
+            yield Submission(OutcomeConcern, concern, check_html=False)
             yield Submission(PlatformUsage, dict(sm_instagram=True, social_media_hours=2.0), check_html=False)
             self.capture_page('RealismQuestion')
             yield Submission(RealismQuestion, dict(

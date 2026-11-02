@@ -52,6 +52,8 @@ def treatment_cases():
         ('iq_upper_half', 'IQFeedback', 15, 'quantitative', 'avatar', True),
         ('ranked_feed', 'MessageReactionFeedback', 15, 'quantitative', 'avatar', True),
         ('subjective', 'EndOfPeriodSurvey', 15, 'quantitative', 'avatar', True),
+        ('effort', 'TaskEffort', 45, 'quantitative', 'avatar', True),
+        ('credibility', 'IQCredibility', 45, 'quantitative', 'avatar', True),
         ('payment', 'FinalResults', 45, 'quantitative', 'avatar', True),
         ('payment_no_initial_iq', 'FinalResults', 45, 'qualitative', 'avatar', False),
         ('debrief', 'IQDebrief', 45, 'quantitative', 'avatar', True),

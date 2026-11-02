@@ -29,11 +29,5 @@
     {{ formfield player.trust_iq_tests }}
 </div>
 
-{% if show_iq %}
-<div class="form-group" style="margin-top:1.2em;">
-    {{ formfield player.trust_own_iq_estimate }}
-</div>
-{% endif %}
-
 {{ next_button }}
 {% endblock %}

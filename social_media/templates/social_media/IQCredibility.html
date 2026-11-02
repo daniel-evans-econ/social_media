@@ -1,0 +1,7 @@
+{% extends "global/Page.html" %}
+{% block content %}
+{% include "social_media/AveragePageStyle.html" %}
+<h2 class="average-page-title">Your IQ estimates</h2>
+{{ formfield player.trust_own_iq_estimate }}
+{{ next_button }}
+{% endblock %}

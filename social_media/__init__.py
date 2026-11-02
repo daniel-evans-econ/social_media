@@ -9,7 +9,7 @@ from statistics import NormalDist
 
 from . import questions_data as QD
 from .peer_groups import group_for, message_for, reference, reference_avatar
-from .new_pages import SelfieCapture, AverageBeliefs, AverageTruth, AverageOutcomes, image_url
+from .new_pages import SelfieCapture, AverageBeliefs, AverageTruth, AverageOutcomes, image_url, post_task_page_pending
 from .message_vocab import is_task_specific
 
 
@@ -1162,6 +1162,7 @@ def creating_session(subsession: Subsession):
             part.vars['peer_group_strata'] = 2
             part.vars['combined_average_flow'] = True
             part.vars['belief_before_platform'] = True
+            part.vars['posttask_order_version'] = 2
             part.vars['full_sample_iq_debrief'] = True
             part.vars['qualitative_target'] = 'private_satisfaction_v1'
             part.vars['quantitative_estimate_incentive'] = True
@@ -2035,7 +2036,7 @@ def _make_bfi_page(page: int):
 
         @staticmethod
         def is_displayed(player: Player):
-            return player.round_number == C.NUM_ROUNDS
+            return post_task_page_pending(player, f'BigFiveSurvey{page}')
 
         @staticmethod
         def get_form_fields(player: Player):
@@ -2077,7 +2078,7 @@ class SelfEsteemSurvey(Page):
 
     @staticmethod
     def is_displayed(player: Player):
-        return player.round_number == C.NUM_ROUNDS
+        return post_task_page_pending(player, 'SelfEsteemSurvey')
 
     @staticmethod
     def vars_for_template(player: Player):
@@ -2106,7 +2107,7 @@ class NarcissismSurvey(Page):
 
     @staticmethod
     def is_displayed(player: Player):
-        return player.round_number == C.NUM_ROUNDS
+        return post_task_page_pending(player, 'NarcissismSurvey')
 
     @staticmethod
     def vars_for_template(player: Player):
@@ -2126,15 +2127,12 @@ class Demographics(Page):
 
     @staticmethod
     def is_displayed(player: Player):
-        return player.round_number == C.NUM_ROUNDS
+        return post_task_page_pending(player, 'Demographics')
 
     @staticmethod
     def get_form_fields(player: Player):
         fields = ['age', 'gender', 'education', 'taken_iq_test_before',
                   'trust_iq_tests']
-        # Nothing to trust in the Initial pilot, where no IQ score is reported.
-        if CFG['show_iq']:
-            fields.append('trust_own_iq_estimate')
         return fields
 
     @staticmethod
@@ -2153,8 +2151,6 @@ class Demographics(Page):
             return "Please indicate whether you have taken an IQ test before."
         if values.get('trust_iq_tests') is None:
             return "Please indicate how much you trust IQ tests in general."
-        if CFG['show_iq'] and values.get('trust_own_iq_estimate') is None:
-            return "Please indicate how much you trust the IQ estimates you received."
 
 
 class BotCheck(Page):
@@ -3318,19 +3314,33 @@ class EndOfPeriodSurvey(Page):
 class TaskEffort(Page):
     """0-100 slider for overall effort on main cognitive tasks.
 
-    Shown once at the end of the study for everyone, after demographics.
+    Shown after all completed task periods, before credibility and beliefs.
     """
     form_model = 'player'
     form_fields = ['task_effort']
 
     @staticmethod
     def is_displayed(player: Player):
-        return player.round_number == C.NUM_ROUNDS
+        return post_task_page_pending(player, 'TaskEffort')
 
     @staticmethod
     def error_message(player: Player, values):
         if values.get('task_effort') is None or values.get('task_effort') == '':
             return "Please move the slider to indicate your effort before continuing."
+
+
+class IQCredibility(Page):
+    form_model = 'player'
+    form_fields = ['trust_own_iq_estimate']
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return CFG['show_iq'] and post_task_page_pending(player, 'IQCredibility')
+
+    @staticmethod
+    def error_message(player: Player, values):
+        if values.get('trust_own_iq_estimate') is None:
+            return "Please indicate how much you trust the IQ estimates you received."
 
 
 class OutcomeConcern(Page):
@@ -3343,7 +3353,7 @@ class OutcomeConcern(Page):
 
     @staticmethod
     def is_displayed(player: Player):
-        return player.round_number == C.NUM_ROUNDS
+        return post_task_page_pending(player, 'OutcomeConcern')
 
     @staticmethod
     def get_form_fields(player: Player):
@@ -3922,16 +3932,17 @@ page_sequence = [
     GlobalIQFeedback,
     WTACompare,
     Results,
+    TaskEffort,
+    IQCredibility,
+    AverageBeliefs,
+    AverageTruth,
+    AverageOutcomes,
     BigFiveSurvey1,
     BigFiveSurvey2,
     SelfEsteemSurvey,
     NarcissismSurvey,
     Demographics,
-    TaskEffort,
     OutcomeConcern,
-    AverageBeliefs,
-    AverageTruth,
-    AverageOutcomes,
     PlatformUsage,
     RealismQuestion,
     ExperienceChecklist1,

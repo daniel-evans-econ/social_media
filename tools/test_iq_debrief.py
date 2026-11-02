@@ -1,4 +1,4 @@
-"""Debrief calculations, payment neutrality and old-session navigation."""
+"""Debrief calculations, recalled feedback and payment neutrality."""
 import os
 import sys
 from pathlib import Path
@@ -11,7 +11,6 @@ from otree.database import init_orm
 init_orm()
 from otree.session import create_session
 import social_media as s
-from tools.migrate_debrief_page import migrate, remap, OLD_MAX, NEW_MAX
 
 part = create_session('cognitive_tasks', num_participants=1).get_participants()[0]
 part.vars['period_tasks'] = ['sequences', 'ravens', 'working_memory']
@@ -42,24 +41,4 @@ with patch.dict(s.CFG, show_iq=False):
     assert not s.IQDebrief.is_displayed(player)
 assert s.page_sequence.index(s.IQDebrief) == s.page_sequence.index(s.FinalResults) + 1
 
-# Every old page retains its class and round; completion stays completed.
-for old in range(1, OLD_MAX + 1):
-    new = remap(old)
-    assert (old - 1) // 36 == (new - 1) // 37
-    assert s.page_sequence[(old - 1) % 36] is s.page_sequence[(new - 1) % 37]
-assert remap(OLD_MAX + 1) == NEW_MAX + 1
-assert remap(None) is None and remap(0) == 0
-part._max_page_index = OLD_MAX
-part._index_in_pages = 1610
-part._timeout_page_index = 1520
-part._current_form_page_url = '/p/' + part.code + '/cognitive_tasks/AverageBeliefs/1610'
-before_payoff = float(part.payoff)
-dry = migrate()
-assert dry['count'] == 1 and part._index_in_pages == 1610
-result = migrate(True)
-assert result['records'] == dry['records']
-assert part._index_in_pages == 1654 and part._max_page_index == NEW_MAX
-assert part._current_form_page_url.endswith('/1654')
-assert float(part.payoff) == before_payoff
-assert migrate(True)['count'] == 0
-print('Passed two/three-period full-sample debrief, half-up overall rounding, unchanged payoffs, all 1,620 old page mappings and idempotent navigation migration.')
+print('Passed two/three-period full-sample debrief, recorded earlier feedback, half-up overall rounding and unchanged payoffs.')

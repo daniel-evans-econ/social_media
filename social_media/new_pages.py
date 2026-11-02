@@ -15,6 +15,11 @@ def combined_average_flow(player):
     return player.participant.vars.get('combined_average_flow', False)
 
 
+def post_task_page_pending(player, name):
+    """Do not repeat pages already answered before the end-section reorder."""
+    return player.round_number == 45 and name not in player.participant.vars.get('completed_before_posttask_reorder', [])
+
+
 def belief_stage(player):
     """Only the correction arm receives truth, and only after its guess locks."""
     part = player.participant
@@ -113,7 +118,7 @@ class SelfieCapture(Page):
 class AverageBeliefs(Page):
     @staticmethod
     def is_displayed(player):
-        return player.round_number == 45 and player.participant.vars.get('linked_peer_groups', False)
+        return post_task_page_pending(player, 'AverageBeliefs') and player.participant.vars.get('linked_peer_groups', False)
 
     @staticmethod
     def vars_for_template(player):
@@ -205,7 +210,8 @@ class AverageBeliefs(Page):
 class AverageTruth(Page):
     @staticmethod
     def is_displayed(player):
-        return (AverageBeliefs.is_displayed(player) and not combined_average_flow(player)
+        return (post_task_page_pending(player, 'AverageTruth')
+                and player.participant.vars.get('linked_peer_groups', False) and not combined_average_flow(player)
                 and player.participant.vars.get('reveal_truth', False))
 
     @staticmethod
@@ -227,7 +233,8 @@ class AverageTruth(Page):
 class AverageOutcomes(Page):
     @staticmethod
     def is_displayed(player):
-        return AverageBeliefs.is_displayed(player) and not combined_average_flow(player)
+        return (post_task_page_pending(player, 'AverageOutcomes')
+                and player.participant.vars.get('linked_peer_groups', False) and not combined_average_flow(player))
 
     @staticmethod
     def vars_for_template(player):
