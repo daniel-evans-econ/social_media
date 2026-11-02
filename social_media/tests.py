@@ -266,6 +266,10 @@ class PlayerBot(Bot):
 
         if self.round_number == C.NUM_ROUNDS:
             yield Submission(TaskEffort, dict(task_effort=75), check_html=False)
+            concern = dict(care_about_ranking=4)
+            if CFG['show_iq']:
+                concern['care_about_iq_score'] = 2
+            yield Submission(OutcomeConcern, concern, check_html=False)
             if IQCredibility.is_displayed(p):
                 yield Submission(IQCredibility, dict(trust_own_iq_estimate=3), check_html=False)
             if AverageBeliefs.is_displayed(p):
@@ -302,10 +306,6 @@ class PlayerBot(Bot):
                 trust_iq_tests=3,
             )
             yield Submission(Demographics, demo, check_html=False)
-            concern = dict(care_about_ranking=4)
-            if CFG['show_iq']:
-                concern['care_about_iq_score'] = 2
-            yield Submission(OutcomeConcern, concern, check_html=False)
             yield Submission(PlatformUsage, dict(sm_instagram=True, social_media_hours=2.0), check_html=False)
             self.capture_page('RealismQuestion')
             yield Submission(RealismQuestion, dict(

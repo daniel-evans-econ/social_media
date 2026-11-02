@@ -12,7 +12,7 @@ from otree.session import create_session
 import social_media as s
 from tools.migrate_posttask_order import OLD,NEW,MOVED,OLD_MAX,NEW_MAX,old_final_index,remap,migrate
 
-expected=['Results','TaskEffort','IQCredibility','AverageBeliefs','AverageTruth','AverageOutcomes','BigFiveSurvey1']
+expected=['Results','TaskEffort','OutcomeConcern','IQCredibility','AverageBeliefs','AverageTruth','AverageOutcomes','BigFiveSurvey1']
 start=NEW.index('Results')
 assert NEW[start:start+len(expected)]==expected
 assert NEW.count('TaskEffort')==NEW.count('IQCredibility')==1

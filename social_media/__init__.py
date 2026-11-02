@@ -1164,6 +1164,7 @@ def creating_session(subsession: Subsession):
             part.vars['belief_before_platform'] = True
             part.vars['posttask_order_version'] = 2
             part.vars['debrief_before_bonus_version'] = 1
+            part.vars['outcome_concern_order_version'] = 1
             part.vars['full_sample_iq_debrief'] = True
             part.vars['qualitative_target'] = 'private_satisfaction_v1'
             part.vars['quantitative_estimate_incentive'] = True
@@ -3347,7 +3348,7 @@ class IQCredibility(Page):
 class OutcomeConcern(Page):
     """How much participants care about their rank vs. their IQ score.
 
-    Asked once at the end of the study; the two items are presented in a
+    Asked after effort, before IQ credibility; the two items are presented in a
     participant-specific random order.
     """
     form_model = 'player'
@@ -3928,6 +3929,7 @@ page_sequence = [
     WTACompare,
     Results,
     TaskEffort,
+    OutcomeConcern,
     IQCredibility,
     AverageBeliefs,
     AverageTruth,
@@ -3937,7 +3939,6 @@ page_sequence = [
     SelfEsteemSurvey,
     NarcissismSurvey,
     Demographics,
-    OutcomeConcern,
     PlatformUsage,
     RealismQuestion,
     ExperienceChecklist1,

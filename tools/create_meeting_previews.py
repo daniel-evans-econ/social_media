@@ -53,6 +53,7 @@ def treatment_cases():
         ('ranked_feed', 'MessageReactionFeedback', 15, 'quantitative', 'avatar', True),
         ('subjective', 'EndOfPeriodSurvey', 15, 'quantitative', 'avatar', True),
         ('effort', 'TaskEffort', 45, 'quantitative', 'avatar', True),
+        ('performance_concern', 'OutcomeConcern', 45, 'quantitative', 'avatar', True),
         ('credibility', 'IQCredibility', 45, 'quantitative', 'avatar', True),
         ('payment', 'FinalResults', 45, 'quantitative', 'avatar', True),
         ('payment_no_initial_iq', 'FinalResults', 45, 'qualitative', 'avatar', False),
@@ -275,4 +276,8 @@ if __name__ == '__main__':
         CASES = [case for case in treatment_cases() if case[1] == 'IQDebrief']
     elif '--intro-no-reactions' in sys.argv:
         CASES = intro_no_reaction_cases()
+    elif '--posttask' in sys.argv:
+        CASES = [case for case in treatment_cases() if case[0] in (
+            'effort', 'performance_concern', 'correction_quantitative_correction',
+            'correction_qualitative_correction', 'correction_quantitative_control')]
     create_previews()
