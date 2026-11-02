@@ -3750,6 +3750,40 @@ class Comments(Page):
         return player.round_number == C.NUM_ROUNDS
 
 
+def full_sample_iq_results(player):
+    """Calibrated component IQs and their equally weighted overall average."""
+    rows = []
+    if CFG['show_iq'] and player.participant.vars.get('full_sample_iq_debrief'):
+        tasks = player.participant.vars.get('period_tasks', [])
+        for period, task in enumerate(tasks, 1):
+            if period == 3 and not third_period_played(player):
+                continue
+            if task not in TASK_IQ_COMPONENT:
+                continue
+            end = period * C.PERIOD_LENGTH
+            correct = sum(bool(p.field_maybe_none('q_correct'))
+                          for p in player.in_rounds(end - C.PERIOD_LENGTH + 1, end))
+            rows.append(dict(period=period, label=TASK_LABELS[task], correct=correct,
+                             iq=estimate_iq(TASK_IQ_COMPONENT[task], correct, C.PERIOD_LENGTH)))
+    overall = int(sum(row['iq'] for row in rows) / len(rows) + .5) if rows else None
+    if rows:
+        player.participant.vars['full_sample_iq_debrief_results'] = rows
+        player.participant.vars['full_sample_iq_debrief_overall'] = overall
+    return rows, overall
+
+
+class IQDebrief(Page):
+    @staticmethod
+    def is_displayed(player: Player):
+        return (player.round_number == C.NUM_ROUNDS and CFG['show_iq']
+                and player.participant.vars.get('full_sample_iq_debrief', False))
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        rows, overall = full_sample_iq_results(player)
+        return dict(debrief_rows=rows, overall_iq=overall, prolific_url=PROLIFIC_COMPLETION_URL)
+
+
 class FinalResults(Page):
     @staticmethod
     def is_displayed(player: Player):
@@ -3776,7 +3810,7 @@ class FinalResults(Page):
 
         # One row per played task period (period 3 only if it was taken).
         task_rows = []
-        debrief_rows = []
+        debrief_rows, _ = full_sample_iq_results(player)
         question_payoff = 0.0
         for idx, (start, end) in enumerate(period_ranges):
             period_no = idx + 1
@@ -3794,16 +3828,6 @@ class FinalResults(Page):
                 rate=f"{rate:.2f}",
                 amount=f"{amount:.2f}",
             ))
-            if CFG['show_iq'] and player.participant.vars.get('full_sample_iq_debrief') and task in TASK_IQ_COMPONENT:
-                # Use all correct answers, including ones ineligible for the
-                # monetary bonus. This is the calibrated base, with no noise.
-                raw_correct = sum(bool(p.field_maybe_none('q_correct')) for p in player.in_rounds(start, end))
-                debrief_rows.append(dict(period=period_no, label=TASK_LABELS[task], correct=raw_correct,
-                                         iq=estimate_iq(TASK_IQ_COMPONENT[task], raw_correct, C.PERIOD_LENGTH)))
-
-        if debrief_rows:
-            player.participant.vars['full_sample_iq_debrief_results'] = debrief_rows
-
         belief_bonus = player.participant.vars.get('average_belief_bonus')
         belief_bonus_amount = float(belief_bonus['amount']) if belief_bonus else 0
         from .payments import accuracy_bonuses
@@ -3842,6 +3866,7 @@ class FinalResults(Page):
             total_payoff=total_payoff,
             task_rows=task_rows,
             debrief_rows=debrief_rows,
+            show_iq_debrief=IQDebrief.is_displayed(player),
             question_subtotal=f"{question_payoff:.2f}",
             show_belief_bonus=belief_bonus is not None,
             belief_bonus_display=f"{belief_bonus_amount:.2f}",
@@ -3909,6 +3934,7 @@ page_sequence = [
     SurveyReliabilityOverall,
     Comments,
     FinalResults,
+    IQDebrief,
 ]
 
 
@@ -3920,7 +3946,8 @@ def custom_export(players):
            'truth_treatment', 'average_feedback_json', 'average_beliefs_json', 'average_outcomes_json',
            'linked_message_plan_json', 'selfie_consent', 'selfie_consent_at',
            'average_period_selection_json', 'average_belief_bonus_json', 'average_outcome_order_json',
-           'combined_average_flow', 'full_sample_iq_debrief_json', 'accuracy_bonus_results_json']
+           'combined_average_flow', 'full_sample_iq_debrief_json', 'accuracy_bonus_results_json',
+           'full_sample_iq_debrief_overall']
     for player in players:
         if player.round_number not in (15, 30, 45):
             continue
@@ -3949,4 +3976,5 @@ def custom_export(players):
                json.dumps(player.participant.vars.get('average_outcome_order', [])),
                player.participant.vars.get('combined_average_flow', False),
                json.dumps(player.participant.vars.get('full_sample_iq_debrief_results', [])),
-               json.dumps(player.participant.vars.get('accuracy_bonus_results', {}))]
+               json.dumps(player.participant.vars.get('accuracy_bonus_results', {})),
+               player.participant.vars.get('full_sample_iq_debrief_overall', '')]

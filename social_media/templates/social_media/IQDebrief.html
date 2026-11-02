@@ -1,0 +1,20 @@
+{% extends "global/Page.html" %}
+{% block content %}
+{% include "social_media/AveragePageStyle.html" %}
+<h2 class="average-page-title">Your full-sample IQ estimates</h2>
+<p>The IQ estimates you received during this study were calculated in comparison to a randomly selected subsample of other participants. This might mean that the estimates were too high or too low by chance. Below, we report estimates of your IQ compared to the full sample of participants.</p>
+<p>More generally, while all questions that you answered were inspired by real IQ tests, the tests we administered were not fully validated. As such, the estimates that we provide may not be accurate estimates of your actual IQ.</p>
+
+{% for row in debrief_rows %}
+<section class="average-section">
+<h4>Period {{ row.period }}: {{ row.label }}</h4>
+<p>You answered {{ row.correct }} out of 15 questions correctly. Your full-sample IQ estimate is <strong class="average-emphasis">{{ row.iq }}</strong>.</p>
+</section>
+{% endfor %}
+<section class="average-section">
+<h4>Overall IQ</h4>
+<p>Your full-sample overall IQ estimate is <strong class="average-emphasis">{{ overall_iq }}</strong>.</p>
+</section>
+<p style="margin-top:28px;">You may now click the button below to return to Prolific.</p>
+<a class="btn btn-primary" href="{{ prolific_url }}">Redirect to Prolific</a>
+{% endblock %}

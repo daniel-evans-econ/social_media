@@ -52,8 +52,10 @@ def treatment_cases():
         ('iq_upper_half', 'IQFeedback', 15, 'quantitative', 'avatar', True),
         ('ranked_feed', 'MessageReactionFeedback', 15, 'quantitative', 'avatar', True),
         ('subjective', 'EndOfPeriodSurvey', 15, 'quantitative', 'avatar', True),
-        ('debrief', 'FinalResults', 45, 'quantitative', 'avatar', True),
+        ('payment', 'FinalResults', 45, 'quantitative', 'avatar', True),
         ('payment_no_initial_iq', 'FinalResults', 45, 'qualitative', 'avatar', False),
+        ('debrief', 'IQDebrief', 45, 'quantitative', 'avatar', True),
+        ('debrief_two_periods', 'IQDebrief', 45, 'qualitative', 'avatar', False),
         ('percentile', 'PerceivedPercentile', 15, 'quantitative', 'avatar', True),
     ]
     for kind in ('quantitative', 'qualitative'):
@@ -195,6 +197,8 @@ def create_previews():
                 player.q_difficulty = spec['difficulty']
                 player.like_treatment = reacts
             target = participant.get_player('social_media', round_number)
+            if key == 'debrief_two_periods':
+                participant.vars['third_period_accepted'] = False
             if page_name == 'FinalResults':
                 # Representative task responses, scored by the real payment
                 # calculation, rather than hard-coded example bonus amounts.

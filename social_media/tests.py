@@ -31,7 +31,7 @@ from . import (
     OutcomeConcern, PlatformUsage, RealismQuestion,
     ExperienceChecklist1, ExperienceChecklist2, ExperienceChecklist3,
     experience_page_order, ToolsUsed,
-    SurveyReliabilityOverall, Comments, FinalResults,
+    SurveyReliabilityOverall, Comments, FinalResults, IQDebrief,
 )
 from .new_pages import SelfieCapture, AverageBeliefs, AverageTruth, AverageOutcomes, average_rows
 
@@ -388,3 +388,8 @@ class PlayerBot(Bot):
                               if CFG['use_wta'] and task_round.round_number > 30 else float(C.PAY_PER_CORRECT))
             assert float(p.participant.payoff) == round(bonus, 2)
             yield Submission(FinalResults, dict(), check_html=False)
+            if IQDebrief.is_displayed(p):
+                assert 'Your full-sample IQ estimates' in self.html
+                assert 'Overall IQ' in self.html
+                self.capture_page('IQDebrief')
+                yield Submission(IQDebrief, dict(), check_html=False)

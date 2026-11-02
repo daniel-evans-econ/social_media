@@ -12,6 +12,7 @@
     .payoff-table td.num, .payoff-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
     .payoff-table tr.subtotal td { border-top: 1px solid #bbb; font-weight: 600; }
     .payoff-table tr.deduction td { color: #8a1c1c; }
+    .payoff-table tr.section-heading th { padding-top: 16px; background: #f5f6f8; color: #333; font-size: 1em; }
     .payoff-table tr.grand td { border-top: 2px solid #333; font-size: 1.15em; font-weight: bold; color: darkred; }
     .prolific-btn {
         display: inline-block; margin-top: 8px; padding: 10px 22px;
@@ -33,6 +34,7 @@
         </tr>
     </thead>
     <tbody>
+        <tr class="section-heading"><th colspan="4" scope="rowgroup">Main bonus payments</th></tr>
         {% for row in task_rows %}
         <tr>
             <td>Period {{ row.period }} &mdash; {{ row.label }}</td>
@@ -47,14 +49,7 @@
             <td class="num"></td>
             <td class="num">${{ question_subtotal }}</td>
         </tr>
-        {% if show_belief_bonus %}
-        <tr>
-            <td>{{ belief_bonus_label }}</td>
-            <td class="num"></td>
-            <td class="num"></td>
-            <td class="num">${{ belief_bonus_display }}</td>
-        </tr>
-        {% endif %}
+        <tr class="section-heading"><th colspan="4" scope="rowgroup">Additional bonus payments</th></tr>
         {% for row in preview_guess_rows %}
         <tr>
             <td>{{ row.label }}</td>
@@ -63,6 +58,14 @@
             <td class="num">${{ row.amount }}</td>
         </tr>
         {% endfor %}
+        {% if show_belief_bonus %}
+        <tr>
+            <td>{{ belief_bonus_label }}</td>
+            <td class="num"></td>
+            <td class="num"></td>
+            <td class="num">${{ belief_bonus_display }}</td>
+        </tr>
+        {% endif %}
         <tr class="grand">
             <td>Total Bonus Payoff</td>
             <td class="num"></td>
@@ -96,19 +99,12 @@
     </p>
 {% endif %}
 
-{% if debrief_rows %}
-<section style="margin-top:28px;">
-<h4 style="color:darkred;font-weight:bold;">Your full-sample IQ estimates</h4>
-<p>Earlier IQ feedback depended on a randomly selected comparison group. Below are your IQ estimates using the study's full-sample calibration, without that comparison-group adjustment.</p>
-{% for row in debrief_rows %}
-<p><strong>Period {{ row.period }}: {{ row.label }}</strong><br>
-You answered {{ row.correct }} out of 15 questions correctly. Your full-sample IQ estimate is <strong style="color:darkred;">{{ row.iq }}</strong>.</p>
-{% endfor %}
-</section>
-{% endif %}
-
+{% if show_iq_debrief %}
+{{ next_button }}
+{% else %}
 <p style="margin-top:28px;">
     You may now click the button below to return to Prolific.
 </p>
 <a class="prolific-btn" href="{{ prolific_url }}">Redirect to Prolific</a>
+{% endif %}
 {% endblock %}
