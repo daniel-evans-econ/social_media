@@ -3761,9 +3761,14 @@ def full_sample_iq_results(player):
             if task not in TASK_IQ_COMPONENT:
                 continue
             end = period * C.PERIOD_LENGTH
+            period_rounds = player.in_rounds(end - C.PERIOD_LENGTH + 1, end)
             correct = sum(bool(p.field_maybe_none('q_correct'))
-                          for p in player.in_rounds(end - C.PERIOD_LENGTH + 1, end))
+                          for p in period_rounds)
+            # Show the score actually displayed then, not a newly drawn or
+            # recalculated estimate. Older incomplete records may lack it.
+            earlier_iq = period_rounds[-1].field_maybe_none('iq_estimate') if period_rounds else None
             rows.append(dict(period=period, label=TASK_LABELS[task], correct=correct,
+                             earlier_iq=earlier_iq,
                              iq=estimate_iq(TASK_IQ_COMPONENT[task], correct, C.PERIOD_LENGTH)))
     overall = int(sum(row['iq'] for row in rows) / len(rows) + .5) if rows else None
     if rows:

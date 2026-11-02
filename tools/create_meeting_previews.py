@@ -199,7 +199,7 @@ def create_previews():
             target = participant.get_player('social_media', round_number)
             if key == 'debrief_two_periods':
                 participant.vars['third_period_accepted'] = False
-            if page_name == 'FinalResults':
+            if page_name in ('FinalResults', 'IQDebrief'):
                 # Representative task responses, scored by the real payment
                 # calculation, rather than hard-coded example bonus amounts.
                 participant.vars['third_period_pay_rate'] = .25
@@ -259,4 +259,6 @@ def create_previews():
 if __name__ == '__main__':
     if '--treatments' in sys.argv:
         CASES = treatment_cases()
+    elif '--debrief' in sys.argv:
+        CASES = [case for case in treatment_cases() if case[1] == 'IQDebrief']
     create_previews()

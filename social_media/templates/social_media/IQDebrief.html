@@ -8,7 +8,7 @@
 {% for row in debrief_rows %}
 <section class="average-section">
 <h4>Period {{ row.period }}: {{ row.label }}</h4>
-<p>You answered {{ row.correct }} out of 15 questions correctly. Your full-sample IQ estimate is <strong class="average-emphasis">{{ row.iq }}</strong>.</p>
+<p>You answered {{ row.correct }} out of 15 questions correctly{% if row.earlier_iq != None %} and received an estimated IQ score of {{ row.earlier_iq }} earlier in the experiment{% endif %}. Your full-sample IQ estimate is <strong class="average-emphasis">{{ row.iq }}</strong>.</p>
 </section>
 {% endfor %}
 <section class="average-section">
