@@ -252,8 +252,8 @@ class AverageOutcomes(Page):
         return dict(rows=rows, mood_choices=MOOD_CHOICES, satisfaction_choices=LIKERT_CHOICES,
                     show_iq=CFG['show_iq'], iq_perception_choices=IQ_PERCEPTION_CHOICES,
                     questions=questions, human_nature_choices=list(enumerate(
-                        ['Very negatively', 'Somewhat negatively', 'Neutral',
-                         'Somewhat positively', 'Very positively'], 1)))
+                        ['Very negative', 'Somewhat negative', 'Neither positive nor negative',
+                         'Somewhat positive', 'Very positive'], 1)))
 
     @staticmethod
     def live_method(player, data):
