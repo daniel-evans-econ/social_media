@@ -32,7 +32,6 @@ for accepted in (False, True):
     assert [r['iq'] for r in context['debrief_rows']] == expected
     assert [r['earlier_iq'] for r in context['debrief_rows']] == [180, 100, 65][:3 if accepted else 2]
     assert context['earlier_overall_iq'] == 140
-    assert context['earlier_overall_periods'] == ('the first two' if accepted else 'both')
     assert context['overall_iq'] == int(sum(expected) / len(expected) + .5)
     assert float(part.payoff) == 2.75 and float(player.payoff) == 2.75
     assert s.IQDebrief.is_displayed(player)

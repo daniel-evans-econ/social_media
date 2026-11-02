@@ -3800,7 +3800,6 @@ class IQDebrief(Page):
         rows, overall = full_sample_iq_results(player)
         earlier_overall = player.in_round(2 * C.PERIOD_LENGTH).field_maybe_none('global_iq_estimate')
         return dict(debrief_rows=rows, overall_iq=overall, earlier_overall_iq=earlier_overall,
-                    earlier_overall_periods='the first two' if third_period_played(player) else 'both',
                     prolific_url=PROLIFIC_COMPLETION_URL)
 
 
