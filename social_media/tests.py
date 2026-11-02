@@ -21,7 +21,7 @@ from . import (
     C, CFG, QD, WTA_AMOUNTS, QUAL_EMOJIS, REACTION_VALUES, BFI_CORE_FIELDS,
     round_spec, get_condition, experienced_conditions, like_button_enabled, pilot_feedback_signals, peer_avatar_for_round,
     is_feedback_round, is_third_period, third_period_played,
-    is_end_of_period_with_p3,
+    is_end_of_period_with_p3, q_answer_earns_bonus,
     BotCheck, Consent, ProlificID, IQReferencePoint, Intro, TaskIntro, QuestionPage, BlockFeedback, IQFeedback,
     EndOfPeriodSurvey, TaskEffort, WTACompare, Results, GlobalIQFeedback,
     PerceivedPercentile, PerceivedPercentileConfidence,
@@ -371,7 +371,20 @@ class PlayerBot(Bot):
             accepted = third_period_played(p)
             asked = p.participant.vars['iq_reference_asked']
             self.capture_page(f'FinalResults_{int(asked)}_{int(accepted)}')
-            expected_max = (0.75 if accepted else 0.50) + (0.50 if asked else 0)
-            assert f'${expected_max:.2f}' in self.html
-            assert ('estimates of your <strong' in self.html) == asked
+            assert ('Initial IQ estimate' in self.html) == asked
+            for period in range(1, 4 if accepted else 3):
+                assert f'Period {period} percentile estimate' in self.html
+            assert ('Period 3 percentile estimate' in self.html) == accepted
+            db.expire_all()
+            p = self.player
+            awards = p.participant.vars['accuracy_bonus_results']['awards']
+            bonus = sum(row['amount'] for row in awards.values())
+            bonus += p.participant.vars.get('average_belief_bonus', {}).get('amount', 0)
+            for task_round in p.in_all_rounds():
+                if task_round.round_number > 30 and not accepted:
+                    continue
+                if q_answer_earns_bonus(task_round):
+                    bonus += (p.participant.vars.get('third_period_pay_rate', 0)
+                              if CFG['use_wta'] and task_round.round_number > 30 else float(C.PAY_PER_CORRECT))
+            assert float(p.participant.payoff) == round(bonus, 2)
             yield Submission(FinalResults, dict(), check_html=False)

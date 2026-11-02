@@ -53,6 +53,8 @@ def treatment_cases():
         ('ranked_feed', 'MessageReactionFeedback', 15, 'quantitative', 'avatar', True),
         ('subjective', 'EndOfPeriodSurvey', 15, 'quantitative', 'avatar', True),
         ('debrief', 'FinalResults', 45, 'quantitative', 'avatar', True),
+        ('payment_no_initial_iq', 'FinalResults', 45, 'qualitative', 'avatar', False),
+        ('percentile', 'PerceivedPercentile', 15, 'quantitative', 'avatar', True),
     ]
     for kind in ('quantitative', 'qualitative'):
         for reacts in (False, True):
@@ -151,7 +153,7 @@ def create_previews():
                 like_treatment=reacts, reveal_truth=truth, linked_peer_groups=True,
                 third_period_accepted=True, period_3_condition=kind + '_social',
                 researcher_preview=True, display_name='TestBot',
-                avatar_choice='masculine-v2-1', iq_reference_asked=key != 'reference_off',
+                avatar_choice='masculine-v2-1', iq_reference_asked=key not in ('reference_off', 'payment_no_initial_iq'),
                 # Match the displayed period across review contrasts. This
                 # override is confined to labelled researcher preview sessions.
                 average_period_selection=dict(version=1, eligible_periods=[1, 3], period=1,
@@ -159,6 +161,8 @@ def create_previews():
             )
             participant.period_1_condition = kind + '_social'
             participant.period_2_condition = 'control'
+            if page_name == 'Intro':
+                participant.vars.pop('avatar_choice', None)
             if key in ('iq_lower_half', 'iq_upper_half'):
                 half = 1 if key == 'iq_lower_half' else 2
                 for i in range(100):
@@ -191,6 +195,24 @@ def create_previews():
                 player.q_difficulty = spec['difficulty']
                 player.like_treatment = reacts
             target = participant.get_player('social_media', round_number)
+            if page_name == 'FinalResults':
+                # Representative task responses, scored by the real payment
+                # calculation, rather than hard-coded example bonus amounts.
+                participant.vars['third_period_pay_rate'] = .25
+                for period in (1, 2, 3):
+                    end = participant.get_player('social_media', period * 15)
+                    task = participant.vars['period_tasks'][period - 1]
+                    end.iq_estimate = survey.estimate_iq_for_player(end, survey.TASK_IQ_COMPONENT[task], 15 if bonus_preview else 9, 15)
+                    group = group_for(end, period)
+                    score = 15 if bonus_preview else 9
+                    rank = (sum(v < score for v in group['scores']) + .5 * sum(v == score for v in group['scores'])) / len(group['scores'])
+                    end.perceived_outperformed_count = round(20 * rank)
+                    survey.PerceivedPercentile.before_next_page(end, False)
+                p30 = participant.get_player('social_media', 30)
+                p30.global_iq_estimate = survey.global_iq_for_player(p30)
+                participant.get_player('social_media', 1).iq_reference_score = p30.global_iq_estimate
+                if key == 'payment_no_initial_iq':
+                    participant.vars['third_period_accepted'] = False
             assert getattr(survey, page_name).is_displayed(target)
             if page_name == 'BlockFeedback':
                 target.report_number = 3
@@ -209,12 +231,12 @@ def create_previews():
                     survey.BlockFeedback.before_next_page(source, False)
                     survey.record_sent_message_time(source, 'block')
                 assert survey.MessageReactionFeedback.vars_for_template(target)['messages']
-            if page_name.startswith('Average') or bonus_preview:
+            if page_name.startswith('Average') or page_name == 'FinalResults':
                 rows = average_rows(target)
                 assert all(row['available'] for row in rows)
                 participant.vars['average_beliefs'] = {
                     str(row['period']): round((row['reported'] + row['actual']) / 2, 1) for row in rows}
-                if bonus_preview or key.startswith(('correction_', 'final_questions')):
+                if page_name == 'FinalResults' or key.startswith(('correction_', 'final_questions')):
                     answers = {str(row['period']): row['actual'] if bonus_preview else round((row['reported']+row['actual'])/2,1) for row in rows}
                     assert survey.AverageBeliefs.live_method(target, dict(action='belief',answers=answers))[target.id_in_group]['saved']
             participant.initialize(participant.label)
@@ -223,7 +245,7 @@ def create_previews():
             links.append(dict(key=key, purpose=purpose, page=page_name,
                               path=participant._url_i_should_be_on(), code=participant.code,
                               message_format=kind, image=image_arm, correction=truth,
-                              reactions=reacts, iq_reference=key != 'reference_off'))
+                              reactions=reacts, iq_reference=participant.vars['iq_reference_asked']))
     db.commit()
     print(json.dumps(dict(session=session.code, links=links, representative_examples=representative_audit,
                          comparison_strata={kind: {p: g['stratum'] for p, g in shared['peer_groups'].items()}

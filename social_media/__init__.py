@@ -463,8 +463,8 @@ def own_avatar(player):
     selected = player.participant.vars.get('avatar_choice')
     if selected in [option['value'] for option in AVATAR_OPTIONS] or selected in LEGACY_HUMAN_AVATARS:
         return selected
-    # Earlier preview participants may have selected an animal; use a stable human fallback.
-    return random.Random('avatar-' + player.participant.code).choice(AVATAR_OPTIONS)['value']
+    # Never imply a demographic choice before the participant has selected one.
+    return 'unselected'
 
 REACTION_VALUES = ['none'] + [option['value'] for option in REACTION_OPTIONS]
 QUAL_EMOJIS = [option['emoji'] for option in REACTION_OPTIONS]
@@ -653,7 +653,7 @@ class C(BaseConstants):
     PAY_IQ_REFERENCE_GUESS = cu(0.50)
     # Study has up to 3 end-of-period percentile elicitations (all pilots).
     NUM_PERCENTILE_GUESS_PERIODS = 3
-    # Max deferred bonus from IQ + percentile guesses; fixed for all participants/pilots.
+    # Maximum across all accuracy guesses (eligibility depends on played periods).
     GUESS_BONUS_MAX = PAY_IQ_REFERENCE_GUESS + NUM_PERCENTILE_GUESS_PERIODS * PAY_PER_PERCENTILE
 
 
@@ -3806,10 +3806,13 @@ class FinalResults(Page):
 
         belief_bonus = player.participant.vars.get('average_belief_bonus')
         belief_bonus_amount = float(belief_bonus['amount']) if belief_bonus else 0
-        preview_guess_rows = []
+        from .payments import accuracy_bonuses
+        preview_guess_rows, pending_guess_rows = accuracy_bonuses(player)
         preview = (player.participant.vars.get('researcher_bonus_preview')
                    if player.participant.vars.get('researcher_preview') else None)
         if preview:
+            preview_guess_rows = []
+            pending_guess_rows = []
             if player.participant.vars.get('iq_reference_asked'):
                 preview_guess_rows.append(dict(label='Initial IQ estimate', amount=f"{preview['iq']:.2f}"))
             for row in task_rows:
@@ -3817,7 +3820,12 @@ class FinalResults(Page):
                 preview_guess_rows.append(dict(label=f"Period {row['period']} percentile estimate", amount=f"{amount:.2f}"))
         preview_guess_amount = sum(float(row['amount']) for row in preview_guess_rows)
         total_payoff = cu(question_payoff + belief_bonus_amount + preview_guess_amount)
-        player.payoff = total_payoff
+        # oTree sums round payoffs. Results already credits the first two
+        # periods at round 30, so the final round credits only the remainder.
+        # This also repairs an old final-round total when that page is reopened.
+        earlier_payoff = sum((p.payoff for p in player.in_rounds(1, C.NUM_ROUNDS - 1)), cu(0))
+        player.payoff = total_payoff - earlier_payoff
+        player.participant.vars['payment_accounting_version'] = 2
 
         # Bonus stripped by tab switching (correct answers that switched tabs).
         switched_p12 = switched_disqualified_count(player, 1, 2 * C.PERIOD_LENGTH)
@@ -3828,9 +3836,7 @@ class FinalResults(Page):
 
         # Only played periods have percentile guesses; IQ-prior is randomized.
         iq_reference_asked = bool(player.participant.vars.get('iq_reference_asked', False))
-        guess_bonus_max = len(task_rows) * C.PAY_PER_PERCENTILE
-        if iq_reference_asked:
-            guess_bonus_max += C.PAY_IQ_REFERENCE_GUESS
+        guess_bonus_max = sum(row['maximum'] for row in pending_guess_rows)
 
         return dict(
             total_payoff=total_payoff,
@@ -3842,6 +3848,8 @@ class FinalResults(Page):
             belief_bonus_label='Comparison-group belief accuracy',
             preview_guess_rows=preview_guess_rows,
             fully_filled_bonus_preview=bool(preview),
+            pending_guess_rows=pending_guess_rows,
+            pending_guess_labels='; '.join(row['label'] for row in pending_guess_rows),
             switched_subtracted=f"{subtracted:.2f}",
             had_switch_deduction=subtracted > 0,
             guess_bonus_max_display=f"{float(guess_bonus_max):.2f}",
@@ -3912,7 +3920,7 @@ def custom_export(players):
            'truth_treatment', 'average_feedback_json', 'average_beliefs_json', 'average_outcomes_json',
            'linked_message_plan_json', 'selfie_consent', 'selfie_consent_at',
            'average_period_selection_json', 'average_belief_bonus_json', 'average_outcome_order_json',
-           'combined_average_flow', 'full_sample_iq_debrief_json']
+           'combined_average_flow', 'full_sample_iq_debrief_json', 'accuracy_bonus_results_json']
     for player in players:
         if player.round_number not in (15, 30, 45):
             continue
@@ -3940,4 +3948,5 @@ def custom_export(players):
                json.dumps(player.participant.vars.get('average_belief_bonus', {})),
                json.dumps(player.participant.vars.get('average_outcome_order', [])),
                player.participant.vars.get('combined_average_flow', False),
-               json.dumps(player.participant.vars.get('full_sample_iq_debrief_results', []))]
+               json.dumps(player.participant.vars.get('full_sample_iq_debrief_results', [])),
+               json.dumps(player.participant.vars.get('accuracy_bonus_results', {}))]

@@ -107,7 +107,8 @@ for size in (72,512):
 # Full-sample IQ uses actual correct answers, not bonus-eligible correct answers,
 # and excludes the optional task when it was not played.
 for accepted in (False,True):
-    p=player(); p.in_rounds=lambda start,end: [SimpleNamespace(field_maybe_none=lambda key:True)]*15
+    p=player(); p.in_rounds=lambda start,end: [SimpleNamespace(round_number=r, participant=p.participant, payoff=survey.cu(0),
+        field_maybe_none=lambda key: True if key=='q_correct' else None) for r in range(start,end+1)]
     with patch.object(survey,'third_period_played',return_value=accepted), \
          patch.object(survey,'q_answer_earns_bonus',return_value=False), \
          patch.object(survey,'switched_disqualified_count',return_value=0):

@@ -82,10 +82,11 @@
 <p style="margin-top:20px; color:#555; font-size:0.95em;">
     You will receive these performance-based bonus payments very soon.
 </p>
-{% if not fully_filled_bonus_preview %}
+{% if pending_guess_rows %}
 <p style="margin-top:12px; color:#555; font-size:0.95em;">
-    Additionally, you may receive up to <strong>${{ guess_bonus_max_display }}</strong> depending on how
-    accurate your estimates of your {% if iq_reference_asked %}<strong style="color:darkred;">IQ</strong> and {% endif %}percentile performance were. This may take some days to estimate.
+    The following accuracy bonuses are still awaiting assessment:
+    {{ pending_guess_labels }}.
+    These could add up to <strong>${{ guess_bonus_max_display }}</strong> to the total above.
 </p>
 {% endif %}
 
