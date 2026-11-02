@@ -3798,7 +3798,9 @@ class IQDebrief(Page):
     @staticmethod
     def vars_for_template(player: Player):
         rows, overall = full_sample_iq_results(player)
-        return dict(debrief_rows=rows, overall_iq=overall, prolific_url=PROLIFIC_COMPLETION_URL)
+        earlier_overall = player.in_round(2 * C.PERIOD_LENGTH).field_maybe_none('global_iq_estimate')
+        return dict(debrief_rows=rows, overall_iq=overall, earlier_overall_iq=earlier_overall,
+                    prolific_url=PROLIFIC_COMPLETION_URL)
 
 
 class FinalResults(Page):

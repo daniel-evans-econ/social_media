@@ -23,6 +23,7 @@ for p in part.get_players():
     if p.round_number in (15, 30, 45):
         p.iq_estimate = [180, 100, 65][period]  # Recall these without using them for full-sample IQ.
 player.payoff = s.cu(2.75)
+part.get_player('social_media', 30).global_iq_estimate = 140
 for accepted in (False, True):
     part.vars['third_period_accepted'] = accepted
     context = s.IQDebrief.vars_for_template(player)
@@ -30,6 +31,7 @@ for accepted in (False, True):
                 for task, n in zip(part.vars['period_tasks'], [9, 10, 12])][:3 if accepted else 2]
     assert [r['iq'] for r in context['debrief_rows']] == expected
     assert [r['earlier_iq'] for r in context['debrief_rows']] == [180, 100, 65][:3 if accepted else 2]
+    assert context['earlier_overall_iq'] == 140
     assert context['overall_iq'] == int(sum(expected) / len(expected) + .5)
     assert float(part.payoff) == 2.75 and float(player.payoff) == 2.75
     assert s.IQDebrief.is_displayed(player)
@@ -37,6 +39,8 @@ for accepted in (False, True):
 with patch.object(s, 'estimate_iq', side_effect=[100, 101]):
     part.vars['third_period_accepted'] = False
     assert s.IQDebrief.vars_for_template(player)['overall_iq'] == 101
+part.get_player('social_media', 30).global_iq_estimate = None
+assert s.IQDebrief.vars_for_template(player)['earlier_overall_iq'] is None
 with patch.dict(s.CFG, show_iq=False):
     assert not s.IQDebrief.is_displayed(player)
 assert s.page_sequence.index(s.IQDebrief) == s.page_sequence.index(s.FinalResults) + 1

@@ -8,12 +8,12 @@
 {% for row in debrief_rows %}
 <section class="average-section">
 <h4>Period {{ row.period }}: {{ row.label }}</h4>
-<p>You answered <strong class="average-emphasis">{{ row.correct }}</strong> out of 15 questions correctly in this period. {% if row.earlier_iq != None %}You received an estimated IQ score of <strong class="average-emphasis">{{ row.earlier_iq }}</strong> earlier in the experiment. {% endif %}Your full-sample IQ estimate is <strong class="average-emphasis">{{ row.iq }}</strong>.</p>
+<p>You answered <strong class="average-emphasis">{{ row.correct }}</strong> out of 15 questions correctly in this period. {% if row.earlier_iq != None %}You received an estimated IQ score of <strong class="average-emphasis">{{ row.earlier_iq }}</strong> earlier in the experiment. {% endif %}Your estimated IQ score compared to the full sample of participants is <strong class="average-emphasis">{{ row.iq }}</strong>.</p>
 </section>
 {% endfor %}
 <section class="average-section">
 <h4>Overall IQ</h4>
-<p>Your full-sample overall IQ estimate is <strong class="average-emphasis">{{ overall_iq }}</strong>.</p>
+<p>{% if earlier_overall_iq != None %}You received an estimated IQ score of <strong class="average-emphasis">{{ earlier_overall_iq }}</strong> earlier in the experiment. {% endif %}Your estimated IQ score compared to the full sample of participants is <strong class="average-emphasis">{{ overall_iq }}</strong>.</p>
 </section>
 <p style="margin-top:28px;">You may now click the button below to return to Prolific.</p>
 <a class="btn btn-primary" href="{{ prolific_url }}">Redirect to Prolific</a>
