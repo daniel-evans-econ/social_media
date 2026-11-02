@@ -49,22 +49,25 @@ for part, (fmt, reactions, image, truth, prior) in zip(session.get_participants(
             p1.iq_reference_score = full_sample_target + (10 if accurate else 11)
             for p in (p15, p30, p45):
                 p.perceived_relative_performance = 60 if accurate else 61
-            # All ties => 50th percentile. Correct-but-disqualified questions
-            # still count for accuracy, and the 10-point boundary is inclusive.
-            with patch.object(s, 'group_for', side_effect=lambda p: dict(scores=[8 if p.round_number == 45 else 10] * 20)):
+            # No historical reference-group draw may determine percentile pay.
+            with patch.object(s, 'group_for', side_effect=AssertionError('Percentile payment queried historical data')):
                 result = s.FinalResults.vars_for_template(p45)
-                expected_accuracy = ((.75 if accepted else .5) + (.5 if prior else 0)) if accurate else 0
+                expected_accuracy = .5 if accurate and prior else 0
                 expected = round(4.5 + (7 * rate if accepted else 0) + belief + expected_accuracy, 2)
                 assert float(result['total_payoff']) == expected
                 assert float(part.payoff) == expected, 'oTree aggregate must equal displayed total'
                 assert float(p45.payoff) == round(expected - 4.5, 2)
-                assert len(result['preview_guess_rows']) == (3 if accepted else 2) + prior
-                assert not result['pending_guess_rows']
+                assert len(result['preview_guess_rows']) == int(prior)
+                assert len(result['pending_guess_rows']) == (3 if accepted else 2)
+                assert result['guess_bonus_max_display'] == ('0.75' if accepted else '0.50')
+                assert not result['pending_iq_bonus']
                 assert not result['fully_filled_bonus_preview']
                 assert len(result['task_rows']) == (3 if accepted else 2)
                 assert float(result['switched_subtracted']) == round(.5 + (rate if accepted else 0), 2)
                 awards = part.vars['accuracy_bonus_results']['awards']
-                assert all(a['actual'] == 50 for k, a in awards.items() if k.startswith('percentile'))
+                assert not any(k.startswith('percentile') for k in awards)
+                assert all(r['reason'] == 'awaiting_current_question_set_data' and 'amount' not in r and 'actual' not in r
+                           for r in part.vars['accuracy_bonus_results']['pending'])
                 if prior:
                     assert awards['initial_iq']['actual'] == full_sample_target and awards['initial_iq']['components'] == 2
                     assert awards['initial_iq']['source'] == 'full_sample'
@@ -77,14 +80,16 @@ for part, (fmt, reactions, image, truth, prior) in zip(session.get_participants(
                 assert float(part.payoff) == expected
             checked += 1
 
-# Percentile endpoints are not clipped and ties retain half weight.
+# All percentile responses remain pending, including endpoints and old demo overrides.
 part.vars.update(third_period_accepted=False, iq_reference_asked=False)
-for sample, guess, actual in [([0]*20, 100, 100), ([15]*20, 0, 0), ([0]*5+[10]*10+[15]*5, 50, 50)]:
+for guess in (0, 50, 100):
     p15.perceived_relative_performance = guess
-    with patch.object(s, 'group_for', return_value=dict(scores=sample)):
+    part.vars.update(researcher_preview=True, researcher_bonus_preview=dict(iq=.5, percentiles={'1':.25,'2':.25,'3':.25}))
+    with patch.object(s, 'group_for', side_effect=AssertionError('No historic percentile scoring')):
         s.FinalResults.vars_for_template(p45)
-    award = part.vars['accuracy_bonus_results']['awards']['percentile_1']
-    assert award['actual'] == actual and award['amount'] == .25
+    assert not part.vars['accuracy_bonus_results']['awards']
+    pending = part.vars['accuracy_bonus_results']['pending'][0]
+    assert pending['guess'] == guess and 'amount' not in pending and 'actual' not in pending
 
 # Missing historical responses are pending, never fabricated zero awards.
 p15.perceived_relative_performance = None
@@ -111,4 +116,4 @@ assert float(part.payoff) == 10.5
 assert reconcile()['count'] == 1 and float(part.payoff) == 10.5
 assert reconcile(True)['count'] == 1 and float(part.payoff) == 6
 assert reconcile(True)['count'] == 0
-print(f'Passed {checked} real-ORM payment scenarios across 32 cells: all WTA rates, accuracy boundaries, ties, optional period, refresh, legacy over-credit repair and unselected avatar.')
+print(f'Passed {checked} real-ORM payment scenarios across 32 cells: deferred percentile awards, no historical scoring or demo override, initial IQ boundary, all WTA rates, optional period, refresh and aggregate accounting.')

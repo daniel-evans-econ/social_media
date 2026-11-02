@@ -108,7 +108,7 @@ with patch('social_media.new_pages.average_rows',return_value=[quantitative]):
         assert not AverageBeliefs.vars_for_template(p)['rows'][0]['incentivized']
         assert AverageBeliefs.live_method(p,{'1':7.5})[1]['saved']
         assert 'average_belief_bonus' not in p.participant.vars
-# Filled examples must require the researcher-preview flag, never affect regular users.
+# Old filled-example flags cannot award deferred percentile bonuses.
 p=player()
 p.participant.vars.update(iq_reference_asked=True,
     researcher_bonus_preview=dict(iq=.5,percentiles={'1':.25,'2':.25,'3':.25}))
@@ -118,7 +118,7 @@ with patch.object(survey,'third_period_played',return_value=True), \
     assert float(p.payoff)==0
     p.participant.vars['researcher_preview']=True
     result=survey.FinalResults.vars_for_template(p)
-    assert len(result['preview_guess_rows'])==4 and float(p.payoff)==1.25
+    assert len(result['preview_guess_rows'])==0 and float(p.payoff)==0
     survey.FinalResults.vars_for_template(p)
-    assert float(p.payoff)==1.25
+    assert float(p.payoff)==0
 print('Passed: full-group satisfaction, legacy targets, inclusive bonus threshold, hidden truth, repeat-safe payment, stable randomized final questions.')

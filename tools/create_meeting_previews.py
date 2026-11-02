@@ -196,8 +196,6 @@ def create_previews():
             bonus_preview = key in ('satisfaction_bonus', 'quantitative_bonus')
             if bonus_preview:
                 participant.vars['third_period_pay_rate'] = float(survey.C.PAY_PER_CORRECT)
-                # Explicit, labelled researcher-only examples of deferred bonuses.
-                participant.vars['researcher_bonus_preview'] = dict(iq=.50, percentiles={str(p):.25 for p in (1,2,3)})
             for player in participant.get_players():
                 player.condition = survey.get_condition(player)
                 player.q_correct = bonus_preview or (player.round_number - 1) % 5 < 3

@@ -3855,16 +3855,6 @@ class FinalResults(Page):
         belief_bonus_amount = float(belief_bonus['amount']) if belief_bonus else 0
         from .payments import accuracy_bonuses
         preview_guess_rows, pending_guess_rows = accuracy_bonuses(player)
-        preview = (player.participant.vars.get('researcher_bonus_preview')
-                   if player.participant.vars.get('researcher_preview') else None)
-        if preview:
-            preview_guess_rows = []
-            pending_guess_rows = []
-            if player.participant.vars.get('iq_reference_asked'):
-                preview_guess_rows.append(dict(label='Initial IQ estimate', amount=f"{preview['iq']:.2f}"))
-            for row in task_rows:
-                amount = preview['percentiles'].get(str(row['period']), 0)
-                preview_guess_rows.append(dict(label=f"Period {row['period']} percentile estimate", amount=f"{amount:.2f}"))
         preview_guess_amount = sum(float(row['amount']) for row in preview_guess_rows)
         total_payoff = cu(question_payoff + belief_bonus_amount + preview_guess_amount)
         # oTree sums round payoffs. Results already credits the first two
@@ -3894,9 +3884,9 @@ class FinalResults(Page):
             belief_bonus_display=f"{belief_bonus_amount:.2f}",
             belief_bonus_label='Comparison-group belief accuracy',
             preview_guess_rows=preview_guess_rows,
-            fully_filled_bonus_preview=bool(preview),
+            fully_filled_bonus_preview=False,
             pending_guess_rows=pending_guess_rows,
-            pending_guess_labels='; '.join(row['label'] for row in pending_guess_rows),
+            pending_iq_bonus=any(row['label'] == 'Initial IQ estimate' for row in pending_guess_rows),
             switched_subtracted=f"{subtracted:.2f}",
             had_switch_deduction=subtracted > 0,
             guess_bonus_max_display=f"{float(guess_bonus_max):.2f}",

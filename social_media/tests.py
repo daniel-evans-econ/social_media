@@ -378,11 +378,14 @@ class PlayerBot(Bot):
             self.capture_page(f'FinalResults_{int(asked)}_{int(accepted)}')
             assert ('Initial IQ estimate' in self.html) == asked
             for period in range(1, 4 if accepted else 3):
-                assert f'Period {period} percentile estimate' in self.html
-            assert ('Period 3 percentile estimate' in self.html) == accepted
+                assert f'Period {period} percentile estimate' not in self.html
+            assert 'This may take some days to estimate.' in self.html
             db.expire_all()
             p = self.player
             awards = p.participant.vars['accuracy_bonus_results']['awards']
+            assert not any(key.startswith('percentile') for key in awards)
+            pending = p.participant.vars['accuracy_bonus_results']['pending']
+            assert len(pending) == (3 if accepted else 2)
             bonus = sum(row['amount'] for row in awards.values())
             bonus += p.participant.vars.get('average_belief_bonus', {}).get('amount', 0)
             for task_round in p.in_all_rounds():
