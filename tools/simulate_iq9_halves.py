@@ -2,7 +2,7 @@
 
 Run python tools/simulate_iq9_halves.py with PEER_REFERENCE_KEY in .env.
 Add --medians to use each task's observed pilot median rather than 9/15.
-Add --pool-percent 75 to compare overlapping bottom/top 75% pools instead of halves.
+Add --pool-percent 70 or 75 to compare overlapping bottom/top pools instead of halves.
 One million multinomial simulations per task/format/half, checked against the
 exact distribution and the live survey functions. No participant data modified.
 """
@@ -47,7 +47,7 @@ def player_for(task, fmt, code='analysis'):
 
 
 def main(use_medians=False, pool_percent=50):
-    suffix = ('iq_median' if use_medians else 'iq9') + ('_halves' if pool_percent == 50 else '_overlapping75')
+    suffix = ('iq_median' if use_medians else 'iq9') + ('_halves' if pool_percent == 50 else f'_overlapping{pool_percent}')
     OUT = ROOT / 'analysis' / suffix
     OUT.mkdir(parents=True, exist_ok=True)
     pools = reference(survey.CFG['iq_distribution_source'])
@@ -77,7 +77,7 @@ def main(use_medians=False, pool_percent=50):
                 if pool_percent == 50:
                     stratum = rows[len(rows)*(half-1)//2:len(rows)*half//2]
                 else:
-                    pool_size = math.ceil(len(rows)*.75)
+                    pool_size = (len(rows)*pool_percent+99)//100
                     stratum = rows[:pool_size] if half == 1 else rows[-pool_size:]
                 eligible = stratum if fmt == 'qualitative' else [r for r in stratum if len(r['blocks']) == 3 and all(b['report'] is not None for b in r['blocks'])]
                 scores = np.array([r['score'] for r in eligible])
@@ -102,7 +102,7 @@ def main(use_medians=False, pool_percent=50):
                     else:
                         # Analysis-only counterfactual: draw respondent identities
                         # directly, then use the unchanged live IQ scoring rule.
-                        selected = random.Random(f'overlap75-{task}-{fmt}-{half}-{i}').choices(eligible, k=N)
+                        selected = random.Random(f'overlap{pool_percent}-{task}-{fmt}-{half}-{i}').choices(eligible, k=N)
                         group = dict(scores=[r['score'] for r in selected], draw_ids=[r['id'] for r in selected])
                         live.participant.vars['peer_groups'] = {'1': group}
                     assert set(group['draw_ids']).issubset({r['id'] for r in eligible})
@@ -135,13 +135,13 @@ def main(use_medians=False, pool_percent=50):
                 ax.bar(cell['support'],np.array(cell['simulated_probabilities'])*100,width=.85,
                        color='#3575a5' if half=='lower' else '#bb633d',linewidth=0)
                 ax.axvline(cell['full_sample_iq'],color='#4b5563',ls='--',lw=1.2)
-                pool_label = f'{half} half' if pool_percent == 50 else f'{half} 75%'
+                pool_label = f'{half} half' if pool_percent == 50 else f'{half} {pool_percent}%'
                 ax.set_title(f"{cell['label']} ({cell['score']}/15) — {pool_label}",loc='left',fontsize=12,fontweight='bold',pad=10)
                 ax.text(.03,.94,f"Mean {cell['mean']:.1f}  |  SD {cell['sd']:.1f}\n95% interval: {cell['p025']}–{cell['p975']}\nFull sample IQ: {cell['full_sample_iq']}",
                         transform=ax.transAxes,va='top',fontsize=10)
                 ax.set_xlim(65,140);ax.set_ylim(0,106)
                 ax.set_xticks(range(70,141,10));ax.set_yticks([0,25,50,75,100])
-                if pool_percent == 75:
+                if pool_percent != 50:
                     ymax=max(25,math.ceil(max(max(x['simulated_probabilities']) for x in cells)*100*1.55/5)*5)
                     ax.set_ylim(0,ymax);ax.set_yticks(range(0,int(ymax)+1,5))
                 ax.grid(False);ax.spines[['top','right']].set_visible(False)
@@ -149,7 +149,7 @@ def main(use_medians=False, pool_percent=50):
                 if r==2:ax.set_xlabel('Reported IQ score')
         score_title = 'Number correct: pilot median for each task' if use_medians else 'Number correct: 9/15 in each task'
         fig.suptitle(f"{score_title}\n{fmt.capitalize()} participants",fontsize=17,fontweight='bold',y=.98)
-        pool_description = 'assigned half' if pool_percent == 50 else 'lower or upper 75%'
+        pool_description = 'assigned half' if pool_percent == 50 else f'lower or upper {pool_percent}%'
         fig.text(.5,.018,f'20 draws with replacement from the {pool_description} · Dashed line: full sample IQ',ha='center',fontsize=10,color='#4b5563')
         fig.tight_layout(rect=(0,.04,1,.93),h_pad=2)
         fig.savefig(OUT/f'{fmt}_{suffix}.png',dpi=180)
@@ -171,6 +171,6 @@ def main(use_medians=False, pool_percent=50):
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--medians', action='store_true')
-    parser.add_argument('--pool-percent', type=int, choices=(50,75), default=50)
+    parser.add_argument('--pool-percent', type=int, choices=(50,70,75), default=50)
     args = parser.parse_args()
     main(args.medians, args.pool_percent)
