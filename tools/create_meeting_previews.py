@@ -60,6 +60,7 @@ def treatment_cases():
         ('debrief_two_periods', 'IQDebrief', 45, 'qualitative', 'avatar', False),
         ('percentile', 'PerceivedPercentile', 15, 'quantitative', 'avatar', True),
     ]
+    cases.extend(intro_no_reaction_cases())
     for kind in ('quantitative', 'qualitative'):
         for reacts in (False, True):
             key = f'message_{kind}_' + ('reactions' if reacts else 'no_reactions')
@@ -69,6 +70,11 @@ def treatment_cases():
             cases.append((f'beliefs_{kind}_{suffix}', 'AverageBeliefs', 45, kind, 'avatar', truth))
             cases.append((f'correction_{kind}_{suffix}', 'AverageBeliefs', 45, kind, 'avatar', truth))
     return cases
+
+
+def intro_no_reaction_cases():
+    return [(f'username_{kind}_{image}_no_reactions', 'Intro', 1, kind, image, True)
+            for kind in ('quantitative', 'qualitative') for image in ('avatar', 'selfie')]
 
 
 def representative_groups(sample_size=1000):
@@ -269,4 +275,6 @@ if __name__ == '__main__':
         CASES = treatment_cases()
     elif '--debrief' in sys.argv:
         CASES = [case for case in treatment_cases() if case[1] == 'IQDebrief']
+    elif '--intro-no-reactions' in sys.argv:
+        CASES = intro_no_reaction_cases()
     create_previews()
