@@ -12,7 +12,7 @@
 </fieldset>
 {% elif row.key == 'human_nature' %}
 <fieldset class="average-outcome"><legend>How would you describe your view of <strong class="average-emphasis">human nature</strong>?</legend>
-<div class="controls">
+<div class="controls human-nature-options">
 {% for value,label in human_nature_choices %}
 <div class="form-check form-check-inline">
 <input class="form-check-input" id="human-nature-{{ value }}" type="radio" name="human_nature" data-answer="human_nature" value="{{ value }}" required>
