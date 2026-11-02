@@ -43,6 +43,7 @@
 {% if combined %}
 <style>[hidden] { display:none!important; } .average-outcome { margin:1.4em 0; } .average-outcome legend { font-size:1em; margin-bottom:6px; }</style>
 <fieldset id="average-outcomes" {% if not submitted %}hidden disabled{% endif %} style="border:0;padding:0;">
+<h3 class="average-outcomes-title">A few questions about how you feel</h3>
 {% include "social_media/AverageOutcomeQuestions.html" %}
 </fieldset>
 <button type="submit" class="otree-btn-next btn btn-primary" id="average-submit" data-submitted="{% if submitted %}1{% else %}0{% endif %}">{% if submitted %}Next{% else %}Submit estimate{% endif %}</button>
