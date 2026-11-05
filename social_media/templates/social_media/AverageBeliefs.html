@@ -11,6 +11,12 @@
 {% else %}
 <p>{% if single_period %}For the task you completed earlier in the experiment, we{% else %}For each task type, we{% endif %} calculated the <strong class="average-emphasis">average number of questions</strong> that people in your comparison group <strong class="average-emphasis">reported getting correct</strong> in their messages.</p>
 {% endif %}
+{% if combined and satisfaction_target and not submitted %}
+<button type="button" class="btn btn-primary" id="average-understood" disabled>Understood</button>
+{% endif %}
+{% if combined %}
+<fieldset id="average-estimate-stage" style="border:0;padding:0;margin:0;min-width:0;" {% if satisfaction_target and not submitted %}hidden disabled{% endif %}>
+{% endif %}
 {% for row in rows %}
 <section class="average-section">
 <h4>Period {{ row.period }}: {{ row.task_label }}</h4>
@@ -48,7 +54,8 @@
 </fieldset>
 <button type="submit" class="otree-btn-next btn btn-primary" id="average-submit" data-submitted="{% if submitted %}1{% else %}0{% endif %}" {% if submitted %}disabled{% endif %}>{% if submitted %}Next{% else %}Submit estimate{% endif %}</button>
 <p id="answer-status" role="status"></p>
-<script src="/static/social/average-feedback.js?v=3"></script>
+</fieldset>
+<script src="/static/social/average-feedback.js?v=4"></script>
 {% else %}
 {{ next_button }}
 {% include "social_media/SaveLiveAnswers.html" %}

@@ -6,6 +6,39 @@
   const status = document.getElementById('answer-status');
   let submitted = button.dataset.submitted === '1', pending = false, finished = false;
   let waitingForCorrection = false, revealTimer = null;
+  const understood = document.getElementById('average-understood');
+  const estimateStage = document.getElementById('average-estimate-stage');
+  let readingIntroduction = !!understood;
+  if (understood) {
+    const storageKey = 'average-introduction-understood:' + window.location.pathname;
+    let acknowledged = false;
+    try { acknowledged = sessionStorage.getItem(storageKey) === '1'; } catch (_) {}
+    function showEstimate() {
+      readingIntroduction = false;
+      understood.hidden = true;
+      estimateStage.disabled = false;
+      estimateStage.hidden = false;
+    }
+    if (acknowledged) {
+      showEstimate();
+    } else {
+      const readyAt = performance.now() + 20000;
+      function updateReadingTime() {
+        const remaining = Math.max(0, Math.ceil((readyAt - performance.now()) / 1000));
+        understood.textContent = remaining ? 'Understood (' + remaining + ')' : 'Understood';
+        understood.disabled = remaining > 0;
+        if (!remaining) clearInterval(readingTimer);
+      }
+      const readingTimer = setInterval(updateReadingTime, 250);
+      updateReadingTime();
+      understood.addEventListener('click', () => {
+        if (performance.now() < readyAt) return;
+        clearInterval(readingTimer);
+        try { sessionStorage.setItem(storageKey, '1'); } catch (_) {}
+        showEstimate();
+      });
+    }
+  }
   function showOutcomes() {
     waitingForCorrection = false;
     outcomes.disabled = false; outcomes.hidden = false;
@@ -31,7 +64,7 @@
     // This stage saves through liveSend, not a page submission. Do not let
     // oTree's submit debounce restore our temporary disabled state later.
     event.stopImmediatePropagation();
-    if (pending || waitingForCorrection || !form.reportValidity()) return;
+    if (readingIntroduction || pending || waitingForCorrection || !form.reportValidity()) return;
     const answers = {};
     const inputs = submitted ? outcomes.querySelectorAll('[data-answer]')
                             : form.querySelectorAll('.average-section [data-answer]');
