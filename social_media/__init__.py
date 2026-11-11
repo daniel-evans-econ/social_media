@@ -611,19 +611,8 @@ def _env_bool(name: str, default: bool = True) -> bool:
 
 
 ENABLE_TURNSTILE = _env_bool("ENABLE_TURNSTILE", False)
-TURNSTILE_SITE_KEY = os.environ.get(
-    "TURNSTILE_SITE_KEY",
-    "0x4AAAAAACnfkwrD0j2j_URF",
-)
-TURNSTILE_SECRET_KEY = os.environ.get(
-    "TURNSTILE_SECRET_KEY",
-    "0x4AAAAAACnfk_ZxfVMEct1r7CRNuh19G1M",
-)
-TURNSTILE_BYPASS_KEY = os.environ.get("TURNSTILE_BYPASS_KEY", "stonkgoup")
-TURNSTILE_USE_TEST_KEYS_ON_LOCALHOST = True
-TURNSTILE_ALLOW_AUTO_BYPASS_ON_LOCALHOST = True
-TURNSTILE_TEST_SITE_KEY = "1x00000000000000000000AA"
-TURNSTILE_TEST_SECRET_KEY = "1x0000000000000000000000000000000AA"
+TURNSTILE_SITE_KEY = os.environ.get("TURNSTILE_SITE_KEY", "")
+TURNSTILE_SECRET_KEY = os.environ.get("TURNSTILE_SECRET_KEY", "")
 
 
 class C(BaseConstants):
@@ -2162,8 +2151,7 @@ class BotCheck(Page):
     honeypot lives on Consent so it runs either way.
     """
     form_model = 'player'
-    form_fields = ['turnstile_token', 'turnstile_bypass_key',
-                   'turnstile_client_host']
+    form_fields = ['turnstile_token']
 
     @staticmethod
     def is_displayed(player: Player):
@@ -2173,8 +2161,6 @@ class BotCheck(Page):
     def vars_for_template(player: Player):
         return dict(
             turnstile_site_key=TURNSTILE_SITE_KEY,
-            turnstile_test_site_key=TURNSTILE_TEST_SITE_KEY,
-            turnstile_use_test_keys_on_localhost_js='true' if TURNSTILE_USE_TEST_KEYS_ON_LOCALHOST else 'false',
             enable_turnstile=ENABLE_TURNSTILE,
         )
 
@@ -2185,32 +2171,22 @@ class BotCheck(Page):
         if not ENABLE_TURNSTILE:
             return
 
-        host = (values.get('turnstile_client_host') or '').strip().lower()
-        is_localhost = host in ('localhost', '127.0.0.1', '::1')
-        if is_localhost and TURNSTILE_ALLOW_AUTO_BYPASS_ON_LOCALHOST:
-            return
-
-        provided_bypass = (values.get('turnstile_bypass_key') or '').strip()
-        if TURNSTILE_BYPASS_KEY and provided_bypass == TURNSTILE_BYPASS_KEY:
-            player.participant.vars['captcha_bypassed'] = True
-            return
-
         token = (values.get('turnstile_token') or '').strip()
         if not token:
             return {'turnstile_token': 'Please complete the bot check to continue.'}
 
+        if not TURNSTILE_SECRET_KEY:
+            return {'turnstile_token': 'Bot check could not be verified; please try again.'}
+
         try:
             from urllib import parse, request
-            import json as _json
-            secret_key = (TURNSTILE_TEST_SECRET_KEY if (is_localhost and TURNSTILE_USE_TEST_KEYS_ON_LOCALHOST)
-                          else TURNSTILE_SECRET_KEY)
-            data = parse.urlencode({'secret': secret_key, 'response': token}).encode()
+            data = parse.urlencode({'secret': TURNSTILE_SECRET_KEY, 'response': token}).encode()
             req = request.Request(
                 'https://challenges.cloudflare.com/turnstile/v0/siteverify', data=data,
             )
-            resp = request.urlopen(req, timeout=6)
-            result = _json.load(resp)
-            if not result.get('success'):
+            with request.urlopen(req, timeout=6) as resp:
+                result = json.load(resp)
+            if result.get('success') is not True:
                 return {'turnstile_token': 'Bot check verification failed; please try again.'}
         except Exception:
             return {'turnstile_token': 'Bot check could not be verified; please try again.'}

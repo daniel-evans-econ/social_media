@@ -69,10 +69,7 @@ class PlayerBot(Bot):
             p.participant.vars['iq_reference_asked'] = p.id_in_group % 2 == 1
             p.iq_reference_asked = p.participant.vars['iq_reference_asked']
             self.capture_page('BotCheck')
-            yield Submission(BotCheck, dict(
-                turnstile_token='', turnstile_bypass_key='',
-                turnstile_client_host='localhost',
-            ), check_html=False)
+            yield Submission(BotCheck, dict(turnstile_token=''), check_html=False)
             self.capture_page('Consent')
             assert Consent.error_message(p, dict(consent=True, llm_rule_confirm=True))
             Consent.live_method(p, dict(selfie_consent=True))

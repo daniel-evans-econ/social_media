@@ -28,12 +28,9 @@ Continue to the next page to give your consent.
 <br>
 
 {% if enable_turnstile %}
-  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <div style="margin-top:1em;">
     <div id="turnstile_widget"></div>
     <input type="hidden" name="turnstile_token" id="turnstile_token" />
-    <input type="hidden" name="turnstile_bypass_key" id="turnstile_bypass_key" />
-    <input type="hidden" name="turnstile_client_host" id="turnstile_client_host" />
   </div>
   <script>
     var turnstileVerified = false;
@@ -69,35 +66,13 @@ Continue to the next page to give your consent.
       disableNextUntilVerified();
     }
 
-    function setTurnstileHostMetadata() {
-      var host = (window.location && window.location.hostname) ? window.location.hostname.toLowerCase() : '';
-      var hostEl = document.getElementById('turnstile_client_host');
-      if (hostEl) hostEl.value = host;
-    }
-
-    function initTurnstileWidgetWithRetry(retriesLeft) {
-      var host = (window.location && window.location.hostname) ? window.location.hostname.toLowerCase() : '';
-      var useTestOnLocalhost = {{ turnstile_use_test_keys_on_localhost_js }};
-      var isLocalhost = host === 'localhost' || host === '127.0.0.1' || host === '::1';
-      var siteKey = (useTestOnLocalhost && isLocalhost)
-        ? '{{ turnstile_test_site_key }}'
-        : '{{ turnstile_site_key }}';
-
-      if (window.turnstile && document.getElementById('turnstile_widget')) {
-        window.turnstile.render('#turnstile_widget', {
-          sitekey: siteKey,
-          callback: onTurnstileSuccess,
-          'expired-callback': onTurnstileExpired,
-          'error-callback': onTurnstileError,
-        });
-        return;
-      }
-
-      if (retriesLeft > 0) {
-        setTimeout(function () {
-          initTurnstileWidgetWithRetry(retriesLeft - 1);
-        }, 200);
-      }
+    function initTurnstileWidget() {
+      window.turnstile.render('#turnstile_widget', {
+        sitekey: '{{ turnstile_site_key }}',
+        callback: onTurnstileSuccess,
+        'expired-callback': onTurnstileExpired,
+        'error-callback': onTurnstileError,
+      });
     }
 
     function disableNextUntilVerified() {
@@ -110,28 +85,23 @@ Continue to the next page to give your consent.
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', function () {
         disableNextUntilVerified();
-        setTurnstileHostMetadata();
         nextBtnObserver = new MutationObserver(function () {
           disableNextUntilVerified();
         });
         nextBtnObserver.observe(document.body, { childList: true, subtree: true });
-        initTurnstileWidgetWithRetry(30);
       });
     } else {
       disableNextUntilVerified();
-      setTurnstileHostMetadata();
       nextBtnObserver = new MutationObserver(function () {
         disableNextUntilVerified();
       });
       nextBtnObserver.observe(document.body, { childList: true, subtree: true });
-      initTurnstileWidgetWithRetry(30);
     }
   </script>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&amp;onload=initTurnstileWidget" defer></script>
 {% else %}
   <!-- Turnstile is disabled on this deployment -->
   <input type="hidden" name="turnstile_token" value="disabled" />
-  <input type="hidden" name="turnstile_bypass_key" value="" />
-  <input type="hidden" name="turnstile_client_host" value="" />
 {% endif %}
 
 {{ next_button }}
