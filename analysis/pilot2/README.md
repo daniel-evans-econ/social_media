@@ -69,6 +69,8 @@ Use `--manifest cohorts.json --out NEW_FOLDER` after wave two. The JSON file is 
 
 ## Interpretation and checks
 
+`python analysis/pilot2/treatment_plots.py EXPANDED.csv FIGURE_DIRECTORY` renders one coefficient plot per treatment. Use the CSV from `expanded.py`; the points and intervals use the outcome standard deviation in each model's reference arm. The right-hand column gives the point estimates in their original units.
+
 The historical slide replication is finishers-only except for recruitment counts. Current treatment analyses use observed outcomes among identified starts, including usable mandatory-period outcomes from nonfinishers. Each estimate carries its participant and observation counts. Missing responses, declined optional periods, unoffered reactions and absent feed contrasts stay missing. Repeated observations use participant-clustered uncertainty and a t critical value. The package flags small numbers of clusters, single-person arms and unidentifiable contrasts. Treatment tables are exploratory, with nominal 95% intervals and no multiplicity correction. Attrition, particularly during the server interruption, can change who contributes an outcome. Review completion across assignments before interpreting contrasts.
 
 The survey disclosed credibility and full-sample IQ at different points. The debrief and universal selfie collection have no randomized unexposed group in this design. The package verifies saved debrief values against the calibration table when available. It uses saved peer-group and belief targets and does not redraw assignments, reconstruct a hypothetical feed or trigger payments.

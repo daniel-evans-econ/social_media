@@ -47,6 +47,8 @@ def expanded(a, q, b, p, belief, coding=None):
         n = ds.pid.nunique()
         r = dict(family=family, outcome=outcome, term=term, units=units, scope=scope,
                  participants=n, observations=len(ds), formula=rhs)
+        if term in ds and set(ds[term].unique()) == {0, 1}:
+            r["reference_sd"] = ds.loc[ds[term].eq(0), outcome].std()
         rows.append(r)
         if n < 5 or term not in design_x or len(ds) <= design_x.shape[1] or np.linalg.matrix_rank(design_x) < design_x.shape[1] or design_y.iloc[:,0].nunique()<2:
             r["status"] = "insufficient variation"
@@ -70,6 +72,12 @@ def expanded(a, q, b, p, belief, coding=None):
             fit("assignment", b, y, x, x+" + C(task) + C(period) + C(difficulty)", scope="mandatory social blocks")
         d = social if x=="upper" else a
         fit("assignment",d,"task_effort",x,x,scope="endline; upper is assignment in mandatory social period")
+    for y in period_y:
+        paired = p.dropna(subset=[y]).copy()
+        paired = paired[paired.groupby("pid").social.transform("nunique").eq(2)]
+        if len(paired):
+            fit("social period assignment", paired, y, "social", "social + C(period) + C(pid)",
+                scope="within person, mandatory periods")
     for x,arm in [("peer_score",0),("peer_happy",1)]:
         g=b[b.qualitative.eq(arm)].copy()
         for y in ["shared","edits","reaction_pct"]+(["claim","bias"] if arm==0 else ["words","own_laugh"]+(["sentiment"] if "sentiment" in g else [])):
@@ -98,6 +106,7 @@ def expanded(a, q, b, p, belief, coding=None):
         g["signed_news"]=g.surprise/increment
         for y,baseline in base.items():
             adj=" + "+baseline if baseline else ""
+            fit("correction assignment " + kind, g, y, "reveal", "reveal")
             for x in ["size","signed_news"]:
                 fit("reveal interaction "+kind,g,y,"reveal:"+x,"reveal * "+x+adj,scope="reveal minus no reveal gradient")
                 fit("revealed only "+kind,g[g.reveal.eq(1)],y,x,x+adj,scope="within revealed arm")
