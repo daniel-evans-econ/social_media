@@ -63,6 +63,8 @@ The source deck is *Social Media Pilot: First Results*, August 2026 (numbered sl
 
 ## Two-wave input
 
+For a single frozen wave, run `python analysis/pilot2/expanded.py --export EXPORT_FOLDER --min-slot FIRST_LIVE_SLOT --legacy-dir PILOT1_SOURCE --output EXPANDED.csv` for the additional assignment, incoming-message, correction-size, and credibility interactions. The numerical correction unit is one question. The qualitative unit is ten percentage points. Trust is analyzed both continuously and as 4–5 versus 1–3. Each output row records the fitted formula, sample size, and nominal participant-clustered interval.
+
 Use `--manifest cohorts.json --out NEW_FOLDER` after wave two. The JSON file is a list of objects with `folder`, `cohort` (`no_feed` or `feed`), optional inclusive `min_slot` / `max_slot`, and optionally `exclude_codes`. Use the actual rollout boundary, especially if a single cumulative session export covers both waves. Separate sessions can each start at slot one. The runner rejects overlaps across cohorts and repeated Prolific IDs so neither repeated snapshots nor return visits silently count twice.
 
 ## Interpretation and checks

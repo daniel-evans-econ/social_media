@@ -14,7 +14,7 @@ def bundle(archive, source):
     prefix="analysis/pilot2/"
     with ZipFile(archive,"x",compression=ZIP_DEFLATED) as dest:
         for name in ("README.md","requirements.txt","run.py","verify.py","replicate.py",
-                     "report.py","features.py","data.py"):
+                     "report.py","features.py","expanded.py","data.py"):
             dest.write(here/name,prefix+name)
         calibration="social_media/data/iq_distribution_initial.json"
         dest.write(ROOT/calibration,calibration)
