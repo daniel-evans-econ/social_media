@@ -5,12 +5,13 @@ import statsmodels.formula.api as smf
 from scipy.stats import t
 
 
-def expanded(a, q, b, p, belief, coding=None):
+def expanded(a, q, b, p, belief, coding=None, explanation_codes=None):
     a = a.copy()
     a["selfie"] = a.image.map({"selfie": 1, "avatar": 0})
     a["qualitative"] = a["format"].map({"qualitative_social": 1, "quantitative_social": 0})
     a["trust"] = a.trust_own_iq_estimate
-    keys = ["pid", "reactions", "selfie", "qualitative", "reference", "reveal", "trust", "task_effort"]
+    concern = ["care_about_ranking", "care_about_iq_score"]
+    keys = ["pid", "reactions", "selfie", "qualitative", "reference", "reveal", "trust", "task_effort", *concern]
     all_periods = p
     p = p[p.period.le(2)].merge(a[keys], on="pid")
     b = b[b.period.le(2) & b.social.eq(1) & b.shared.notna()].merge(a[keys], on="pid")
@@ -21,6 +22,14 @@ def expanded(a, q, b, p, belief, coding=None):
     effort = q.groupby(period_keys).agg(seconds=("rt","mean"), timeout=("timeout","mean")).reset_index()
     p = p.merge(effort, on=period_keys)
     b["words"] = b.note.str.split().str.len().where(b.qualitative.eq(1))
+    if explanation_codes is not None:
+        import hashlib
+        labels = pd.read_csv(explanation_codes).set_index("text_sha256", verify_integrity=True).explains
+        notes = b.loc[b.qualitative.eq(1) & b.note.str.strip().ne(""), "note"]
+        coded = notes.map(lambda text: hashlib.sha256(text.encode("utf-8")).hexdigest()).map(labels)
+        if not coded.isin([0, 1]).all():
+            raise ValueError("Missing or invalid explanation code for a qualitative note")
+        b["explains_pct"] = 100 * coded
     b["own_laugh"] = b.emoji.eq("😆").astype(float).where(b.qualitative.eq(1))
     b["absolute_bias"] = b.bias.abs().where(b.qualitative.eq(0))
     b["shared"] *= 100
@@ -38,6 +47,7 @@ def expanded(a, q, b, p, belief, coding=None):
     # Participant-period exposure weights every eligible message within that period equally.
     pk = b.groupby(period_keys)[["peer_score", "peer_happy"]].mean().reset_index()
     social = p[p.social.eq(1)].merge(pk, on=period_keys)
+    social["iq_sent_pct"] = 100 * social.iq_sent
     rows = []
 
     def fit(family, frame, outcome, term, rhs, units="", scope=""):
@@ -47,7 +57,9 @@ def expanded(a, q, b, p, belief, coding=None):
         n = ds.pid.nunique()
         r = dict(family=family, outcome=outcome, term=term, units=units, scope=scope,
                  participants=n, observations=len(ds), formula=rhs)
-        if term in ds and set(ds[term].unique()) == {0, 1}:
+        if family == "overall IQ news":
+            r["sample_sd"] = ds[outcome].std()
+        elif term in ds and set(ds[term].unique()) == {0, 1}:
             r["reference_sd"] = ds.loc[ds[term].eq(0), outcome].std()
         rows.append(r)
         if n < 5 or term not in design_x or len(ds) <= design_x.shape[1] or np.linalg.matrix_rank(design_x) < design_x.shape[1] or design_y.iloc[:,0].nunique()<2:
@@ -59,19 +71,24 @@ def expanded(a, q, b, p, belief, coding=None):
         r.update(estimate=m.params[term], lower=m.params[term]-delta, upper=m.params[term]+delta, status="estimated")
 
     period_y = ["seconds","timeout","score15","mood","performance_satisfaction","task_enjoyment",
-                "perceived_relative_performance","iq_perception_change","displayed_iq"]
+                "perceived_relative_performance","iq_perception_change","displayed_iq",
+                "payment_satisfaction","perceived_percentile_confidence"]
     block_y = ["shared","edits","words","own_laugh","absolute_bias"] + (["sentiment"] if "sentiment" in b else [])
+    if explanation_codes is not None:
+        block_y.append("explains_pct")
     for x in ["upper","reactions","selfie","qualitative","reference"]:
         # Most treatments are experienced in social periods. One social period per person.
         for y in period_y:
             d = p if x=="upper" else social
             fit("assignment", d, y, x, x+" + C(task) + C(period)", scope="both mandatory periods" if x=="upper" else "mandatory social period")
         for y in block_y:
-            if x=="qualitative" and y in ("words","own_laugh","absolute_bias","sentiment"):
+            if x=="qualitative" and y in ("words","own_laugh","absolute_bias","sentiment","explains_pct"):
                 continue
             fit("assignment", b, y, x, x+" + C(task) + C(period) + C(difficulty)", scope="mandatory social blocks")
         d = social if x=="upper" else a
-        fit("assignment",d,"task_effort",x,x,scope="endline; upper is assignment in mandatory social period")
+        for y in ["task_effort", *concern]:
+            fit("assignment",d,y,x,x,scope="endline; upper is assignment in mandatory social period")
+        fit("assignment",social,"iq_sent_pct",x,x+" + C(task) + C(period)",scope="mandatory social period IQ message")
     for y in period_y:
         paired = p.dropna(subset=[y]).copy()
         paired = paired[paired.groupby("pid").social.transform("nunique").eq(2)]
@@ -98,6 +115,25 @@ def expanded(a, q, b, p, belief, coding=None):
         for y in ["mood","performance_satisfaction","perceived_relative_performance","iq_perception_change","task_effort"]:
             fit("mean received content",social[social.qualitative.eq(arm)],y,x,x+" + score15 + upper + C(task) + C(period)")
     v=belief.merge(a[keys],on="pid").merge(all_periods[period_keys+["mood","performance_satisfaction","iq_perception_change"]],on=period_keys,how="left")
+    # The initial IQ question and the displayed overall estimate both concern periods 1 and 2.
+    # Only include responses observed on or after the overall feedback screen.
+    after = a[a.reference.eq(1)].merge(
+        p.loc[p.period.eq(2), ["pid", "overall_displayed", "overall_sent"]],
+        on="pid", validate="one_to_one")
+    full = p.pivot(index="pid", columns="period", values="full_iq").reindex(columns=[1,2])
+    after["benchmark_iq"] = after.pid.map(np.floor(full.mean(axis=1,skipna=False) + .5))
+    after["news10"] = (after.overall_displayed - after.prior_iq) / 10
+    after["overall_sent_pct"] = 100 * after.overall_sent
+    after["accepted_optional_pct"] = 100 * after.accepted_optional
+    after = after.merge(belief[["pid", "post_mood", "post_satisfaction", "post_iq"]],
+                        on="pid", how="left", validate="one_to_one")
+    for y in ["accepted_optional_pct", "task_effort", "post_mood", "post_satisfaction",
+              "post_iq", "trust", "overall_sent_pct", *concern]:
+        rhs = "news10 + prior_iq + benchmark_iq"
+        if y.startswith("post_"):
+            rhs += " + reveal + qualitative"
+        fit("overall IQ news", after, y, "news10", rhs,
+            scope="per 10 IQ points of displayed overall IQ minus initial guess; observational slope")
     base={"post_mood":"mood","post_satisfaction":"performance_satisfaction","post_iq":"iq_perception_change","human_nature":None}
     for kind,g in v.groupby("kind"):
         g=g.copy()
@@ -138,8 +174,9 @@ if __name__ == "__main__":
     cli.add_argument("--export", required=True, type=Path)
     cli.add_argument("--min-slot", required=True, type=int)
     cli.add_argument("--legacy-dir", required=True, type=Path)
+    cli.add_argument("--explanation-codes", type=Path)
     cli.add_argument("--output", required=True, type=Path)
     args = cli.parse_args()
     (_, (people, questions, blocks, periods, beliefs, _, _), _, _) = load(args.export, args.min_slot, [])
-    estimates = expanded(people, questions, blocks, periods, beliefs, args.legacy_dir / "notes_coding.py")
+    estimates = expanded(people, questions, blocks, periods, beliefs, args.legacy_dir / "notes_coding.py", args.explanation_codes)
     estimates.to_csv(args.output, index=False)
