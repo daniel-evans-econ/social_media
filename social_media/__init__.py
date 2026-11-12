@@ -1425,27 +1425,15 @@ def block_correct_prior_in_block(player: Player):
     return total
 
 
-def total_correct(player: Player):
-    total = 0
-    for p in player.in_rounds(1, player.round_number):
-        if q_answer_earns_bonus(p):
-            total += 1
-    return total
+def bonus_correct(player: Player, start: int, end: int):
+    return sum(1 for p in player.in_rounds(start, end) if q_answer_earns_bonus(p))
 
 
 def period_correct(player: Player):
+    """Count all correct answers in this period for IQ feedback."""
     r = player.round_number
-    if r <= C.PERIOD_LENGTH:
-        start = 1
-    elif r <= 2 * C.PERIOD_LENGTH:
-        start = C.PERIOD_LENGTH + 1
-    else:
-        start = C.THIRD_PERIOD_START
-    total = 0
-    for p in player.in_rounds(start, r):
-        if q_answer_earns_bonus(p):
-            total += 1
-    return total
+    start = (period_of_round(r) - 1) * C.PERIOD_LENGTH + 1
+    return sum(1 for p in player.in_rounds(start, r) if p.field_maybe_none('q_correct'))
 
 
 def _peer_message_time(rng: random.Random) -> str:
@@ -3232,16 +3220,9 @@ class EndOfPeriodSurvey(Page):
             pay_rate = player.participant.vars.get('third_period_pay_rate', 0) or 0
         else:
             pay_rate = float(C.PAY_PER_CORRECT)
-        correct = period_correct(player)
-        earnings = correct * pay_rate
-
         r = player.round_number
-        if r <= C.PERIOD_LENGTH:
-            start = 1
-        elif r <= 2 * C.PERIOD_LENGTH:
-            start = C.PERIOD_LENGTH + 1
-        else:
-            start = C.THIRD_PERIOD_START
+        start = (period - 1) * C.PERIOD_LENGTH + 1
+        earnings = bonus_correct(player, start, r) * pay_rate
         switched = switched_disqualified_count(player, start, r)
         subtracted = switched * pay_rate
 
@@ -3672,7 +3653,7 @@ class Results(Page):
 
     @staticmethod
     def vars_for_template(player: Player):
-        raven_total = total_correct(player)
+        raven_total = bonus_correct(player, 1, player.round_number)
 
         payoff = cu(0)
         payoff += raven_total * C.PAY_PER_CORRECT
@@ -3805,9 +3786,6 @@ class FinalResults(Page):
             (C.THIRD_PERIOD_START, C.NUM_ROUNDS),
         ]
 
-        def bonus_correct(start, end):
-            return sum(1 for p in player.in_rounds(start, end) if q_answer_earns_bonus(p))
-
         # One row per played task period (period 3 only if it was taken).
         task_rows = []
         debrief_rows, _ = full_sample_iq_results(player)
@@ -3818,7 +3796,7 @@ class FinalResults(Page):
                 continue
             task = period_tasks[idx] if idx < len(period_tasks) else None
             rate = p3_pay_rate if (period_no == 3 and CFG['use_wta']) else rate_per_correct
-            correct = bonus_correct(start, end)
+            correct = bonus_correct(player, start, end)
             amount = correct * rate
             question_payoff += amount
             task_rows.append(dict(

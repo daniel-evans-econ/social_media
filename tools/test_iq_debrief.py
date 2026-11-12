@@ -1,4 +1,5 @@
 """Debrief calculations, recalled feedback and payment neutrality."""
+import json
 import os
 import sys
 from pathlib import Path
@@ -47,5 +48,31 @@ assert s.IQDebrief.vars_for_template(player)['earlier_overall_iq'] is None
 with patch.dict(s.CFG, show_iq=False):
     assert not s.IQDebrief.is_displayed(player)
 assert s.page_sequence.index(s.IQDebrief) + 1 == s.page_sequence.index(s.FinalResults)
+
+# Follow the same participant from block feedback to the final bonus summary.
+test_part = create_session('cognitive_tasks', num_participants=1).get_participants()[0]
+test_part.period_1_condition = 'control'
+test_part.vars.update(third_period_accepted=False, full_sample_iq_debrief=True)
+for row in test_part.get_players():
+    row.q_correct = row.round_number <= 10
+    row.q_tab_switches = 2 if row.round_number in (1, 2, 11) else 0
+end = test_part.get_player('social_media', 15)
+last = test_part.get_player('social_media', 45)
+assert s.block_correct(test_part.get_player('social_media', 5)) == 5
+component = s.component_for_player(end)
+expected_iq = s.estimate_iq_for_player(end, component, 10, 15)
+feedback = s.IQFeedback.vars_for_template(end)
+assert feedback['n_correct'] == 10 and feedback['iq'] == expected_iq
+s.IQFeedback.before_next_page(end, False)
+snapshot = json.loads(end.iq_feedback_snapshot)
+assert snapshot['n_correct'] == 10 and snapshot['iq'] == expected_iq
+debrief = s.IQDebrief.vars_for_template(last)['debrief_rows'][0]
+assert debrief['correct'] == 10 and debrief['earlier_iq'] == expected_iq
+assert debrief['iq'] == s.estimate_iq(component, 10, 15)
+earnings = s.EndOfPeriodSurvey.vars_for_template(end)
+amount = 8 * float(s.C.PAY_PER_CORRECT)
+assert earnings['switched_count'] == 2 and float(earnings['period_earnings']) == amount
+payment = s.FinalResults.vars_for_template(last)['task_rows'][0]
+assert payment['correct'] == 8 and float(payment['amount']) == amount
 
 print('Passed two/three-period full-sample debrief, recorded earlier feedback, half-up overall rounding and unchanged payoffs.')
