@@ -1,4 +1,4 @@
-otree>=5.4.0
+otree==6.0.15
 psycopg2-binary
 python-dotenv>=1.0.0
 Pillow>=10.0.0
