@@ -17,6 +17,9 @@ def replace_once(path, old, new):
 
 
 def install(root):
+    replace_once(root / 'urls.py', 'routes = get_urlpatterns()', '''routes = get_urlpatterns()
+from researcher_selfies import researcher_routes
+routes.extend(researcher_routes)''')
     views = root / 'views' / 'export.py'
     replace_once(views, '        buf = StringIO()', '''        # The normal login or REST-key check has already run here.
         from survey_exports import download
