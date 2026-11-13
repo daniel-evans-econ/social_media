@@ -1,11 +1,9 @@
-"""A credential scoped to this page can download only the indexed Wave 1 thumbnails."""
+"""Authenticated access to the participant report for the indexed Wave 1 cohort."""
 import base64
 import hashlib
 import hmac
-import io
 import json
 import os
-import zipfile
 from contextlib import closing
 from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qs
@@ -24,34 +22,30 @@ HEADERS = {
     'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
 }
 FORM = """<!doctype html><html lang="en"><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>Wave 1 selfies</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Wave 1 participant report</title>
 <style>body{font:1rem/1.55 system-ui,sans-serif;max-width:30rem;margin:8vh auto;padding:1rem;color:#203045}
 h1{font-size:1.75rem}label{display:block;margin:1rem 0}input{display:block;font:inherit;padding:.4rem;width:90%}
-button{font:inherit;padding:.5rem 1rem}</style><main><h1>Download Wave 1 selfies</h1>
-<p>Save the ZIP file on your password-protected research computer.</p>
+button{font:inherit;padding:.5rem 1rem}</style><main><h1>Wave 1 participant report</h1>
+<p>Download the PDF of participant profiles, messages and comments to your password-protected research computer.</p>
 <form method="post"><label>Researcher username<input name="username" autocomplete="username" required></label>
 <label>Password<input type="password" name="password" autocomplete="current-password" required></label>
-<button>Download blurred selfies</button></form></main></html>"""
+<button>Download PDF</button></form></main></html>"""
 
 
-def wave_records():
+def participant_report(allowed, now):
     from sqlalchemy.orm import Session as DatabaseSession
     from otree.models import Session, Participant
     from survey_exports import download_engine
+    from social_media import Player
+    from participant_report import build_pdf, FIELDS
 
     with closing(DatabaseSession(bind=download_engine())) as db:
-        rows = (db.query(Participant._vars).join(Session, Session.id == Participant.session_id)
+        rows = (db.query(Participant.id, Participant.id_in_session, Participant._vars)
+                .join(Session, Session.id == Participant.session_id)
                 .filter(Session.code == SESSION, Participant.id_in_session >= 13)
                 .order_by(Participant.id).yield_per(6))
-        for (values,) in rows:
-            yield values
-
-
-def archive(allowed, now):
-    output = io.BytesIO()
-    count = 0
-    with zipfile.ZipFile(output, 'w') as bundle:
-        for values in wave_records():
+        profiles = {}
+        for pid, slot, values in rows:
             photo = values.get('selfie') or {}
             if values.get('selfie_consent') is not True or photo.get('deleted_at') or photo.get('blur') != 10:
                 continue
@@ -69,9 +63,21 @@ def archive(allowed, now):
             if digest not in allowed:
                 continue
             allowed.remove(digest)
-            count += 1
-            bundle.writestr(f'selfie-{count:03}.jpg', raw)
-    return output.getvalue() if count else None
+            keys = ('display_name', 'social_type', 'image_treatment', 'avatar_choice', 'like_treatment',
+                    'reveal_truth', 'iq_reference_asked', 'period_1_condition', 'period_2_condition',
+                    'period_3_condition', 'third_period_accepted', 'period_tasks')
+            profile = {k: values.get(k) for k in keys}
+            profile['groups'] = {k: g.get('stratum') for k, g in values.get('peer_groups', {}).items()}
+            profiles[pid] = dict(profile, slot=slot, photo=raw, rows=[])
+        if not profiles:
+            return None
+        columns = [getattr(Player, name) for name in FIELDS]
+        responses = (db.query(Player.participant_id, *columns)
+                     .filter(Player.participant_id.in_(list(profiles)))
+                     .order_by(Player.participant_id, Player.round_number))
+        for record in responses.yield_per(128):
+            profiles[record[0]]['rows'].append(dict(zip(FIELDS, record[1:])))
+    return build_pdf(list(profiles.values()))
 
 
 def message(text, code):
@@ -104,11 +110,11 @@ async def download(request):
     expected = config['accounts'].get(name, '')
     if not hmac.compare_digest(hashlib.sha256(password.encode()).hexdigest(), expected):
         return message('Incorrect username or password. Go back and try again.', 401)
-    data = await run_in_threadpool(archive, set(config['photos']), now)
+    data = await run_in_threadpool(participant_report, set(config['photos']), now)
     if data is None:
         return message('No eligible selfies are available.', 404)
-    return Response(data, media_type='application/zip', headers={
-        **HEADERS, 'Content-Disposition': 'attachment; filename="wave-1-blurred-selfies.zip"'})
+    return Response(data, media_type='application/pdf', headers={
+        **HEADERS, 'Content-Disposition': 'attachment; filename="wave-1-participant-report.pdf"'})
 
 
 researcher_routes = [Route(PATH, download, methods=['GET', 'POST'])]

@@ -6,7 +6,7 @@ import json
 import os
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
-from zipfile import ZipFile
+from pypdf import PdfReader
 
 os.environ.update(OTREE_IN_MEMORY='1', DATABASE_URL='sqlite://')
 import otree.database
@@ -40,6 +40,8 @@ def run():
         db.commit()
         raw = [photo(n * 31) for n in range(len(records))]
         for person, img in zip(records, raw):
+            person.vars['social_type'] = 'quantitative_social'
+            person.vars['image_treatment'] = 'avatar'
             person.vars['selfie_consent'] = True
             person.vars['selfie'] = dict(image='data:image/jpeg;base64,' + base64.b64encode(img).decode(),
                                         confirmed_at=now.isoformat(), blur=10)
@@ -47,6 +49,8 @@ def run():
         records[3].vars['selfie'] = dict(deleted_at=now.isoformat())
         records[4].vars['selfie'] = dict(records[4].vars['selfie'],
                                          confirmed_at=(now-timedelta(days=181)).isoformat())
+        records[6].vars['social_type'] = 'qualitative_social'
+        records[6].vars['image_treatment'] = 'selfie'
         db.commit()
         client = TestClient(Starlette(routes=portal.researcher_routes), base_url='https://testserver')
         body = dict(username='test', password='synthetic-only')
@@ -62,12 +66,15 @@ def run():
             assert client.get('http://testserver'+portal.PATH).status_code == 403
             resp = client.post(portal.PATH, data=body)
             assert resp.status_code == 200 and 'no-store' in resp.headers['cache-control']
-            with ZipFile(io.BytesIO(resp.content)) as result:
-                assert result.namelist() == ['selfie-001.jpg', 'selfie-002.jpg']
-                assert [result.read(name) for name in result.namelist()] == [raw[1], raw[6]]
+            assert resp.headers['content-type']=='application/pdf'
+            pages=PdfReader(io.BytesIO(resp.content)).pages
+            assert len(pages)==2
+            assert 'PARTICIPANT 18' in pages[0].extract_text()
+            assert 'PARTICIPANT 13' in pages[1].extract_text()
+            assert all(len(p.images)==1 for p in pages)
             clock.now.return_value = portal.END
             assert client.post(portal.PATH, data=body).status_code == 404
-    print('Passed: personal login, HTTPS, session and index scope, consent, withdrawal, expiry, JPEG-only ZIP.')
+    print('Passed: personal login, HTTPS, cohort scope, consent, expiry and sorted participant PDFs.')
 
 
 if __name__ == '__main__':
