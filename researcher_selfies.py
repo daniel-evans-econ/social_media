@@ -26,7 +26,7 @@ FORM = """<!doctype html><html lang="en"><meta charset="utf-8">
 <style>body{font:1rem/1.55 system-ui,sans-serif;max-width:30rem;margin:8vh auto;padding:1rem;color:#203045}
 h1{font-size:1.75rem}label{display:block;margin:1rem 0}input{display:block;font:inherit;padding:.4rem;width:90%}
 button{font:inherit;padding:.5rem 1rem}</style><main><h1>Wave 1 participant report</h1>
-<p>Download the PDF of participant profiles, messages and comments to your password-protected research computer.</p>
+<p>Download profiles, messages and comments for participants who finished the survey. Save the PDF on your password-protected research computer.</p>
 <form method="post"><label>Researcher username<input name="username" autocomplete="username" required></label>
 <label>Password<input type="password" name="password" autocomplete="current-password" required></label>
 <button>Download PDF</button></form></main></html>"""
@@ -42,7 +42,8 @@ def participant_report(allowed, now):
     with closing(DatabaseSession(bind=download_engine())) as db:
         rows = (db.query(Participant.id, Participant.id_in_session, Participant._vars)
                 .join(Session, Session.id == Participant.session_id)
-                .filter(Session.code == SESSION, Participant.id_in_session >= 13)
+                .filter(Session.code == SESSION, Participant.id_in_session >= 13,
+                        Participant._current_page_name == 'FinalResults')
                 .order_by(Participant.id).yield_per(6))
         profiles = {}
         for pid, slot, values in rows:

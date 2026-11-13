@@ -14,7 +14,7 @@ ART = Path(__file__).parent / 'social_media' / 'report_art'
 KINDS = ('report', 'iq_report', 'global_report')
 COMMENTS = {'realism_feedback': 'Experience of sending and receiving messages',
             'realism_behavior': 'Effects on behavior and decisions about sharing', 'comments': 'Additional comments'}
-FIELDS = ['round_number', 'age', 'gender', 'display_name', *COMMENTS,
+FIELDS = ['round_number', 'q_correct', 'iq_estimate', 'global_iq_estimate', 'age', 'gender', 'display_name', *COMMENTS,
           *(f'{kind}_{suffix}' for kind in KINDS for suffix in ('message', 'emoji', 'shared'))]
 EMOJIS = {'👍': ('like', 'Like'), '❤️': ('love', 'Love'), '🤗': ('care', 'Care'),
           '😆': ('haha', 'Haha'), '😢': ('sad', 'Sad'), '😡': ('angry', 'Angry')}
@@ -35,11 +35,12 @@ def line(markup, size=10, gap=0, color='#223144', leading=None, keep=False):
                      spaceAfter=gap, keepWithNext=keep, splitLongWords=True, alignment=TA_LEFT))
 
 
-def emoji(value):
+def emoji(value, with_label=True):
     if value not in EMOJIS:
         return clean(value) if value else ''
     asset, label = EMOJIS[value]
-    return f'<img src="{(ART/(asset+".png")).as_posix()}" height="12" width="12" valign="-2"/> {label}'
+    icon = f'<img src="{(ART/(asset+".png")).as_posix()}" height="12" width="12" valign="-2"/>'
+    return f'{icon} {label}' if with_label else icon
 
 
 def profile_section(p):
@@ -100,12 +101,19 @@ def profile_section(p):
             shared = r.get(f'{k}_shared')
             status, tint = {True:('Sent','#176044'), False:('Not sent','#8d4934'),
                             None:('Decision not recorded','#535f70')}[shared]
-            mark = emoji(r.get(f'{k}_emoji'))
+            rnd = r['round_number']
+            if k == 'report':
+                correct = sum(bool(q['q_correct']) for q in rows if rnd-5 < q['round_number'] <= rnd)
+                feedback = f'Block score: {correct}/5'
+            elif k == 'iq_report':
+                feedback = f'Task IQ shown: {r["iq_estimate"]}'
+            else:
+                feedback = f'Overall IQ shown: {r["global_iq_estimate"]}'
+            mark = emoji(r.get(f'{k}_emoji'), with_label=False)
             story.append(KeepTogether([
                 line(f'<b>Period {period+1} · {label}</b> &nbsp; '
-                     f'<font color="{tint}"><b>{status}</b></font>'
-                     + (' &nbsp; '+mark if mark else ''), 8.5,1,'#4c5e70'),
-                line(clean(text),10,5)]))
+                     f'<font color="{tint}"><b>{status}</b></font> &nbsp; {feedback}', 8.5,1,'#4c5e70'),
+                line(clean(text)+(' &nbsp;'+mark if mark else ''),10,5)]))
     if not count:
         story.append(line('No message recorded.',10,5,'#626f7c'))
     story += [Spacer(1,5),line('<b>Comments</b>',13,4,keep=True)]

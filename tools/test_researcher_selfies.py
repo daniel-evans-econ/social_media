@@ -35,8 +35,11 @@ def run():
         db.add(other)
         records = [Participant(session=session, id_in_session=i) for i in [1, *range(13, 19)]]
         records.append(Participant(session=other, id_in_session=13))
+        records.append(Participant(session=session, id_in_session=19))
         for person in records:
+            person._current_page_name = 'FinalResults'
             db.add(person)
+        records[-1]._current_page_name = 'Demographics'
         db.commit()
         raw = [photo(n * 31) for n in range(len(records))]
         for person, img in zip(records, raw):
